@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f5ff">
+<title>Bubble Chat ♡</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css">
+</head><body>
+<main class="app-shell">
+<section id="loginView" class="login-view"><div class="login-card"><div class="logo-bubble">♡</div><p class="eyebrow">مساحتكم الصغيرة</p><h1>Bubble <span>Chat</span></h1><p class="subtext">مكان لطيف يجمعكم في محادثة واحدة 🫧</p><form id="loginForm"><label for="username">اسم المستخدم</label><div class="input-wrap"><span>✿</span><input id="username" autocomplete="username" placeholder="Samaa / Tuqa / Menna" required></div><label for="password">كلمة المرور</label><div class="input-wrap"><span>♡</span><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div><button class="primary-btn" type="submit">دخول إلى عالمنا <span>→</span></button><p id="loginError" class="error" role="alert"></p></form><div class="members"><span>🩵 Samaa</span><span>🩷 Tuqa</span><span>💜 Menna</span></div></div><div class="floating f1">✦</div><div class="floating f2">♡</div><div class="floating f3">✧</div></section>
+<section id="chatView" class="chat-view hidden">
+<aside class="sidebar"><header class="side-header"><div><div class="mini-brand">Bubble <b>Chat</b> 🫧</div><small>أهلاً بيكم في مكانكم ♡</small></div><div class="side-actions"><button id="themeToggle" class="icon-btn theme-toggle" type="button" title="تبديل الوضع الفاتح والداكن" aria-label="تبديل الوضع">🌙</button><button id="logoutBtn" class="icon-btn" title="تسجيل الخروج">↪</button></div></header>
+<button id="profileBtn" class="me-card profile-trigger"><div id="myAvatar" class="avatar cyan">♡</div><div><strong id="myName">اسمك</strong><small>تعديل الملف الشخصي ✎</small></div><i class="online-dot"></i></button>
+<div class="section-label">المحادثات <span>✿</span></div><div id="contacts" class="contacts"></div><div class="side-footer">made with <span>♥</span> for three</div></aside>
+<section class="conversation"><div id="emptyState" class="empty-state"><div class="empty-art">🫧</div><h2>أهلاً بيكم في Bubble Chat</h2><p>اختاروا محادثة أو افتحوا الجروب ♡</p><div class="sparkles">✦　♡　✧</div></div>
+<div id="activeChat" class="active-chat hidden"><header id="chatHeader" class="chat-header"><div id="chatAvatar" class="avatar pink">♡</div><div class="chat-person"><strong id="chatName">اسم الصديق</strong><small id="chatSubtitle">من أصحابك</small></div><button id="pinnedToggle" class="soft-btn" type="button">📌 المثبتة</button><div class="header-deco">✧</div></header>
+<div id="pinnedBar" class="pinned-bar hidden"></div><div id="messages" class="messages"></div>
+<div id="replyPreview" class="reply-preview hidden"><span id="replyText"></span><button id="cancelReply" type="button">×</button></div>
+<div id="stickerTray" class="sticker-tray hidden"></div>
+<form id="messageForm" class="composer"><button id="stickerBtn" class="tool-btn" type="button" title="الملصقات">☺</button><input id="messageInput" maxlength="2000" autocomplete="off" placeholder="اكتب رسالة حلوة..."><button class="send-btn" type="submit" aria-label="إرسال">➤</button></form><p class="composer-note">خلي الكلام كله لطافة ♡</p></div></section></section>
+</main>
+<div id="profileModal" class="modal hidden"><form id="profileForm" class="modal-card"><button class="modal-close" id="closeProfile" type="button">×</button><h2>ملفك الشخصي ✨</h2><div class="profile-preview"><div id="profileAvatarPreview" class="avatar cyan">♡</div><label class="upload-btn">اختاري صورة<input id="avatarFile" type="file" accept="image/*"></label></div><label>الاسم الظاهر<input id="displayNameInput" maxlength="24" required></label><label class="color-field">لون اسمك ومظهر حسابك
+<div class="neon-select" id="neonColorSelect">
+  <input type="hidden" id="profileColor" value="#55cbd5">
+  <button class="neon-select-trigger" id="colorSelectTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+    <span class="color-choice-preview"><i id="selectedColorDot"></i><span id="selectedColorName">سماوي</span></span><span class="neon-chevron">⌄</span>
+  </button>
+  <div class="neon-color-menu hidden" id="colorSelectMenu" role="listbox" aria-label="اختار لونك">
+    <button type="button" class="neon-color-option selected" role="option" aria-selected="true" data-color="#55cbd5" data-name="سماوي"><span class="neon-swatch cyan"></span><span>سماوي</span><small>NEON CYAN</small><b>✓</b></button>
+    <button type="button" class="neon-color-option" role="option" aria-selected="false" data-color="#ed8fbd" data-name="وردي"><span class="neon-swatch pink"></span><span>وردي</span><small>HOT PINK</small><b>✓</b></button>
+    <button type="button" class="neon-color-option" role="option" aria-selected="false" data-color="#a78be8" data-name="موف"><span class="neon-swatch purple"></span><span>موف</span><small>ULTRA VIOLET</small><b>✓</b></button>
+    <button type="button" class="neon-color-option" role="option" aria-selected="false" data-color="#83b77c" data-name="أخضر"><span class="neon-swatch green"></span><span>أخضر</span><small>LASER GREEN</small><b>✓</b></button>
+    <button type="button" class="neon-color-option" role="option" aria-selected="false" data-color="#e5a34f" data-name="خوخي"><span class="neon-swatch peach"></span><span>خوخي</span><small>GLOW PEACH</small><b>✓</b></button>
+    <button type="button" class="neon-color-option" role="option" aria-selected="false" data-color="#718bdc" data-name="أزرق"><span class="neon-swatch blue"></span><span>أزرق</span><small>ELECTRIC BLUE</small><b>✓</b></button>
+  </div>
+</div></label><button class="primary-btn" type="submit">حفظ التغييرات</button><p id="profileError" class="error"></p></form></div>
+<div id="toast" class="toast hidden"></div>
+<script type="module" src="app.js"></script>
+</body></html>

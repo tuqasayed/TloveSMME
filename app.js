@@ -1,3 +1,17 @@
+// Remove accidental visible escaped-newline fragments left by malformed markup.
+function removeEscapedNewlineArtifacts(root=document.body){
+  if(!root)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const remove=[];
+  while(walker.nextNode()){
+    const value=walker.currentNode.nodeValue||"";
+    if(/^\s*n(?:\s*\\n\s*n){1,}\s*\\?\s*$/i.test(value))remove.push(walker.currentNode);
+  }
+  remove.forEach(node=>node.remove());
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>removeEscapedNewlineArtifacts(),{once:true});
+else removeEscapedNewlineArtifacts();
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, query, orderBy, onSnapshot, addDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
@@ -126,6 +140,51 @@ function renderChatAvatar(target){
   paintAvatar(avatar,target);
 }
 function toast(t){const el=$("toast");el.textContent=t;el.classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.add("hidden"),2600)}
+// PWA installation: show an install entry point to every visitor.
+let deferredInstallPrompt = null;
+const installAppBtn = $("installAppBtn");
+function isAppInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function refreshInstallButton() {
+  if (installAppBtn) installAppBtn.classList.toggle("hidden", isAppInstalled());
+}
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  refreshInstallButton();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  refreshInstallButton();
+  toast("تم تثبيت Bubble Chat بنجاح ♡");
+});
+installAppBtn?.addEventListener("click", async () => {
+  if (isAppInstalled()) return refreshInstallButton();
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice?.outcome === "accepted") toast("جاري تثبيت Bubble Chat ♡");
+    deferredInstallPrompt = null;
+    return;
+  }
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  toast(isIOS
+    ? 'لتثبيته: اضغط «مشاركة» ثم «إضافة إلى الشاشة الرئيسية».'
+    : 'لو خيار التثبيت مش ظاهر تلقائيًا: افتح قائمة ⋮ في المتصفح ثم «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');
+});
+refreshInstallButton();
+// Register the messaging worker immediately, including before login.
+if ("serviceWorker" in navigator) {
+  const workerUrl = new URL("./firebase-messaging-sw.js", import.meta.url);
+  const workerScope = new URL("./", import.meta.url).pathname;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(workerUrl.href, { scope: workerScope })
+      .catch(error => console.warn("تعذر تسجيل Service Worker:", error));
+  }, { once: true });
+}
+
+
 function timeOf(ts){return ts?.toDate?ts.toDate().toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"}):"الآن"}
 function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("loginError").textContent=msg}
 function showChat(){$("loginView").classList.add("hidden");$("chatView").classList.remove("hidden")}

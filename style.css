@@ -1036,7 +1036,7 @@ body {
 .modal {
   position:fixed;
   inset:0;
-  z-index:20;
+  z-index:100;
   background:#30283d66;
   display:grid;
   place-items:center;
@@ -1950,28 +1950,9 @@ body.dark-mode .empty-state, body.dark-mode .active-chat {
 }
 
 
-/* Persistent PWA install action, available on login and chat screens. */
-.install-app-btn {
-  position:fixed; z-index:120;
-  right:max(16px, env(safe-area-inset-right));
-  bottom:max(16px, env(safe-area-inset-bottom));
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  min-height:46px; padding:0 18px;
-  border:1px solid #ffffffb8; border-radius:999px;
-  color:#fff; font-weight:800; font-size:13px;
-  background:linear-gradient(110deg,#42cbd7,#a995ed 58%,#ef9bc2);
-  box-shadow:0 8px 26px #8172b34a, inset 0 1px 0 #ffffff80;
-  cursor:pointer; -webkit-tap-highlight-color:transparent;
-}
-.install-app-btn:active { transform:scale(.97); }
-.install-app-btn.hidden { display:none!important; }
-@media(max-width:700px) {
-  .install-app-btn { right:14px; bottom:max(14px, env(safe-area-inset-bottom)); }
-}
-
-/* مؤشر الكتابة الخفيف */
-.typing-dots{display:inline-flex;align-items:center;gap:3px;margin-inline-start:6px;vertical-align:middle;height:12px}
-.typing-dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.35;animation:typingPulse 1s ease-in-out infinite}
-.typing-dots i:nth-child(2){animation-delay:.15s}
-.typing-dots i:nth-child(3){animation-delay:.3s}
-@keyframes typingPulse{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+/* Install action: keep it directly above the existing credits button. */
+.side-footer { display:flex; flex-direction:column; align-items:stretch; gap:8px; }
+.side-footer .install-app-btn { position:static; z-index:2; width:100%; min-height:42px; margin:0; padding:0 12px; display:flex; align-items:center; justify-content:center; gap:7px; border:1px solid #ffffffb8; border-radius:15px; color:#fff; font-weight:800; font-size:12px; background:linear-gradient(110deg,#42cbd7,#a995ed 58%,#ef9bc2); box-shadow:0 7px 20px #8172b34a, inset 0 1px 0 #ffffff80; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.side-footer .install-app-btn:active { transform:scale(.98); }
+.side-footer .install-app-btn.hidden { display:none!important; }
+@media(max-width:700px) { .side-footer { gap:7px; } .side-footer .install-app-btn { min-height:39px; font-size:10px; padding:0 4px; } }

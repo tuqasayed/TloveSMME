@@ -4,13 +4,14 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
   <meta content="#f7f5ff" name="theme-color"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Bubble Chat"/>
+  <link rel="apple-touch-icon" href="./icons/icon-192.png"/>
   <title>
    Bubble Chat ♡
   </title>
-  <link href="https://fonts.googleapis.com" rel="preconnect"/>
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-  <link href="style.css" rel="stylesheet"/>
+  <link href="style.css?v=install-button-fix-4" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -130,9 +131,11 @@
      <div class="contacts" id="contacts">
      </div>
      <div class="side-footer">
-      صنع بقرف 🙂
+      <button class="install-app-btn" id="installAppBtn" type="button" aria-label="تثبيت Bubble Chat كتطبيق">⬇ <span>تثبيت التطبيق</span></button>
+      <button class="credits-trigger" id="creditsBtn" type="button" aria-haspopup="dialog" aria-controls="creditsModal"><span class="credits-trigger-icon">✦</span><span>حقوق العمل</span><span class="credits-trigger-arrow">✧</span></button>
      </div>
     </aside>
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
     <section class="conversation">
      <div class="empty-state" id="emptyState">
       <div class="empty-art">
@@ -323,9 +326,28 @@
     </p>
    </form>
   </div>
+  <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
+  <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
+  <audio id="creditsMusic" src="fl.mp3" preload="auto"></audio>
+  <section class="credits-modal hidden" id="creditsModal" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">
+   <div class="credits-curtain credits-curtain-left"></div><div class="credits-curtain credits-curtain-right"></div>
+   <div class="credits-stage">
+    <button class="credits-close" id="closeCredits" type="button" aria-label="إغلاق">&times;</button>
+    <div class="credits-spotlight"></div><div class="credits-film">BUBBLE CHAT PRESENTS</div>
+    <div class="credits-trophy">✦</div><p class="credits-kicker">بطاقة العمل</p>
+    <h2 id="creditsTitle">صنع بقرف 🙂</h2><div class="credits-divider"><span>✧</span></div>
+    <div class="credits-list">
+     <div class="credit-line"><span>تصميم</span><b>محمدي</b></div><div class="credit-line"><span>إخراج</span><b>محمدي</b></div>
+     <div class="credit-line"><span>تطوير وبرمجة</span><b>محمدي</b></div><div class="credit-line"><span>كتابة وتأليف</span><b>محمدي</b></div>
+     <div class="credit-line"><span>تنسيق وإشراف فني</span><b>محمدي</b></div><div class="credit-line"><span>مساعد المخرج</span><b>محمدي</b></div>
+     <div class="credit-line"><span>إنتاج وتنفيذ</span><b>محمدي</b></div><div class="credit-line"><span>حقوق الملكية</span><b>محمدي</b></div>
+    </div>
+    <div class="credits-award"><span class="award-stars">✦ ✧ ✦</span><p>جائزة أكثر شخص يستحق جائزة «أكثر واحد فاضي لدرجة إنه يكتب كل ده» تذهب إلى...</p><strong>محمدي 🏆</strong></div>
+   </div>
+  </section>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=push-fix-2" type="module">
+  <script src="app.js?v=install-button-fix-4" type="module">
   </script>
  </body>
 </html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+  <meta content="#f7f5ff" name="theme-color"/>
+  <title>
+   Bubble Chat ♡
+  </title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="style.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <main class="app-shell">
+   <section class="login-view" id="loginView">
+    <div class="login-card">
+     <div class="logo-bubble">
+      ♡
+     </div>
+     <p class="eyebrow">
+     </p>
+     <h1>
+      Bubble
+      <span>
+       Chat
+      </span>
+     </h1>
+     <p class="subtext">
+      ﴿قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ...﴾ - ﴿قُلْ أَعُوذُ بِرَبِّ النَّاسِ...﴾
+     </p>
+     <form id="loginForm">
+      <label for="username">
+       اسم المستخدم
+      </label>
+      <div class="input-wrap">
+       <span>
+        ✿
+       </span>
+       <input autocomplete="username" id="username" placeholder="اكتب اسم المستخدم" required=""/>
+      </div>
+      <label for="password">
+       كلمة المرور
+      </label>
+      <div class="input-wrap">
+       <span>
+        ♡
+       </span>
+       <input autocomplete="current-password" id="password" required="" type="password"/>
+      </div>
+      <button class="primary-btn" type="submit">
+       دخول إلى عالمنا
+       <span>
+        &rarr;
+       </span>
+      </button>
+      <p class="error" id="loginError" role="alert">
+      </p>
+     </form>
+     <div class="members">
+      <span>
+       كل
+      </span>
+      <span>
+       صبرٍ
+      </span>
+      <span>
+       جبر
+      </span>
+     </div>
+    </div>
+    <div class="floating f1">
+     ✦
+    </div>
+    <div class="floating f2">
+     ♡
+    </div>
+    <div class="floating f3">
+     ✧
+    </div>
+   </section>
+   <section class="chat-view hidden" id="chatView">
+    <aside class="sidebar">
+     <header class="side-header">
+      <div>
+       <div class="mini-brand">
+        Bubble
+        <b>
+         Chat
+        </b>
+        🫧
+       </div>
+       <small>
+        أهلًا بيكم في مكانكم ♡
+       </small>
+      </div>
+      <div class="side-actions">
+       <button aria-label="تبديل الوضع" class="icon-btn theme-toggle" id="themeToggle" title="تبديل الوضع الفاتح والداكن" type="button">
+        🌙
+       </button>
+       <button class="icon-btn" id="logoutBtn" title="تسجيل الخروج">
+        &rarrhk;
+       </button>
+      </div>
+     </header>
+     <button class="me-card profile-trigger" id="profileBtn">
+      <div class="avatar cyan" id="myAvatar">
+       ♡
+      </div>
+      <div>
+       <strong id="myName">
+        اسمك
+       </strong>
+       <small>
+        تعديل الملف الشخصي ✎
+       </small>
+      </div>
+      <i class="online-dot">
+      </i>
+     </button>
+     <div class="section-label">
+      المحادثات
+      <span>
+       ✿
+      </span>
+     </div>
+     <div class="contacts" id="contacts">
+     </div>
+     <div class="side-footer">
+      صنع بقرف 🙂
+     </div>
+    </aside>
+    <section class="conversation">
+     <div class="empty-state" id="emptyState">
+      <div class="empty-art">
+       🫧
+      </div>
+      <h2>
+       أهلًا بيكم في Bubble Chat
+      </h2>
+      <p>
+       ♡
+      </p>
+      <div class="sparkles">
+       ✦　♡　✧
+      </div>
+     </div>
+     <div class="active-chat hidden" id="activeChat">
+      <header class="chat-header" id="chatHeader">
+       <div class="avatar pink" id="chatAvatar">
+        ♡
+       </div>
+       <div class="chat-person">
+        <strong id="chatName">
+         اسم الصديق
+        </strong>
+        <small id="chatSubtitle">
+         BSFE
+        </small>
+       </div>
+       <button class="soft-btn" id="pinnedToggle" type="button">
+        📌 المثبتة
+       </button>
+       <div class="header-deco">
+        ✧
+       </div>
+      </header>
+      <div class="pinned-bar hidden" id="pinnedBar">
+      </div>
+      <div class="messages" id="messages">
+      </div>
+      <div class="reply-preview hidden" id="replyPreview">
+       <span id="replyText">
+       </span>
+       <button id="cancelReply" type="button">
+        &times;
+       </button>
+      </div>
+      <div class="sticker-tray hidden" id="stickerTray">
+      </div>
+      <form class="composer" id="messageForm">
+       <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button">
+        ☺
+       </button>
+       <input autocomplete="off" id="messageInput" maxlength="2000" placeholder="اكتب رسالة..."/>
+       <button aria-label="إرسال" class="send-btn" type="submit">
+        ➤
+       </button>
+      </form>
+      <p class="composer-note">
+       ♡ . ♡
+      </p>
+     </div>
+    </section>
+   </section>
+  </main>
+  <div class="modal hidden" id="profileModal">
+   <form class="modal-card" id="profileForm">
+    <button class="modal-close" id="closeProfile" type="button">
+     &times;
+    </button>
+    <h2>
+     ملفك الشخصي ✨
+    </h2>
+    <div class="profile-preview">
+     <div class="avatar cyan" id="profileAvatarPreview">
+      ♡
+     </div>
+     <label class="upload-btn">
+      اختاري صورة
+      <input accept="image/*" id="avatarFile" type="file"/>
+     </label>
+    </div>
+    <label>
+     الاسم الظاهر
+     <input id="displayNameInput" maxlength="24" required=""/>
+    </label>
+    <label class="color-field">
+     لون اسمك ومظهر حسابك
+     <div class="neon-select" id="neonColorSelect">
+      <input id="profileColor" type="hidden" value="#55cbd5"/>
+      <button aria-expanded="false" aria-haspopup="listbox" class="neon-select-trigger" id="colorSelectTrigger" type="button">
+       <span class="color-choice-preview">
+        <i id="selectedColorDot">
+        </i>
+        <span id="selectedColorName">
+         سماوي
+        </span>
+       </span>
+       <span class="neon-chevron">
+        ⌄
+       </span>
+      </button>
+      <div aria-label="اختار لونك" class="neon-color-menu hidden" id="colorSelectMenu" role="listbox">
+       <button aria-selected="true" class="neon-color-option selected" data-color="#55cbd5" data-name="سماوي" role="option" type="button">
+        <span class="neon-swatch cyan">
+        </span>
+        <span>
+         سماوي
+        </span>
+        <small>
+         NEON CYAN
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+       <button aria-selected="false" class="neon-color-option" data-color="#ed8fbd" data-name="وردي" role="option" type="button">
+        <span class="neon-swatch pink">
+        </span>
+        <span>
+         وردي
+        </span>
+        <small>
+         HOT PINK
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+       <button aria-selected="false" class="neon-color-option" data-color="#a78be8" data-name="موف" role="option" type="button">
+        <span class="neon-swatch purple">
+        </span>
+        <span>
+         موف
+        </span>
+        <small>
+         ULTRA VIOLET
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+       <button aria-selected="false" class="neon-color-option" data-color="#83b77c" data-name="أخضر" role="option" type="button">
+        <span class="neon-swatch green">
+        </span>
+        <span>
+         أخضر
+        </span>
+        <small>
+         LASER GREEN
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+       <button aria-selected="false" class="neon-color-option" data-color="#e5a34f" data-name="خوخي" role="option" type="button">
+        <span class="neon-swatch peach">
+        </span>
+        <span>
+         خوخي
+        </span>
+        <small>
+         GLOW PEACH
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+       <button aria-selected="false" class="neon-color-option" data-color="#718bdc" data-name="أزرق" role="option" type="button">
+        <span class="neon-swatch blue">
+        </span>
+        <span>
+         أزرق
+        </span>
+        <small>
+         ELECTRIC BLUE
+        </small>
+        <b>
+         &checkmark;
+        </b>
+       </button>
+      </div>
+     </div>
+    </label>
+    <button class="primary-btn" type="submit">
+     حفظ التغييرات
+    </button>
+    <p class="error" id="profileError">
+    </p>
+   </form>
+  </div>
+  <div class="toast hidden" id="toast">
+  </div>
+  <script src="app.js" type="module">
+  </script>
+ </body>
+</html>

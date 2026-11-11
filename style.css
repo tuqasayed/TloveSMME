@@ -467,6 +467,9 @@ form {
   font-size:9px;
   margin:0 0 8px
 }
+.contact{position:relative;padding-left:36px}
+.unread-badge{position:absolute;top:5px;right:7px;min-width:22px;height:22px;padding:0 6px;border:2px solid var(--panel,#171526);border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,#ff5364,#e11d48);color:#fff;font:800 10px/1 Cairo,sans-serif;box-shadow:0 3px 10px #e11d4866;z-index:3;pointer-events:none}
+@media(max-width:700px){.contact{padding-left:2px}.unread-badge{top:3px;right:5px;min-width:20px;height:20px;font-size:9px}}
 @media(max-width:700px) {
   .app-shell {
     padding:0

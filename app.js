@@ -9,6 +9,44 @@ const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
 const NOTIFICATION_WORKER_URL="https://bubble-chat-notifications.mainmohammedy.workers.dev";
 const VAPID_PUBLIC_KEY="BNntJ7Pft1mjX9eAemavXWmOmjrZj9I-VDyV-zsqFm-otZV0WKadTAcgjUKJOrexkCzmhC2Lmy7tB2tqcQ5PXuI";
 const $=id=>document.getElementById(id); let currentUser=null,currentProfile=null,activeChat=null,stopMessages=null,chatOpenVersion=0,replyTarget=null,editingId=null,selectedAvatarFile=null;
+const unreadStops=new Map(), unreadCounts=new Map();
+const READ_KEY_PREFIX="bubble-chat-read-";
+let lastIncomingSoundAt=0;
+function playSound(id){const audio=$(id);if(!audio)return;audio.currentTime=0;const result=audio.play();if(result?.catch)result.catch(()=>{});}
+function playIncomingSound(){
+  // صوت واحد لكل دفعة رسائل، مع تهدئة بسيطة حتى لا تتزاحم الأصوات عند وصول رسائل كثيرة.
+  const now=Date.now();
+  if(now-lastIncomingSoundAt<700)return;
+  lastIncomingSoundAt=now;
+  playSound("receiveSound");
+}
+function readKey(thread){return `${READ_KEY_PREFIX}${currentUser?.uid||"guest"}-${thread}`;}
+function setThreadRead(thread,latestTime=Date.now()){localStorage.setItem(readKey(thread),String(latestTime));unreadCounts.set(thread,0);updateUnreadBadge(thread);}
+function updateUnreadBadge(thread){
+  const button=[...$("contacts").querySelectorAll(".contact")].find(b=>b.dataset.threadId===thread);if(!button)return;
+  let badge=button.querySelector(".unread-badge");const count=unreadCounts.get(thread)||0;
+  if(count>0){if(!badge){badge=document.createElement("span");badge.className="unread-badge";badge.setAttribute("aria-label","رسائل غير مقروءة");button.appendChild(badge);}badge.textContent=count>99?"99+":String(count);}
+  else badge?.remove();
+}
+function stopUnreadListeners(){unreadStops.forEach(stop=>stop());unreadStops.clear();unreadCounts.clear();}
+function watchUnreadThread(thread){
+  if(unreadStops.has(thread))return;
+  const qUnread=query(collection(db,"threads",thread,"messages"),orderBy("createdAt","asc"));let initialized=false;
+  const stop=onSnapshot(qUnread,snapshot=>{
+    const docs=snapshot.docs,latest=docs.at(-1)?.data()?.createdAt,latestTime=latest?.toMillis?.()||Date.now(),key=readKey(thread);
+    let lastRead=Number(localStorage.getItem(key));
+    if(!initialized&&!Number.isFinite(lastRead)){localStorage.setItem(key,String(latestTime));lastRead=latestTime;}
+    const isOpen=activeChat&&(activeChat.kind==="group"?GROUP_ID:threadId(currentUser.uid,activeChat.id))===thread;
+    if(isOpen)setThreadRead(thread,latestTime);
+    else{
+      const unread=docs.filter(d=>{const m=d.data(),time=m.createdAt?.toMillis?.()||0;return m.senderId!==currentUser.uid&&time>lastRead;}).length;
+      unreadCounts.set(thread,unread);updateUnreadBadge(thread);
+    }
+    initialized=true;
+  },error=>console.warn("Unread listener failed:",error));
+  unreadStops.set(thread,stop);
+}
+
 const userProfiles=new Map();
 const USERNAMES=["Samaa","Tuqa","Menna"], GROUP_ID="bubble-chat-three-friends", GROUP={id:GROUP_ID,kind:"group",username:"الجروب",displayName:"We's Core ᥫ᭡",participants:[]};
 const STICKERS = [
@@ -103,11 +141,30 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
 });
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();const name=$("username").value.trim();if(!USERNAMES.some(n=>n.toLowerCase()===name.toLowerCase()))return $("loginError").textContent="اسم المستخدم غير مسموح به.";try{await signInWithEmailAndPassword(auth,emailFor(name),$("password").value)}catch(err){console.error(err);$("loginError").textContent="اسم المستخدم أو كلمة المرور غير صحيحة."}});
 $("logoutBtn").onclick=()=>signOut(auth);
-onAuthStateChanged(auth,async user=>{chatOpenVersion++;if(stopMessages){stopMessages();stopMessages=null}activeChat=null;if(!user){currentUser=currentProfile=null;showLogin();return}currentUser=user;try{const s=await getDoc(doc(db,"users",user.uid));if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}currentProfile={id:user.uid,...s.data()};currentProfile.displayName ||= currentProfile.username;renderMe();showChat();await loadContacts()}catch(e){console.error(e);showLogin("تعذر تحميل الحساب. راجع إعدادات Firebase.")}});
+onAuthStateChanged(auth,async user=>{chatOpenVersion++;if(stopMessages){stopMessages();stopMessages=null}stopUnreadListeners();activeChat=null;if(!user){currentUser=currentProfile=null;showLogin();return}currentUser=user;try{const s=await getDoc(doc(db,"users",user.uid));if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}currentProfile={id:user.uid,...s.data()};currentProfile.displayName ||= currentProfile.username;renderMe();showChat();await loadContacts()}catch(e){console.error(e);showLogin("تعذر تحميل الحساب. راجع إعدادات Firebase.")}});
 function renderMe(){applyMyTheme();$("myName").textContent=currentProfile.displayName||currentProfile.username;paintAvatar($("myAvatar"),currentProfile);paintAvatar($("profileAvatarPreview"),currentProfile)}
-async function loadContacts(){const s=await getDocs(collection(db,"users"));const users=s.docs.map(d=>({id:d.id,...d.data()}));userProfiles.clear();users.forEach(u=>userProfiles.set(u.id,u));if(currentProfile)userProfiles.set(currentUser.uid,currentProfile);GROUP.participants=users.map(u=>u.id);const others=users.filter(u=>u.id!==currentUser.uid);const groupBtn=contactButton(GROUP,true);contactsElReplace(groupBtn);others.forEach(p=>$("contacts").appendChild(contactButton(p,false)))}
+async function loadContacts(){
+  stopUnreadListeners();
+  const s=await getDocs(collection(db,"users"));
+  const users=s.docs.map(d=>({id:d.id,...d.data()}));
+  userProfiles.clear();users.forEach(u=>userProfiles.set(u.id,u));
+  if(currentProfile)userProfiles.set(currentUser.uid,currentProfile);
+  GROUP.participants=users.map(u=>u.id);
+  const others=users.filter(u=>u.id!==currentUser.uid);
+  const groupBtn=contactButton(GROUP,true);contactsElReplace(groupBtn);
+  others.forEach(p=>$("contacts").appendChild(contactButton(p,false)));
+  watchUnreadThread(GROUP_ID);
+  others.forEach(p=>watchUnreadThread(threadId(currentUser.uid,p.id)));
+  unreadCounts.forEach((_,thread)=>updateUnreadBadge(thread));
+}
 function contactsElReplace(groupBtn){$("contacts").innerHTML="";$("contacts").appendChild(groupBtn)}
-function contactButton(p,group){const b=document.createElement("button");b.className="contact";b.style.setProperty("--contact-color",group?"#a78be8":colorOf(p));b.innerHTML=`${group?'<div class="group-avatar">♡<small>3</small></div>':avatarMarkup(p)}<div><strong style="color:${group?'#a78be8':colorOf(p)}">${$safe(group?"We's Core ᥫ᭡":p.displayName||p.username)}</strong><small>${group?"التلاتة مع بعض ✨":"ابدأ المحادثة"}</small></div>`;b.onclick=()=>openChat(p);return b}
+function contactButton(p,group){
+  const b=document.createElement("button");b.className="contact";
+  b.dataset.threadId=group?GROUP_ID:threadId(currentUser.uid,p.id);
+  b.style.setProperty("--contact-color",group?"#a78be8":colorOf(p));
+  b.innerHTML=`${group?'<div class="group-avatar">♡<small>3</small></div>':avatarMarkup(p)}<div><strong style="color:${group?'#a78be8':colorOf(p)}">${$safe(group?"We's Core ᥫ᭡":p.displayName||p.username)}</strong><small>${group?"التلاتة مع بعض ✨":"ابدأ المحادثة"}</small></div>`;
+  b.onclick=()=>openChat(p);return b;
+}
 async function openChat(target){
   const openVersion=++chatOpenVersion;
   activeChat=target;
@@ -130,6 +187,7 @@ async function openChat(target){
   }
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
+  setThreadRead(id);
   const ref=doc(db,"threads",id);
 
   try{
@@ -148,11 +206,14 @@ async function openChat(target){
     }
 
     const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","asc"));
+    let firstMessagesSnapshot=true;
     const unsubscribe=onSnapshot(q,s=>{
       if(openVersion!==chatOpenVersion)return;
       if(!activeChat)return;
       const currentId=activeChat.kind==="group"?GROUP_ID:threadId(currentUser.uid,activeChat.id);
       if(currentId!==id)return;
+      if(!firstMessagesSnapshot && s.docChanges().some(change=>change.type==="added"&&change.doc.data().senderId!==currentUser.uid))playIncomingSound();
+      firstMessagesSnapshot=false;
       renderMessages(s.docs);
     },e=>{
       if(openVersion!==chatOpenVersion)return;
@@ -198,7 +259,7 @@ function messageNode(m){
 }
 async function handleMessageAction(action,m,el){if(action==="reply"){replyTarget=m;editingId=null;$("replyText").textContent=`رد على ${m.senderName}: ${(m.text||"ملصق").slice(0,90)}`;$("replyPreview").classList.remove("hidden");$("messageInput").focus()}if(action==="edit"){if(m.senderId!==currentUser.uid)return;editingId=m.id;replyTarget=null;$("messageInput").value=m.text||"";$("messageInput").focus();toast("عدّل الرسالة ثم اضغط إرسال") }if(action==="pin"){await updateDoc(doc(db,"threads",activeThreadId(),"messages",m.id),{pinned:!m.pinned});toast(m.pinned?"تم إلغاء التثبيت":"تم تثبيت الرسالة") }if(action==="react")el.querySelector(".reaction-picker").classList.toggle("hidden")}
 async function reactTo(m,emoji){const r=doc(db,"threads",activeThreadId(),"messages",m.id),snap=await getDoc(r),data=snap.data()||{},reactions={...(data.reactions||{})},arr=[...(reactions[emoji]||[])];reactions[emoji]=arr.includes(currentUser.uid)?arr.filter(x=>x!==currentUser.uid):[...arr,currentUser.uid];await updateDoc(r,{reactions});}
-$("messageForm").addEventListener("submit",async e=>{e.preventDefault();const input=$("messageInput"),text=input.value.trim();if(!text||!activeChat)return;const tid=activeThreadId();try{if(editingId){await updateDoc(doc(db,"threads",tid,"messages",editingId),{text,edited:true,editedAt:serverTimestamp()});editingId=null}else{const payload={text,senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};if(replyTarget)payload.replyTo={id:replyTarget.id,text:replyTarget.text||"ملصق",senderName:replyTarget.senderName||"صديق"};const sent=await addDoc(collection(db,"threads",tid,"messages"),payload);notifyRecipients(tid,sent.id)}input.value="";replyTarget=null;$("replyPreview").classList.add("hidden");await updateDoc(doc(db,"threads",tid),{updatedAt:serverTimestamp()})}catch(err){console.error(err);toast("تعذر حفظ الرسالة. راجع قواعد Firestore")}});
+$("messageForm").addEventListener("submit",async e=>{e.preventDefault();const input=$("messageInput"),text=input.value.trim();if(!text||!activeChat)return;const tid=activeThreadId();try{if(editingId){await updateDoc(doc(db,"threads",tid,"messages",editingId),{text,edited:true,editedAt:serverTimestamp()});editingId=null}else{const payload={text,senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};if(replyTarget)payload.replyTo={id:replyTarget.id,text:replyTarget.text||"ملصق",senderName:replyTarget.senderName||"صديق"};const sent=await addDoc(collection(db,"threads",tid,"messages"),payload);playSound("messageSound");notifyRecipients(tid,sent.id)}input.value="";replyTarget=null;$("replyPreview").classList.add("hidden");await updateDoc(doc(db,"threads",tid),{updatedAt:serverTimestamp()})}catch(err){console.error(err);toast("تعذر حفظ الرسالة. راجع قواعد Firestore")}});
 $("cancelReply").onclick=()=>{replyTarget=null;$("replyPreview").classList.add("hidden")};
 $("stickerBtn").onclick=()=>{$("stickerTray").classList.toggle("hidden");renderStickerTray()};function renderStickerTray(){const tray=$("stickerTray");tray.innerHTML=STICKERS.length?STICKERS.map((s,i)=>`<button data-sticker="${i}"><img src="${$safe(s.src)}" alt="${$safe(s.label||"ستيكر")}"></button>`).join(""):'<p>مكان الستيكرات بتاعتكم 🫧<br>ضيفوا الصور أو GIF داخل مجلد stickers ثم سجّلوا مساراتها في STICKERS أعلى ملف app.js.</p>';tray.querySelectorAll("[data-sticker]").forEach(b=>b.onclick=async()=>{const sticker=STICKERS[Number(b.dataset.sticker)].src;try{const tid=activeThreadId();const sent=await addDoc(collection(db,"threads",tid,"messages"),{sticker,senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()});notifyRecipients(tid,sent.id);tray.classList.add("hidden")}catch(e){toast("تعذر إرسال الملصق")}})}
 $("pinnedToggle").onclick=()=>{$("pinnedBar").classList.toggle("hidden")};

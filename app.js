@@ -56,7 +56,10 @@ async function enablePushNotifications(){
   if(!(await isSupported()))throw new Error("إشعارات Firebase غير مدعومة في هذا المتصفح");
   const permission=await Notification.requestPermission();
   if(permission!=="granted")throw new Error("لم يتم السماح بالإشعارات");
-  const registration=await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+  const registration = await navigator.serviceWorker.register(
+  "/TloveSMME/firebase-messaging-sw.js",
+  { scope: "/TloveSMME/" }
+);
   const messaging=getMessaging(app);
   const token=await getToken(messaging,{vapidKey:VAPID_PUBLIC_KEY,serviceWorkerRegistration:registration});
   if(!token)throw new Error("تعذر إنشاء رمز الإشعارات");

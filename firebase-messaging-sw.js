@@ -33,8 +33,3 @@ self.addEventListener("notificationclick", event => {
     return clients.openWindow("./");
   }));
 });
-
-// Keep navigation and asset requests network-first; do not cache private chat data.
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
-});

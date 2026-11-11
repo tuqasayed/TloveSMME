@@ -136,26 +136,29 @@ async function enablePushNotifications(){
   if(!(await isSupported()))throw new Error("إشعارات Firebase غير مدعومة في هذا المتصفح");
   const permission=await Notification.requestPermission();
   if(permission!=="granted")throw new Error("لم يتم السماح بالإشعارات");
-  // Resolve the worker beside app.js so local folders and hosted subpaths both work.
-  const workerUrl = new URL("./firebase-messaging-sw.js", import.meta.url);
-  const workerScope = new URL("./", import.meta.url);
+  // Resolve the worker relative to this app file so GitHub Pages repo paths work.
+  const swUrl = new URL("./firebase-messaging-sw.js", import.meta.url);
+  const appScope = new URL("./", import.meta.url);
   let registration;
   try {
-    registration = await navigator.serviceWorker.register(workerUrl.href, {
-      scope: workerScope.pathname,
-      updateViaCache: "none"
-    });
+    registration = await navigator.serviceWorker.register(swUrl.href, { scope: appScope.pathname });
     await navigator.serviceWorker.ready;
   } catch (error) {
-    console.error("Firebase service worker registration failed:", {
-      workerUrl: workerUrl.href,
-      scope: workerScope.pathname,
-      error
-    });
-    throw new Error(`فشل تسجيل ملف الإشعارات (${error.message || error}). تأكد أن firebase-messaging-sw.js موجود بجانب app.js وأن السيرفر يقدمه كملف JavaScript.`);
+    console.error("Service worker registration failed:", { swUrl: swUrl.href, scope: appScope.pathname, error });
+    throw new Error(`تعذر تسجيل ملف الإشعارات (${error?.message || error})`);
   }
   const messaging=getMessaging(app);
-  const token=await getToken(messaging,{vapidKey:VAPID_PUBLIC_KEY,serviceWorkerRegistration:registration});
+  let token;
+  try {
+    token=await getToken(messaging,{vapidKey:VAPID_PUBLIC_KEY,serviceWorkerRegistration:registration});
+  } catch (error) {
+    console.error("Firebase push token failed:", error);
+    const code = error?.code || "unknown";
+    if (code.includes("push-service") || /push service/i.test(error?.message || "")) {
+      throw new Error("المتصفح رفض الاتصال بخدمة Push. تأكد من فتح الموقع عبر HTTPS، ثم امسح بيانات الموقع/إعادة ضبط Service Worker وجرب مرة أخرى.");
+    }
+    throw new Error(`فشل إنشاء رمز الإشعارات (${code}): ${error?.message || error}`);
+  }
   if(!token)throw new Error("تعذر إنشاء رمز الإشعارات");
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{
     token, platform:"web-android", updatedAt:serverTimestamp()

@@ -12,6 +12,18 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
     }
 
+    // Shared image and GIF sticker catalog: all signed-in friends can view and add.
+    match /stickers/{stickerId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('https://res\\.cloudinary\\.com/.*')
+        && request.resource.data.label is string
+        && request.resource.data.mediaType in ['image', 'gif'];
+      allow update, delete: if false;
+    }
+
     match /stories/{storyId} {
       allow read: if signedIn();
 

@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=arabic-name-scroll-1" rel="stylesheet"/>
+  <link href="style.css?v=sticker-grid-shared-2" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -183,8 +183,9 @@
         &times;
        </button>
       </div>
-      <div class="sticker-tray hidden" id="stickerTray">
+      <div class="sticker-tray hidden" id="stickerTray" aria-label="قائمة الملصقات">
       </div>
+      <input id="stickerUploadInput" type="file" accept="image/*,.gif" hidden/>
       <form class="composer" id="messageForm">
        <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button">
         😊

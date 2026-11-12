@@ -1,1 +1,14 @@
-
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.tuqasayed.twa",
+      "sha256_cert_fingerprints": [
+        "C8:DD:6F:BE:9B:AE:7C:D6:8B:38:D5:C5:54:EA:B8:96:08:88:7C:6F:93:FF:DB:9E:DA:B3:65:42:44:4D:A5:0B"
+      ]
+    }
+  }
+]

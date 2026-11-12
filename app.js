@@ -117,7 +117,7 @@ function threadId(a,b){return [a,b].sort().join("_")}
 function isGroup(){return activeChat?.kind==="group"}
 function colorOf(p){return p?.color1||p?.color||({Samaa:"#55cbd5",Tuqa:"#ed8fbd",Menna:"#a78be8"}[p?.username]||"#a78be8")}
 function profileGradient(p){return `linear-gradient(120deg,${p?.color1||p?.color||colorOf(p)},${p?.color2||p?.color1||p?.color||colorOf(p)})`}
-function nameStyle(p){const fonts={default:"'Cairo','Noto Sans Arabic',Tahoma,sans-serif",elegant:"'Tajawal','Noto Sans Arabic',sans-serif",rounded:"'Almarai','Noto Sans Arabic',sans-serif",mono:"'IBM Plex Sans Arabic','Noto Sans Arabic',sans-serif",bold:"'Noto Kufi Arabic','Noto Sans Arabic',sans-serif"};return `font-family:${fonts[p?.nameFont]||fonts.default};font-weight:${p?.nameFont==='bold'?'900':'700'};background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`}
+function nameStyle(p){const fonts={default:"Cairo, 'Noto Sans Arabic', sans-serif",elegant:"Tajawal, 'Noto Sans Arabic', sans-serif",rounded:"Almarai, 'Noto Sans Arabic', sans-serif",mono:"'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif",bold:"'Noto Kufi Arabic', 'Noto Sans Arabic', sans-serif",luxury:"Georgia, 'Noto Naskh Arabic', serif",neon:"'Trebuchet MS', 'Noto Sans Arabic', sans-serif",serif:"'Noto Serif', 'Noto Naskh Arabic', serif",tech:"'Arial', 'Noto Sans Arabic', sans-serif",display:"'Arial Black', 'Noto Sans Arabic', sans-serif",soft:"'Verdana', 'Noto Sans Arabic', sans-serif",wide:"'Trebuchet MS', 'Noto Sans Arabic', sans-serif"};return `font-family:${fonts[p?.nameFont]||fonts.default};font-weight:${['bold','luxury','display'].includes(p?.nameFont)?'900':'700'};background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`}
 function decorationUrl(value){return value?`./${String(value).replace(/[^1-4]/g,'')}.gif`:""}
 function applyMyTheme(){if(currentProfile)document.documentElement.style.setProperty("--theme-color",colorOf(currentProfile))}
 function avatarMarkup(p,size=""){
@@ -482,13 +482,13 @@ function beginMessageGestures(row,m,el){
 function messageNode(m){
   const mine=m.senderId===currentUser.uid,el=document.createElement('article');
   el.className=`message ${mine?'mine':'theirs'}`;el.id=`message-${m.id}`;
-  const sender=userProfiles.get(m.senderId)||{};
+  const sender=(m.senderId===currentUser.uid?currentProfile:userProfiles.get(m.senderId))||{};
   const senderPhoto=m.senderPhotoURL||sender.photoURL||'';
   const senderColor=sender.id?colorOf(sender):(m.senderColor||colorOf(sender));
   el.style.setProperty('--sender-color',senderColor);
   const senderInitial=(m.senderName||sender.displayName||sender.username||'♡').slice(0,1);
   const avatar=document.createElement('div');avatar.className='avatar message-avatar';avatar.style.setProperty('--user-color',senderColor);
-  avatar.innerHTML=senderPhoto?`<img src="${$safe(senderPhoto)}" alt="">`:$safe(senderInitial);
+  avatar.innerHTML=(senderPhoto?`<img src="${$safe(senderPhoto)}" alt="">`:$safe(senderInitial))+(sender.decoration?`<span class="chat-avatar-decoration"><img src="${decorationUrl(sender.decoration)}" alt=""></span>`:"");
   const reply=m.replyTo?`<button class="reply-quote" type="button" data-jump="${$safe(m.replyTo.id||'')}" ${m.replyTo.id?'':'disabled'}><b>${$safe(m.replyTo.senderName)}</b><span>${$safe(m.replyTo.text)}</span></button>`:'';
   const content=m.sticker?`<img class="sticker-image" src="${$safe(m.sticker)}" alt="ملصق">`:`<p>${$safe(m.text||'')}</p>`;
   const reactions=Object.entries(m.reactions||{}).filter(([k,v])=>Array.isArray(v)&&v.length).map(([emoji,uids])=>{
@@ -501,7 +501,7 @@ function messageNode(m){
     const mine=uids.includes(currentUser.uid);
     return `<button class="reaction-chip ${mine?'reacted-by-me':''}" data-emoji="${$safe(emoji)}" type="button" aria-label="${$safe(emoji)} تفاعل ${uids.length}"><span class="reaction-emoji">${$safe(emoji)}</span><span class="reaction-people">${people}</span><span class="reaction-count">${uids.length}</span></button>`;
   }).join('');
-  el.innerHTML=`${!mine?`<small class="sender-name" style="color:${$safe(senderColor)}">${$safe(m.senderName||'صديق')}</small>`:''}${m.pinned?'<div class="pin-mark">📌 مثبتة</div>':''}${reply}${content}<div class="message-meta"><time>${timeOf(m.createdAt)}</time>${m.edited?'<span>تم التعديل</span>':''}</div><div class="reaction-list">${reactions}</div>`;
+  el.innerHTML=`${!mine?`<small class="sender-name" style="${nameStyle(sender.id?sender:{color1:senderColor,color2:senderColor})}">${$safe(m.senderName||'صديق')}</small>`:''}${m.pinned?'<div class="pin-mark">📌 مثبتة</div>':''}${reply}${content}<div class="message-meta"><time>${timeOf(m.createdAt)}</time>${m.edited?'<span>تم التعديل</span>':''}</div><div class="reaction-list">${reactions}</div>`;
   const row=document.createElement('div');row.className=`message-row ${mine?'mine':'theirs'}`;row.append(avatar,el);
   row.querySelectorAll('.reaction-chip').forEach(btn=>btn.onclick=()=>reactTo(m,btn.dataset.emoji));
   row.querySelectorAll('[data-jump]').forEach(btn=>btn.addEventListener('click',()=>jumpToMessage(btn.dataset.jump)));
@@ -538,7 +538,6 @@ function updateProfileCustomizationPreview(){
   const deco=$("decorationSelect").value;
   $("editorDecoration").innerHTML=deco?`<img src="${decorationUrl(deco)}" alt="">`:"";
   $("profileAvatarPreview").classList.toggle('has-decoration',!!deco);
-  $("decorationPreview").innerHTML=`<div class="decoration-avatar-sample">C</div>${deco?`<img src="${decorationUrl(deco)}" alt="ديكوريشن ${deco}">`:""}<span>${deco?`ديكوريشن ${deco}`:"معاينة الإطار على الصورة"}</span>`;
   renderDecorationGallery();
 }
 function applyColorPair(c1,c2){$("profileColor").value=c1;$("profileColor2").value=c2;updateProfileCustomizationPreview();}
@@ -552,7 +551,7 @@ $("profileBtn").onclick=()=>{
   $("profileColor2").value=currentProfile.color2||currentProfile.color1||currentProfile.color||colorOf(currentProfile);
   $("nameFontSelect").value=currentProfile.nameFont||"default";$("decorationSelect").value=String(currentProfile.decoration||"");
   const avatar=$("profileAvatarPreview");avatar.innerHTML=currentProfile.photoURL?`<img src="${$safe(currentProfile.photoURL)}" alt="">`:(currentProfile.displayName||currentProfile.username||"♡").slice(0,1);
-  updateProfileCustomizationPreview();selectedBannerFile=null;selectedAvatarFile=null;$("storyCaptionInput").value="";$("storyFileName").textContent="لم يتم اختيار ملف";$("storyFile").value="";$("storyCompose").classList.add("hidden");
+  updateProfileCustomizationPreview();loadMyStories();selectedBannerFile=null;selectedAvatarFile=null;$("storyCaptionInput").value="";$("storyFileName").textContent="لم يتم اختيار ملف";$("storyFile").value="";$("storyCompose").classList.add("hidden");
   $("profileModal").classList.remove("hidden");
 };
 $("closeProfile").onclick=()=>$("profileModal").classList.add("hidden");
@@ -576,6 +575,8 @@ $("chatAvatar").style.cursor="pointer";$("chatName").style.cursor="pointer";
 $("chatAvatar").addEventListener("click",()=>{if(activeChat&&activeChat.kind!=="group")openPublicProfile(userProfiles.get(activeChat.id)||activeChat)});
 $("chatName").addEventListener("click",()=>{if(activeChat&&activeChat.kind!=="group")openPublicProfile(userProfiles.get(activeChat.id)||activeChat)});
 $("closePublicProfile").onclick=()=>$("publicProfileModal").classList.add("hidden");
+let viewedStory=null;
+async function loadMyStories(){const list=$("myStoriesList");if(!list||!currentUser)return;list.innerHTML="<small>جاري تحميل حالاتك...</small>";try{const snap=await getDocs(collection(db,"stories"));const stories=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.uid===currentUser.uid&&Number(x.expiresAt||0)>Date.now()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));list.innerHTML="";if(!stories.length){list.innerHTML="<small class='profile-hint'>مفيش حالات نشطة عندك حاليًا.</small>";return;}stories.forEach(story=>{const wrap=document.createElement("div");wrap.className="my-story-item";const open=document.createElement("button");open.type="button";open.className="my-story-open";open.textContent=story.mediaType==="image"?"📷 صورة":story.mediaType==="video"?"▶ فيديو":(story.caption||"حالة نصية").slice(0,32);open.onclick=()=>showStory(story);const del=document.createElement("button");del.type="button";del.className="my-story-delete";del.textContent="حذف";del.onclick=async()=>{if(!confirm("تمسح الحالة دي؟"))return;try{await deleteDoc(doc(db,"stories",story.id));toast("اتمسحت الحالة");loadMyStories();}catch(e){console.error(e);toast("تعذر حذف الحالة. راجع قواعد Firestore")}};wrap.append(open,del);list.appendChild(wrap)});}catch(e){console.error(e);list.innerHTML="<small>تعذر تحميل حالاتك.</small>"}}
 async function openPublicProfile(profile){
   if(!profile)return;const modal=$("publicProfileModal");$("publicProfileName").textContent=profile.displayName||profile.username||"مستخدم";$("publicProfileName").style.cssText=nameStyle(profile);$("publicProfileDecoration").innerHTML=profile.decoration?`<img src="${decorationUrl(profile.decoration)}" alt="">`:"";
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||"لا توجد نبذة تعريفية بعد.";
@@ -585,8 +586,9 @@ async function openPublicProfile(profile){
   try{const snap=await getDocs(collection(db,"stories"));const stories=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.uid===profile.id&&Number(x.expiresAt||0)>Date.now()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));list.innerHTML="";if(!stories.length){list.innerHTML="<span class='profile-hint'>لا توجد حالات نشطة حاليًا.</span>";return;}stories.forEach(story=>{const b=document.createElement("button");b.type="button";b.className="story-thumb";b.innerHTML=story.mediaType==="video"?`<span>▶ فيديو</span>`:story.mediaType==="image"?`<img src="${$safe(story.mediaUrl)}" alt="حالة">`:`<span>نص ✦</span>`;b.onclick=()=>showStory(story);list.appendChild(b);});}
   catch(e){console.warn("Stories load failed",e);list.innerHTML="<span class='profile-hint'>تعذر تحميل الحالات. راجع قواعد Firestore.</span>";}
 }
-function showStory(story){const holder=$("storyViewerMedia");holder.innerHTML=story.mediaType==="video"?`<video src="${$safe(story.mediaUrl)}" controls autoplay playsinline></video>`:story.mediaType==="image"?`<img src="${$safe(story.mediaUrl)}" alt="الحالة">`:`<div class="story-text-card">${$safe(story.caption||"")}</div>`;$("storyViewerCaption").textContent=story.mediaType==="text"?"":(story.caption||"");$("storyViewer").classList.remove("hidden");}
-$("closeStoryViewer").onclick=()=>{$("storyViewerMedia").innerHTML="";$("storyViewer").classList.add("hidden")};
+function showStory(story){viewedStory=story;$("deleteViewedStory").classList.toggle("hidden",story.uid!==currentUser.uid);const holder=$("storyViewerMedia");holder.innerHTML=story.mediaType==="video"?`<video src="${$safe(story.mediaUrl)}" controls autoplay playsinline></video>`:story.mediaType==="image"?`<img src="${$safe(story.mediaUrl)}" alt="الحالة">`:`<div class="story-text-card">${$safe(story.caption||"")}</div>`;$("storyViewerCaption").textContent=story.mediaType==="text"?"":(story.caption||"");$("storyViewer").classList.remove("hidden");}
+$("closeStoryViewer").onclick=()=>{$("storyViewerMedia").innerHTML="";$("storyViewer").classList.add("hidden");viewedStory=null};
+$("deleteViewedStory").onclick=async()=>{if(!viewedStory||viewedStory.uid!==currentUser.uid)return;if(!confirm("متأكد إنك عايز تمسح الحالة؟"))return;try{await deleteDoc(doc(db,"stories",viewedStory.id));$("storyViewer").classList.add("hidden");$("storyViewerMedia").innerHTML="";viewedStory=null;toast("تم حذف الحالة");loadMyStories();}catch(e){console.error(e);toast("تعذر حذف الحالة. راجع قواعد Firestore")}};
 let cropSource=null,cropScale=1,cropX=0,cropY=0,cropDrag=null,cropBaseW=0,cropBaseH=0;
 function layoutBannerCrop(){if(!cropSource)return;const box=$("bannerCropViewport"),img=$("bannerCropImage"),w=box.clientWidth,h=box.clientHeight;const fit=Math.max(w/cropSource.width,h/cropSource.height);cropBaseW=cropSource.width*fit;cropBaseH=cropSource.height*fit;cropScale=Number($("bannerCropZoom").value)||1;cropX=0;cropY=0;drawBannerCrop();}
 function drawBannerCrop(){const img=$("bannerCropImage"),box=$("bannerCropViewport");if(!img||!box)return;const w=cropBaseW*cropScale,h=cropBaseH*cropScale;const maxX=Math.max(0,(w-box.clientWidth)/2),maxY=Math.max(0,(h-box.clientHeight)/2);cropX=Math.max(-maxX,Math.min(maxX,cropX));cropY=Math.max(-maxY,Math.min(maxY,cropY));img.style.width=`${w}px`;img.style.height=`${h}px`;img.style.left=`50%`;img.style.top=`50%`;img.style.transform=`translate(calc(-50% + ${cropX}px),calc(-50% + ${cropY}px))`;}
@@ -611,7 +613,7 @@ $("publishStoryBtn").onclick=async()=>{
   let mediaUrl="",mediaType="text";
   if(file){const isVideo=file.type.startsWith("video/");if(!file.type.startsWith("image/")&&!isVideo)throw new Error("اختار صورة أو فيديو صالح");if(file.size>(isVideo?25:8)*1024*1024)throw new Error("حجم الملف أكبر من المسموح");if(isVideo&&await getVideoDuration(file)>30)throw new Error("مدة الفيديو لازم تكون 30 ثانية أو أقل");mediaUrl=await uploadStoryToCloudinary(file,isVideo);mediaType=isVideo?"video":"image";}
   await addDoc(collection(db,"stories"),{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,mediaUrl,mediaType,caption,createdAt:serverTimestamp(),expiresAt:Date.now()+24*60*60*1000});
-  toast("تم نشر حالتك لمدة 24 ساعة ♡");$("storyCaptionInput").value="";$("storyFile").value="";$("storyFileName").textContent="لم يتم اختيار ملف";
+  toast("تم نشر حالتك لمدة 24 ساعة ♡");loadMyStories();$("storyCaptionInput").value="";$("storyFile").value="";$("storyFileName").textContent="لم يتم اختيار ملف";
  }catch(err){console.error(err);toast(err.message||"تعذر نشر الحالة");}finally{button.disabled=false;button.textContent="نشر الحالة";}
 };
 function getVideoDuration(file){return new Promise((resolve,reject)=>{const video=document.createElement("video"),url=URL.createObjectURL(file);video.preload="metadata";video.onloadedmetadata=()=>{const duration=video.duration;URL.revokeObjectURL(url);resolve(duration);};video.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("تعذر قراءة مدة الفيديو"));};video.src=url;});}

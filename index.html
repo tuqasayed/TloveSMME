@@ -227,19 +227,19 @@
       <h3>ألوان الاسم</h3>
       <div class="dual-color-row"><label>اللون الأول <input id="profileColor" type="color" value="#ed4245"></label><label>اللون الثاني <input id="profileColor2" type="color" value="#ffffff"></label></div>
       <div class="preset-colors" aria-label="تركيبات ألوان جاهزة">
-       <button type="button" data-pair="#ed4245,#ffffff" aria-label="أحمر وأبيض"></button><button type="button" data-pair="#5865f2,#ffffff" aria-label="أزرق وأبيض"></button><button type="button" data-pair="#23a879,#b8f4d5" aria-label="أخضر"></button><button type="button" data-pair="#f47db4,#ffd9ec" aria-label="وردي"></button><button type="button" data-pair="#8b5cf6,#c4b5fd" aria-label="بنفسجي"></button><button type="button" data-pair="#111827,#9ca3af" aria-label="رمادي"></button>
+       <button type="button" data-pair="#00f5ff,#b8ffff" aria-label="سماوي نيون"></button><button type="button" data-pair="#ff2bd6,#ffc4f2" aria-label="وردي نيون"></button><button type="button" data-pair="#a3ff12,#eaffad" aria-label="ليموني نيون"></button><button type="button" data-pair="#8b5cf6,#e0b7ff" aria-label="بنفسجي نيون"></button><button type="button" data-pair="#ff6b00,#ffd08a" aria-label="برتقالي نيون"></button><button type="button" data-pair="#00ffa3,#b5ffe4" aria-label="أخضر نيون"></button><button type="button" data-pair="#ff3158,#ffb4c3" aria-label="أحمر نيون"></button><button type="button" data-pair="#4d7cff,#c5d6ff" aria-label="أزرق نيون"></button>
       </div>
-      <label class="font-picker-label">خط الاسم<select id="nameFontSelect"><option value="default">واضح</option><option value="elegant">ناعم</option><option value="rounded">مستدير</option><option value="mono">بسيط</option><option value="bold">عريض</option></select></label>
+      <label class="font-picker-label">خط الاسم<select id="nameFontSelect"><option value="default">واضح</option><option value="elegant">ناعم</option><option value="rounded">مستدير</option><option value="mono">بسيط</option><option value="bold">عريض</option><option value="luxury">ملكي</option><option value="neon">نيون</option><option value="serif">كلاسيكي</option><option value="tech">تقني</option><option value="display">استعراضي</option><option value="soft">ناعم فاخر</option><option value="wide">عريض أنيق</option></select></label>
       <div class="profile-name-preview" id="profileNamePreview">Cute · محمد</div>
       <label class="font-picker-label">إطار الصورة الشخصية<select id="decorationSelect" class="visually-hidden-select"><option value="">بدون إطار</option><option value="1">الإطار 1</option><option value="2">الإطار 2</option><option value="3">الإطار 3</option><option value="4">الإطار 4</option></select></label>
       <div class="decoration-gallery" id="decorationGallery" aria-label="اختيار ديكوريشن الصورة"></div>
-      <div class="decoration-preview" id="decorationPreview"><span>معاينة الإطار</span></div>
+      
     </div>
     <div class="profile-media-settings compact-media-settings"><h3>الحالات</h3>
       <button class="story-add-card" id="addStoryBtn" type="button"><span>＋</span><b>إضافة حالة</b></button>
       <div class="story-compose hidden" id="storyCompose"><div class="story-choice-row"><button type="button" data-story-type="text">حالة نصية</button><button type="button" data-story-type="image">صورة</button><button type="button" data-story-type="video">فيديو</button></div>
       <textarea id="storyCaptionInput" maxlength="240" rows="2" placeholder="اكتب كلام الحالة..."></textarea><input id="storyFile" type="file" accept="image/*,video/*" hidden><small class="story-file-name" id="storyFileName">لم يتم اختيار ملف</small><button class="story-publish-btn" id="publishStoryBtn" type="button">نشر الحالة</button></div>
-      <small class="profile-hint">الحالة بتختفي بعد 24 ساعة.</small>
+      <div class="my-stories-list" id="myStoriesList"><small class="profile-hint">حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.</small></div><small class="profile-hint">الحالة بتختفي بعد 24 ساعة.</small>
     </div>
     <button class="primary-btn" type="submit">
      حفظ التغييرات
@@ -267,7 +267,7 @@
     <div class="stories-strip"><h3>الحالة</h3><div class="stories-items" id="publicStoriesItems"></div></div>
    </section>
   </div>
-  <div class="modal hidden" id="storyViewer"><section class="story-viewer-card"><button class="modal-close" id="closeStoryViewer" type="button">&times;</button><div id="storyViewerMedia"></div><p id="storyViewerCaption"></p></section></div>
+  <div class="modal hidden" id="storyViewer"><section class="story-viewer-card"><button class="modal-close" id="closeStoryViewer" type="button">&times;</button><div id="storyViewerMedia"></div><p id="storyViewerCaption"></p><button id="deleteViewedStory" class="story-delete-btn hidden" type="button">حذف حالتي</button></section></div>
   <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
   <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
   <audio id="creditsMusic" src="fl.mp3" preload="auto"></audio>

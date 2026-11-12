@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=install-button-fix-4" rel="stylesheet"/>
+  <link href="style.css?v=arabic-name-scroll-1" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -175,6 +175,7 @@
       </div>
       <div class="messages" id="messages">
       </div>
+      <button class="scroll-to-bottom" id="scrollToBottom" type="button" aria-label="الانتقال لآخر الشات" title="آخر الرسائل">↓</button>
       <div class="reply-preview hidden" id="replyPreview">
        <span id="replyText">
        </span>
@@ -208,117 +209,38 @@
     <h2>
      ملفك الشخصي ✨
     </h2>
-    <div class="profile-preview">
-     <div class="avatar cyan" id="profileAvatarPreview">
-      ♡
-     </div>
-     <label class="upload-btn">
-      اختار صورة
-      <input accept="image/*" id="avatarFile" type="file"/>
-     </label>
-    </div>
+    <section class="profile-editor-hero">
+      <div class="profile-editor-banner" id="profileBannerStage"><span>غلاف الملف الشخصي</span></div>
+      <label class="banner-edit-pencil" for="bannerFile" title="تغيير البنر">✎</label>
+      <input id="bannerFile" type="file" accept="image/*" hidden>
+      <div class="profile-editor-avatar-row"><div class="profile-editor-avatar-wrap">
+        <div class="avatar cyan" id="profileAvatarPreview">♡</div><div class="profile-editor-decoration" id="editorDecoration"></div>
+        <label class="avatar-edit-pencil" for="avatarFile" title="تغيير الصورة">✎</label><input accept="image/*" id="avatarFile" type="file" hidden>
+      </div><span class="profile-editor-caption">صورتك الشخصية</span></div>
+    </section>
     <label>
      الاسم الظاهر
      <input id="displayNameInput" maxlength="24" required=""/>
     </label>
-    <label class="color-field">
-     لون اسمك ومظهر حسابك
-     <div class="neon-select" id="neonColorSelect">
-      <input id="profileColor" type="hidden" value="#55cbd5"/>
-      <button aria-expanded="false" aria-haspopup="listbox" class="neon-select-trigger" id="colorSelectTrigger" type="button">
-       <span class="color-choice-preview">
-        <i id="selectedColorDot">
-        </i>
-        <span id="selectedColorName">
-         سماوي
-        </span>
-       </span>
-       <span class="neon-chevron">
-        ⌄
-       </span>
-      </button>
-      <div aria-label="اختار لونك" class="neon-color-menu hidden" id="colorSelectMenu" role="listbox">
-       <button aria-selected="true" class="neon-color-option selected" data-color="#55cbd5" data-name="سماوي" role="option" type="button">
-        <span class="neon-swatch cyan">
-        </span>
-        <span>
-         سماوي
-        </span>
-        <small>
-         NEON CYAN
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
-       <button aria-selected="false" class="neon-color-option" data-color="#ed8fbd" data-name="وردي" role="option" type="button">
-        <span class="neon-swatch pink">
-        </span>
-        <span>
-         وردي
-        </span>
-        <small>
-         HOT PINK
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
-       <button aria-selected="false" class="neon-color-option" data-color="#a78be8" data-name="موف" role="option" type="button">
-        <span class="neon-swatch purple">
-        </span>
-        <span>
-         موف
-        </span>
-        <small>
-         ULTRA VIOLET
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
-       <button aria-selected="false" class="neon-color-option" data-color="#83b77c" data-name="أخضر" role="option" type="button">
-        <span class="neon-swatch green">
-        </span>
-        <span>
-         أخضر
-        </span>
-        <small>
-         LASER GREEN
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
-       <button aria-selected="false" class="neon-color-option" data-color="#e5a34f" data-name="خوخي" role="option" type="button">
-        <span class="neon-swatch peach">
-        </span>
-        <span>
-         خوخي
-        </span>
-        <small>
-         GLOW PEACH
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
-       <button aria-selected="false" class="neon-color-option" data-color="#718bdc" data-name="أزرق" role="option" type="button">
-        <span class="neon-swatch blue">
-        </span>
-        <span>
-         أزرق
-        </span>
-        <small>
-         ELECTRIC BLUE
-        </small>
-        <b>
-         &checkmark;
-        </b>
-       </button>
+    <label>نبذة تعريفية <textarea id="profileBioInput" maxlength="180" rows="2" placeholder="اكتب نبذة بسيطة عنك..."></textarea></label>
+    <div class="profile-customization compact-profile-options">
+      <h3>ألوان الاسم</h3>
+      <div class="dual-color-row"><label>اللون الأول <input id="profileColor" type="color" value="#ed4245"></label><label>اللون الثاني <input id="profileColor2" type="color" value="#ffffff"></label></div>
+      <div class="preset-colors" aria-label="تركيبات ألوان جاهزة">
+       <button type="button" data-pair="#ed4245,#ffffff" aria-label="أحمر وأبيض"></button><button type="button" data-pair="#5865f2,#ffffff" aria-label="أزرق وأبيض"></button><button type="button" data-pair="#23a879,#b8f4d5" aria-label="أخضر"></button><button type="button" data-pair="#f47db4,#ffd9ec" aria-label="وردي"></button><button type="button" data-pair="#8b5cf6,#c4b5fd" aria-label="بنفسجي"></button><button type="button" data-pair="#111827,#9ca3af" aria-label="رمادي"></button>
       </div>
-     </div>
-    </label>
+      <label class="font-picker-label">خط الاسم<select id="nameFontSelect"><option value="default">واضح</option><option value="elegant">ناعم</option><option value="rounded">مستدير</option><option value="mono">بسيط</option><option value="bold">عريض</option></select></label>
+      <div class="profile-name-preview" id="profileNamePreview">Cute · محمد</div>
+      <label class="font-picker-label">إطار الصورة الشخصية<select id="decorationSelect" class="visually-hidden-select"><option value="">بدون إطار</option><option value="1">الإطار 1</option><option value="2">الإطار 2</option><option value="3">الإطار 3</option><option value="4">الإطار 4</option></select></label>
+      <div class="decoration-gallery" id="decorationGallery" aria-label="اختيار ديكوريشن الصورة"></div>
+      <div class="decoration-preview" id="decorationPreview"><span>معاينة الإطار</span></div>
+    </div>
+    <div class="profile-media-settings compact-media-settings"><h3>الحالات</h3>
+      <button class="story-add-card" id="addStoryBtn" type="button"><span>＋</span><b>إضافة حالة</b></button>
+      <div class="story-compose hidden" id="storyCompose"><div class="story-choice-row"><button type="button" data-story-type="text">حالة نصية</button><button type="button" data-story-type="image">صورة</button><button type="button" data-story-type="video">فيديو</button></div>
+      <textarea id="storyCaptionInput" maxlength="240" rows="2" placeholder="اكتب كلام الحالة..."></textarea><input id="storyFile" type="file" accept="image/*,video/*" hidden><small class="story-file-name" id="storyFileName">لم يتم اختيار ملف</small><button class="story-publish-btn" id="publishStoryBtn" type="button">نشر الحالة</button></div>
+      <small class="profile-hint">الحالة بتختفي بعد 24 ساعة.</small>
+    </div>
     <button class="primary-btn" type="submit">
      حفظ التغييرات
     </button>
@@ -326,6 +248,26 @@
     </p>
    </form>
   </div>
+  <div class="crop-modal hidden" id="bannerCropModal" role="dialog" aria-modal="true" aria-label="تحديد صورة البنر">
+   <div class="crop-card">
+    <button type="button" class="crop-close" id="cancelBannerCrop" aria-label="إلغاء">×</button>
+    <h3>ظبّط صورة البنر</h3>
+    <p>حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل</p>
+    <div class="banner-crop-viewport" id="bannerCropViewport"><img id="bannerCropImage" alt="معاينة البنر"></div>
+    <label class="crop-zoom-label">تكبير الصورة <input id="bannerCropZoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+    <div class="crop-actions"><button type="button" class="crop-cancel" id="cancelBannerCrop2">إلغاء</button><button type="button" class="crop-confirm" id="confirmBannerCrop">استخدام الصورة</button></div>
+   </div>
+  </div>
+  <div class="modal hidden" id="publicProfileModal">
+   <section class="modal-card public-profile-card" role="dialog" aria-modal="true" aria-label="الملف الشخصي">
+    <button class="modal-close" id="closePublicProfile" type="button">&times;</button>
+    <div class="public-profile-banner" id="publicProfileBanner"></div>
+    <div class="public-profile-head"><div class="public-profile-avatar-wrap"><div class="public-profile-avatar" id="publicProfileAvatar"></div><div class="public-profile-decoration" id="publicProfileDecoration"></div></div><div><h2 id="publicProfileName">الملف الشخصي</h2><p id="publicProfileStatus"></p></div></div>
+    <p class="public-profile-bio" id="publicProfileBio"></p>
+    <div class="stories-strip"><h3>الحالة</h3><div class="stories-items" id="publicStoriesItems"></div></div>
+   </section>
+  </div>
+  <div class="modal hidden" id="storyViewer"><section class="story-viewer-card"><button class="modal-close" id="closeStoryViewer" type="button">&times;</button><div id="storyViewerMedia"></div><p id="storyViewerCaption"></p></section></div>
   <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
   <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
   <audio id="creditsMusic" src="fl.mp3" preload="auto"></audio>
@@ -347,7 +289,7 @@
   </section>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=push-error-fix-5" type="module">
+  <script src="app.js?v=arabic-name-scroll-1" type="module">
   </script>
  </body>
 </html>

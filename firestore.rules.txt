@@ -7,11 +7,19 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/threads/$(threadId))
         && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
     }
+    match /stories/{storyId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.mediaType in ['image','video','text']
+        && request.resource.data.caption is string
+        && (request.resource.data.mediaType == 'text' || request.resource.data.mediaUrl is string);
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
     match /users/{userId} {
       allow read: if signedIn();
       allow create, delete: if false;
       allow update: if signedIn() && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','color','photoURL']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','color','color1','color2','nameFont','decoration','photoURL','bio','statusText','bannerURL','bannerHeight','avatarSize','isOnline','presenceState','lastActiveAt','lastSeenAt']);
     }
     match /users/{userId}/fcmTokens/{tokenId} {
       allow read: if false;

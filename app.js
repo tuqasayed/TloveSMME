@@ -212,11 +212,14 @@ async function enablePushNotifications(){
     token=await getToken(messaging,{vapidKey:VAPID_PUBLIC_KEY,serviceWorkerRegistration:registration});
   } catch (error) {
     console.error("Firebase push token failed:", error);
-    const code = error?.code || "unknown";
-    if (code.includes("push-service") || /push service/i.test(error?.message || "")) {
-      throw new Error("المتصفح رفض الاتصال بخدمة Push. تأكد من فتح الموقع عبر HTTPS، ثم امسح بيانات الموقع/إعادة ضبط Service Worker وجرب مرة أخرى.");
+    // بعض أخطاء Push تكون DOMException ويكون error.code رقمًا وليس نصًا.
+    // تحويل القيم إلى نص يمنع ظهور TypeError الذي كان يخفي الخطأ الأصلي.
+    const code = String(error?.code ?? error?.name ?? "unknown");
+    const message = String(error?.message ?? error ?? "حدث خطأ غير معروف");
+    if (/push-service|token-subscribe-failed/i.test(code) || /push service/i.test(message)) {
+      throw new Error(`فشل الاتصال بخدمة Push في المتصفح: ${message}. تأكد من HTTPS، ثم أعد ضبط إذن الإشعارات وبيانات الموقع وجرب مرة أخرى.`);
     }
-    throw new Error(`فشل إنشاء رمز الإشعارات (${code}): ${error?.message || error}`);
+    throw new Error(`فشل إنشاء رمز الإشعارات (${code}): ${message}`);
   }
   if(!token)throw new Error("تعذر إنشاء رمز الإشعارات");
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{

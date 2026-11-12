@@ -1,61 +1,129 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isMember(threadId) {
       return signedIn()
         && exists(/databases/$(database)/documents/threads/$(threadId))
         && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
     }
+
     match /stories/{storyId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
         && request.resource.data.mediaType in ['image','video','text']
         && request.resource.data.caption is string
         && (request.resource.data.mediaType == 'text' || request.resource.data.mediaUrl is string);
-      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+
+      allow update, delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
     }
+
     match /users/{userId} {
       allow read: if signedIn();
+
       allow create, delete: if false;
-      allow update: if signedIn() && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','color','color1','color2','nameFont','decoration','photoURL','bio','statusText','bannerURL','bannerHeight','avatarSize','isOnline','presenceState','lastActiveAt','lastSeenAt']);
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName',
+          'color',
+          'color1',
+          'color2',
+          'nameFont',
+          'decoration',
+          'photoURL',
+          'bio',
+          'statusText',
+          'bannerURL',
+          'bannerHeight',
+          'avatarSize',
+          'isOnline',
+          'presenceState',
+          'lastActiveAt',
+          'lastSeenAt'
+        ]);
     }
+
     match /users/{userId}/fcmTokens/{tokenId} {
       allow read: if false;
-      allow create, update: if signedIn() && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['token','platform','updatedAt'])
+
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'token',
+          'platform',
+          'updatedAt'
+        ])
         && request.resource.data.token is string
         && request.resource.data.token.size() > 20
         && request.resource.data.platform == 'web-android';
-      allow delete: if signedIn() && request.auth.uid == userId;
+
+      allow delete: if signedIn()
+        && request.auth.uid == userId;
     }
+
     match /threads/{threadId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow read: if signedIn()
+        && request.auth.uid in resource.data.participants;
+
       allow create: if signedIn()
         && request.resource.data.participants is list
-        && (request.resource.data.participants.size() == 2 || request.resource.data.participants.size() == 3)
+        && (request.resource.data.participants.size() == 2
+        || request.resource.data.participants.size() == 3)
         && request.auth.uid in request.resource.data.participants;
-      allow update: if signedIn() && request.auth.uid in resource.data.participants
+
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.participants
         && request.resource.data.participants == resource.data.participants;
+
       allow delete: if false;
+
       match /typing/{userId} {
         allow read: if isMember(threadId);
-        allow create, update: if isMember(threadId) && request.auth.uid == userId
+
+        allow create, update: if isMember(threadId)
+          && request.auth.uid == userId
           && request.resource.data.uid == request.auth.uid;
-        allow delete: if isMember(threadId) && request.auth.uid == userId;
+
+        allow delete: if isMember(threadId)
+          && request.auth.uid == userId;
       }
+
       match /messages/{messageId} {
         allow read: if isMember(threadId);
+
         allow create: if isMember(threadId)
           && request.resource.data.senderId == request.auth.uid
-          && ((request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000)
-             || request.resource.data.sticker is string);
+          && (
+            (request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 2000)
+            || request.resource.data.sticker is string
+          );
+
         allow update: if isMember(threadId)
           && request.resource.data.senderId == resource.data.senderId
           && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','edited','editedAt','pinned','reactions'])
-          && ( !request.resource.data.diff(resource.data).affectedKeys().hasAny(['text']) || resource.data.senderId == request.auth.uid );
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'text',
+            'edited',
+            'editedAt',
+            'pinned',
+            'reactions'
+          ])
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['text'])
+            || resource.data.senderId == request.auth.uid
+          );
+
         allow delete: if false;
       }
     }

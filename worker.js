@@ -147,7 +147,7 @@ async function sendFcm(token, title, body, accessToken, threadId, messageId) {
           notification: { title, body },
           data: { threadId, messageId },
           webpush: {
-            notification: { tag: `${threadId}-${messageId}` }
+            notification: { tag: `bubble-chat-${threadId}`, renotify: false }
           }
         }
       })
@@ -204,14 +204,17 @@ export default {
 
       const recipients = participants.filter(id => id !== uid);
       const preview = message.sticker ? "أرسل ملصقًا" : String(message.text || "رسالة جديدة").slice(0, 160);
-      const title = String(message.senderName || "رسالة جديدة").slice(0, 80);
+      const senderLabel = String(message.senderName || "رسالة جديدة").slice(0, 48);
+      const groupLabel = thread.kind === "group" ? String(thread.groupName || "الجروب").slice(0, 36) : "";
+      const title = (groupLabel ? `${senderLabel} · ${groupLabel}` : senderLabel).slice(0, 80);
+      const detailedPreview = groupLabel ? `${groupLabel}: ${preview}` : preview;
 
       let sent = 0;
       let failed = 0;
       for (const recipientId of recipients) {
         const tokens = await getRecipientTokens(recipientId, accessToken);
         for (const token of tokens) {
-          const result = await sendFcm(token, title, preview, accessToken, threadId, messageId);
+          const result = await sendFcm(token, title, detailedPreview, accessToken, threadId, messageId);
           if (result.ok) sent++;
           else failed++;
         }

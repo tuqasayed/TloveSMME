@@ -12,6 +12,17 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
     }
 
+    function isGroupAdmin(threadId) {
+      return signedIn()
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'Tuqa'
+          || (
+            get(/databases/$(database)/documents/threads/$(threadId)).data.admins is list
+            && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.admins
+          )
+        );
+    }
+
     // Shared image and GIF sticker catalog: all signed-in friends can view and add.
     match /stickers/{stickerId} {
       allow read: if signedIn();
@@ -90,11 +101,23 @@ service cloud.firestore {
         && request.resource.data.participants is list
         && (request.resource.data.participants.size() == 2
         || request.resource.data.participants.size() == 3)
-        && request.auth.uid in request.resource.data.participants;
+        && request.auth.uid in request.resource.data.participants
+        && (
+          request.resource.data.kind != 'group'
+          || (
+            request.resource.data.admins is list
+            && request.resource.data.admins.size() == 0
+          )
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'Tuqa'
+        );
 
       allow update: if signedIn()
         && request.auth.uid in resource.data.participants
-        && request.resource.data.participants == resource.data.participants;
+        && request.resource.data.participants == resource.data.participants
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['groupName','groupPhotoURL','groupBannerURL','admins'])
+          || (resource.data.kind == 'group' && isGroupAdmin(threadId))
+        );
 
       allow delete: if false;
 
@@ -129,11 +152,23 @@ service cloud.firestore {
             'edited',
             'editedAt',
             'pinned',
-            'reactions'
+            'pinnedAt',
+            'reactions',
+            'deletedFor',
+            'deletedForAll',
+            'deletedAt'
           ])
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['text'])
             || resource.data.senderId == request.auth.uid
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedForAll','deletedAt'])
+            || (resource.data.senderId == request.auth.uid && request.resource.data.deletedForAll == true)
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedFor'])
+            || (request.resource.data.deletedFor is list && request.auth.uid in request.resource.data.deletedFor)
           );
 
         allow delete: if false;

@@ -17,9 +17,9 @@ messaging.onBackgroundMessage(payload => {
     body: payload.notification?.body || "عندك رسالة جديدة ♡",
     icon: "./icons/icon-192.png",
     data: payload.data || {},
-    tag: payload.data?.threadId && payload.data?.messageId
-      ? `${payload.data.threadId}-${payload.data.messageId}`
-      : "bubble-chat-message"
+    tag: payload.data?.threadId ? `bubble-chat-${payload.data.threadId}` : "bubble-chat-message",
+    renotify: false,
+    timestamp: Date.now()
   };
   self.registration.showNotification(title, options);
 });

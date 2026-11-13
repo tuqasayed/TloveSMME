@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=sticker-grid-shared-2" rel="stylesheet"/>
+  <link href="style.css?v=bubble-square-dock-reply-theme-20261113" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -136,7 +136,12 @@
      </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
+    <button class="collapsed-unread-indicator hidden" id="collapsedUnreadIndicator" type="button">✉ رسائل جديدة <b id="collapsedUnreadCount">0</b></button>
     <section class="conversation">
+     <div class="sidebar-mini-dock" id="sidebarMiniDock" aria-label="اختصارات المحادثات">
+      <div class="sidebar-mini-items" id="sidebarMiniItems"></div>
+      <button class="sidebar-dock-toggle" id="sidebarDockToggle" type="button" aria-label="إظهار الشريط الجانبي" title="إظهار الشريط الجانبي">⌄</button>
+     </div>
      <div class="empty-state" id="emptyState">
       <div class="empty-art">
        🫧
@@ -164,12 +169,17 @@
          BSFE
         </small>
        </div>
-       <button class="soft-btn" id="pinnedToggle" type="button">
-        📌 المثبتة
-       </button>
+       <div class="chat-tools-wrap">
+        <button class="soft-btn chat-tools-toggle" id="chatToolsToggle" type="button" aria-label="المزيد من خيارات المحادثة" aria-expanded="false" title="المزيد">⋮</button>
+        <div class="chat-tools-menu hidden" id="chatToolsMenu" role="menu" aria-label="خيارات المحادثة">
+         <button class="chat-tools-item" id="chatSearchToggle" type="button" role="menuitem"><span>⌕</span> بحث في المحادثة</button>
+         <button class="chat-tools-item" id="pinnedToggle" type="button" role="menuitem"><span>📌</span> الرسائل المثبتة</button>
+        </div>
+       </div>
        <div class="header-deco">
         ✧
        </div>
+       <div class="chat-search-panel hidden" id="chatSearchPanel"><input id="chatSearchInput" type="search" placeholder="" aria-label="بحث في الرسائل" autocomplete="off"><span id="chatSearchCount" aria-live="polite"></span><button type="button" id="chatSearchClose" aria-label="إغلاق البحث" title="إغلاق">×</button></div>
       </header>
       <div class="pinned-bar hidden" id="pinnedBar">
       </div>
@@ -190,7 +200,7 @@
        <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button">
         😊
        </button>
-       <input autocomplete="off" id="messageInput" maxlength="2000" placeholder="اكتب رسالة..."/>
+       <textarea autocomplete="off" id="messageInput" maxlength="2000" rows="1" placeholder="اكتب رسالة..."></textarea>
        <button aria-label="إرسال" class="send-btn" type="submit">
         ➤
        </button>
@@ -202,6 +212,7 @@
     </section>
    </section>
   </main>
+  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">كاميرا</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
   <div class="modal hidden" id="profileModal">
    <form class="modal-card" id="profileForm">
     <button class="modal-close" id="closeProfile" type="button">
@@ -290,7 +301,7 @@
   </section>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=arabic-name-scroll-1" type="module">
+  <script src="app.js?v=bubble-square-dock-reply-theme-20261113" type="module">
   </script>
  </body>
 </html>

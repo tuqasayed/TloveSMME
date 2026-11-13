@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800;900&family=Noto+Serif:wght@400;700;900&family=Noto+Naskh+Arabic:wght@400;500;600;700;800&family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800;900&family=Noto+Serif:wght@400;700;900&family=Noto+Naskh+Arabic:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800;900&family=Noto+Kufi+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
 :root {
   --cyan:#8beaf0;
   --cyan-deep:#37cbd8;
@@ -3173,5 +3173,33 @@ body.dark-mode .mini-message-dot {border-color:var(--panel,#20202c) !important;}
     height: 36px !important;
     min-width: 36px !important;
     flex-basis: 36px !important;
+  }
+}
+
+
+/* Mobile/WebView performance tuning: preserve layout and behavior while
+   reducing expensive blur and perpetual decorative painting. */
+@media (max-width: 700px) {
+  .login-card,
+  .message-actions-menu,
+  .message-context-backdrop,
+  .message-context-panel,
+  .crop-modal {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .credits-trigger-icon,
+  .credits-trigger-arrow,
+  .credits-trophy,
+  .presence-dot.is-online,
+  .chat-header.is-online #chatAvatar::after,
+  .is-typing {
+    animation: none !important;
+  }
+
+  /* Avoid animated transforms on every newly rendered message. */
+  .message-row {
+    animation: none !important;
   }
 }

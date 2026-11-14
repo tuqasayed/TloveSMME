@@ -106,7 +106,7 @@ function watchUnreadThread(thread){
   const stop=onSnapshot(qUnread,snapshot=>{
     const docs=snapshot.docs,latest=docs.at(-1)?.data()?.createdAt,latestTime=latest?.toMillis?.()||Date.now(),key=readKey(thread);
     let lastRead=Number(localStorage.getItem(key));
-    if(!initialized&&!Number.isFinite(lastRead)){localStorage.setItem(key,String(latestTime));lastRead=latestTime;}
+    if(!initialized&&!Number.isFinite(lastRead)){localStorage.setItem(key,String(latestTime));lastRead=lastRead;}
     const isOpen=activeChat&&(activeChat.kind==="group"?GROUP_ID:threadId(currentUser.uid,activeChat.id))===thread;
     if(isOpen)setThreadRead(thread,latestTime);
     else{
@@ -968,7 +968,7 @@ async function uploadAvatarToCloudinary(file){
   if(!result.secure_url)throw new Error("Cloudinary لم يرجع رابط الصورة");return result.secure_url;
 }
 
-function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
+function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
 
 $("profileForm").onsubmit=async e=>{
   e.preventDefault();const displayName=$("displayNameInput").value.trim();if(!displayName)return;
@@ -1012,7 +1012,7 @@ async function openPublicProfile(profile){
   if(!profile)return;const modal=$("publicProfileModal");
   $("publicProfileName").textContent=profile.displayName||profile.username||"مستخدم";$("publicProfileName").style.cssText=nameStyle(profile);$("publicProfileDecoration").innerHTML=profile.decoration?`<img src="${decorationUrl(profile.decoration)}" alt="">`:"";
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||"لا توجد نبذة تعريفية بعد.";
-  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\",'')}")`:profileGradient(profile);
+  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\\",'')}")`:profileGradient(profile);
   const avatar=$("publicProfileAvatar");avatar.innerHTML=profile.photoURL?`<img src="${$safe(profile.photoURL)}" alt="">`:$safe((profile.displayName||profile.username||"♡").slice(0,1));avatar.style.width=avatar.style.height="104px";avatar.style.backgroundImage=avatarGradient(profile);avatar.classList.toggle('has-decoration',!!profile.decoration);
   const list=$("publicStoriesItems");list.innerHTML="<span class='profile-hint'>جاري تحميل الحالات...</span>";modal.classList.remove("hidden");
   try{

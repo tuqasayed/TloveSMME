@@ -281,7 +281,7 @@ async function enablePushNotifications(){
   }
   if(!token)throw new Error(uiText("تعذر إنشاء رمز الإشعارات","Could not create a notification token."));
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{
-    token, platform:"web", updatedAt:serverTimestamp()
+    token, platform:"web-android", updatedAt:serverTimestamp()
   });
   toast(uiText("تم تفعيل الإشعارات على هذا الجهاز ♡","Notifications enabled on this device ♡"));
 }

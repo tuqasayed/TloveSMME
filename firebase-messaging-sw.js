@@ -16,9 +16,9 @@ const messaging = firebase.messaging();
 // instead of creating a separate notification for every message.
 messaging.onBackgroundMessage(payload => {
   const data = payload.data || {};
-  const title = payload.notification?.title || "Bubble Chat 🫧";
+  const title = data.title || payload.notification?.title || "Bubble Chat 🫧";
   const options = {
-    body: payload.notification?.body || "عندك رسالة جديدة ♡",
+    body: data.body || payload.notification?.body || "عندك رسالة جديدة ♡",
     icon: "./icons/icon-192.png",
     badge: "./icons/icon-192.png",
     data,

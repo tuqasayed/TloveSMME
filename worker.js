@@ -147,17 +147,17 @@ async function sendFcm(token, title, body, accessToken, threadId, messageId) {
       body: JSON.stringify({
         message: {
           token,
-          notification: { title, body },
-          data: { threadId, messageId },
+          // Data-only payload: the service worker is the single place that
+          // displays notifications, preventing the browser/FCM auto-display
+          // path from duplicating the custom notification.
+          data: {
+            title,
+            body,
+            threadId: String(threadId),
+            messageId: String(messageId)
+          },
           webpush: {
-            headers: { TTL: "86400", Urgency: "high" },
-            notification: {
-              title,
-              body,
-              tag: `bubble-chat-${threadId}`,
-              renotify: false,
-              requireInteraction: false
-            }
+            headers: { TTL: "86400", Urgency: "high" }
           }
         }
       })

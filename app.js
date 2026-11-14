@@ -1206,7 +1206,13 @@ $("closeSettings")?.addEventListener("click",closeSettings);
 settingsModal?.addEventListener("click",e=>{if(e.target===settingsModal)closeSettings()});
 $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  const button=$("enableNotificationsBtn");button.disabled=true;
- try{await enablePushNotifications()}catch(error){console.error("Push notification setup failed:",error);toast(uiText("تعذر تفعيل الإشعارات","Could not enable notifications."));}
+ try{
+  await enablePushNotifications();
+ }catch(error){
+  console.error("Push notification setup failed:",error);
+  const detail=String(error?.message||error||uiText("سبب غير معروف","Unknown reason"));
+  toast(`${uiText("تعذر تفعيل الإشعارات","Could not enable notifications")}: ${detail}`);
+ }
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});

@@ -11,7 +11,7 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage(payload => {
+messaging.onBackgroundMessage(async payload => {
   const title = payload.notification?.title || "Bubble Chat 🫧";
   const options = {
     body: payload.notification?.body || "عندك رسالة جديدة ♡",
@@ -21,7 +21,7 @@ messaging.onBackgroundMessage(payload => {
     renotify: false,
     timestamp: Date.now()
   };
-  self.registration.showNotification(title, options);
+  return self.registration.showNotification(title, options);
 });
 
 self.addEventListener("notificationclick", event => {

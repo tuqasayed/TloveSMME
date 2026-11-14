@@ -321,7 +321,15 @@ async function notifyRecipients(threadIdValue,messageIdValue){
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${idToken}`},
       body:JSON.stringify({threadId:threadIdValue,messageId:messageIdValue})
     });
-    if(!response.ok)console.warn("Notification delivery failed:",await response.text());
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok || !result.ok){
+      console.error("Notification delivery diagnostic:",result);
+      if(result.noTokens) toast("الإشعارات: الحساب المستلم ليس لديه رمز مسجل على هذا الجهاز. فعّل الإشعارات من الحساب المستلم نفسه.");
+      else if(result.errors?.length) toast("تعذر إرسال الإشعار. راجع تفاصيل الخطأ في سجل Worker.");
+      else if(result.sent===0) toast("لم يتم إرسال إشعار: لم يتم العثور على جهاز مستلم مسجل.");
+    }else{
+      console.log("Push notification sent:",result);
+    }
   }catch(error){console.warn("Could not call notification worker:",error)}
 }
 
@@ -1206,13 +1214,7 @@ $("closeSettings")?.addEventListener("click",closeSettings);
 settingsModal?.addEventListener("click",e=>{if(e.target===settingsModal)closeSettings()});
 $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  const button=$("enableNotificationsBtn");button.disabled=true;
- try{
-  await enablePushNotifications();
- }catch(error){
-  console.error("Push notification setup failed:",error);
-  const detail=String(error?.message||error||uiText("سبب غير معروف","Unknown reason"));
-  toast(`${uiText("تعذر تفعيل الإشعارات","Could not enable notifications")}: ${detail}`);
- }
+ try{await enablePushNotifications()}catch(error){console.error("Push notification setup failed:",error);toast(uiText("تعذر تفعيل الإشعارات","Could not enable notifications."));}
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});

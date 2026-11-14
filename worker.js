@@ -212,15 +212,26 @@ export default {
 
       let sent = 0;
       let failed = 0;
+      let tokensFound = 0;
+      const errors = [];
       for (const recipientId of recipients) {
         const tokens = await getRecipientTokens(recipientId, accessToken);
+        tokensFound += tokens.length;
         for (const token of tokens) {
           const result = await sendFcm(token, title, detailedPreview, accessToken, threadId, messageId);
           if (result.ok) sent++;
-          else failed++;
+          else {
+            failed++;
+            errors.push({ recipientId, error: result.result?.error?.message || JSON.stringify(result.result) });
+          }
         }
       }
-      return json({ ok: true, sent, failed }, 200, origin);
+      return json({
+        ok: sent > 0 && failed === 0,
+        sent, failed, tokensFound, recipients: recipients.length,
+        noTokens: tokensFound === 0,
+        errors
+      }, 200, origin);
     } catch (error) {
       console.error("Notification worker error:", error);
       return json({ error: "Notification request failed", detail: String(error.message || error) }, 500, origin);

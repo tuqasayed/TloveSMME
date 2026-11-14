@@ -252,18 +252,8 @@ function expandSidebarWhenNoChat(){
 async function enablePushNotifications(){
   if(!currentUser)throw new Error(uiText("سجّلي الدخول أولًا","Please log in first."));
   
-  const nativeToken = localStorage.getItem('fcm_token');
-  if (nativeToken && nativeToken.length > 20) {
-    await setDoc(doc(db, "users", currentUser.uid, "fcmTokens", nativeToken),{
-      token: nativeToken, platform: "android-webview", updatedAt: serverTimestamp()
-    }, { merge: true });
-    toast(uiText("تم تفعيل الإشعارات بنجاح ♡","Notifications enabled successfully ♡"));
-    return;
-  }
-
   if(!("serviceWorker" in navigator) || !("Notification" in window)){
-    toast(uiText("الإشعارات تعمل بكفاءة داخل التطبيق ♡","Notifications work inside the app ♡"));
-    return;
+    throw new Error(uiText("هذا المتصفح لا يدعم إشعارات الويب المطلوبة.","This browser does not support web push notifications."));
   }
   
   if(!(await isSupported()))throw new Error(uiText("إشعارات Firebase غير مدعومة في هذا المتصفح","Firebase notifications are not supported in this browser."));
@@ -291,27 +281,11 @@ async function enablePushNotifications(){
   }
   if(!token)throw new Error(uiText("تعذر إنشاء رمز الإشعارات","Could not create a notification token."));
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{
-    token, platform:"web-android", updatedAt:serverTimestamp()
+    token, platform:"web", updatedAt:serverTimestamp()
   });
   toast(uiText("تم تفعيل الإشعارات على هذا الجهاز ♡","Notifications enabled on this device ♡"));
 }
 
-async function syncAndroidTokenToFirestore() {
-  if (!currentUser) return;
-  try {
-    const token = localStorage.getItem('fcm_token');
-    if (!token || token.length < 20) return;
-    const tokenRef = doc(db, "users", currentUser.uid, "fcmTokens", token);
-    await setDoc(tokenRef, {
-      token: token,
-      platform: "android-webview",
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-    console.log("تم مزامنة تكنو إشعارات الأندرويد بنجاح ♡");
-  } catch (err) {
-    console.warn("تعذر مزامنة تكنو إشعارات الأندرويد:", err);
-  }
-}
 
 async function notifyRecipients(threadIdValue,messageIdValue){
   try{
@@ -323,14 +297,15 @@ async function notifyRecipients(threadIdValue,messageIdValue){
     });
     const result=await response.json().catch(()=>({}));
     if(!response.ok || !result.ok){
-      console.error("Notification delivery diagnostic:",result);
-      if(result.noTokens) toast("الإشعارات: الحساب المستلم ليس لديه رمز مسجل على هذا الجهاز. فعّل الإشعارات من الحساب المستلم نفسه.");
-      else if(result.errors?.length) toast("تعذر إرسال الإشعار. راجع تفاصيل الخطأ في سجل Worker.");
-      else if(result.sent===0) toast("لم يتم إرسال إشعار: لم يتم العثور على جهاز مستلم مسجل.");
-    }else{
-      console.log("Push notification sent:",result);
+      console.error("Push notification delivery failed:",response.status,result);
+      return;
     }
-  }catch(error){console.warn("Could not call notification worker:",error)}
+    if(!result.sent){
+      console.warn("No browser notification tokens found for recipient:",result);
+      return;
+    }
+    console.info("Browser push notifications sent:",result);
+  }catch(error){console.error("Could not call notification worker:",error)}
 }
 
 
@@ -400,7 +375,6 @@ onAuthStateChanged(auth,async user=>{
       return showLogin("بيانات حساب المطور غير متطابقة.");
     }
     
-    await syncAndroidTokenToFirestore();
 
     renderMe();
     showChat();

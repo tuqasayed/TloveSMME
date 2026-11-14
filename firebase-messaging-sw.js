@@ -11,25 +11,42 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage(async payload => {
+
+// Keep one notification per conversation. New messages update that notification
+// instead of creating a separate notification for every message.
+messaging.onBackgroundMessage(payload => {
+  const data = payload.data || {};
   const title = payload.notification?.title || "Bubble Chat 🫧";
   const options = {
     body: payload.notification?.body || "عندك رسالة جديدة ♡",
     icon: "./icons/icon-192.png",
-    data: payload.data || {},
-    tag: payload.data?.threadId ? `bubble-chat-${payload.data.threadId}` : "bubble-chat-message",
+    badge: "./icons/icon-192.png",
+    data,
+    tag: data.threadId ? `bubble-chat-${data.threadId}` : "bubble-chat-messages",
     renotify: false,
+    requireInteraction: false,
     timestamp: Date.now()
   };
+
   return self.registration.showNotification(title, options);
 });
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
-  event.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
-    for (const client of list) {
-      if ("focus" in client) return client.focus();
+  const threadId = event.notification.data?.threadId || "";
+  const targetUrl = threadId
+    ? `./?thread=${encodeURIComponent(threadId)}`
+    : "./";
+
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if ("focus" in client) {
+        await client.focus();
+        if ("navigate" in client) await client.navigate(targetUrl);
+        return;
+      }
     }
-    return clients.openWindow("./");
-  }));
+    await clients.openWindow(targetUrl);
+  })());
 });

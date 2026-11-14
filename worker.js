@@ -128,6 +128,9 @@ async function getRecipientTokens(uid, accessToken) {
   if (!response.ok) throw new Error(`Token lookup failed: ${JSON.stringify(data)}`);
   return (data.documents || [])
     .map(doc => decodeFields(doc.fields || {}))
+    // Ignore tokens created by the retired native Android app.
+    // Keep browser tokens from both the new "web" label and legacy web labels.
+    .filter(fields => fields.platform !== "android-webview")
     .map(fields => fields.token)
     .filter(token => typeof token === "string" && token.length > 20);
 }
@@ -148,7 +151,13 @@ async function sendFcm(token, title, body, accessToken, threadId, messageId) {
           data: { threadId, messageId },
           webpush: {
             headers: { TTL: "86400", Urgency: "high" },
-            notification: { tag: `bubble-chat-${threadId}`, renotify: false }
+            notification: {
+              title,
+              body,
+              tag: `bubble-chat-${threadId}`,
+              renotify: false,
+              requireInteraction: false
+            }
           }
         }
       })
@@ -212,25 +221,47 @@ export default {
 
       let sent = 0;
       let failed = 0;
-      let tokensFound = 0;
-      const errors = [];
+      let tokenCount = 0;
+      const failures = [];
+
       for (const recipientId of recipients) {
         const tokens = await getRecipientTokens(recipientId, accessToken);
-        tokensFound += tokens.length;
+        tokenCount += tokens.length;
+
         for (const token of tokens) {
           const result = await sendFcm(token, title, detailedPreview, accessToken, threadId, messageId);
-          if (result.ok) sent++;
-          else {
+          if (result.ok) {
+            sent++;
+          } else {
             failed++;
-            errors.push({ recipientId, error: result.result?.error?.message || JSON.stringify(result.result) });
+            failures.push({
+              code: result.result?.error?.details?.[0]?.errorCode ||
+                    result.result?.error?.status || "FCM_SEND_FAILED",
+              message: result.result?.error?.message || "Firebase rejected this browser token"
+            });
           }
         }
       }
+
+      if (tokenCount === 0) {
+        return json({
+          ok: false,
+          reason: "NO_BROWSER_TOKENS",
+          message: "The recipient has no registered browser notification token.",
+          recipients: recipients.length,
+          tokenCount: 0,
+          sent: 0,
+          failed: 0
+        }, 200, origin);
+      }
+
       return json({
-        ok: sent > 0 && failed === 0,
-        sent, failed, tokensFound, recipients: recipients.length,
-        noTokens: tokensFound === 0,
-        errors
+        ok: sent > 0,
+        recipients: recipients.length,
+        tokenCount,
+        sent,
+        failed,
+        failures: failures.slice(0, 5)
       }, 200, origin);
     } catch (error) {
       console.error("Notification worker error:", error);

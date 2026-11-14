@@ -183,6 +183,8 @@ function renderChatAvatar(target){
   paintAvatar(avatar,target);
 }
 
+function isEnglishUi(){return localStorage.getItem("bubble-chat-language")==="en"}
+function uiText(ar,en){return isEnglishUi()?en:ar}
 function toast(t){const el=$("toast");el.textContent=t;el.classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.add("hidden"),2600)}
 
 let deferredInstallPrompt = null;
@@ -248,25 +250,25 @@ function expandSidebarWhenNoChat(){
 
 // دالة تفعيل الإشعارات الذكية المحدثة (تتعامل مع WebView والويب وتمنع الأخطاء)
 async function enablePushNotifications(){
-  if(!currentUser)throw new Error("سجّلي الدخول أولًا");
+  if(!currentUser)throw new Error(uiText("سجّلي الدخول أولًا","Please log in first."));
   
   const nativeToken = localStorage.getItem('fcm_token');
   if (nativeToken && nativeToken.length > 20) {
     await setDoc(doc(db, "users", currentUser.uid, "fcmTokens", nativeToken),{
       token: nativeToken, platform: "android-webview", updatedAt: serverTimestamp()
     }, { merge: true });
-    toast("تم تفعيل الإشعارات بنجاح ♡");
+    toast(uiText("تم تفعيل الإشعارات بنجاح ♡","Notifications enabled successfully ♡"));
     return;
   }
 
   if(!("serviceWorker" in navigator) || !("Notification" in window)){
-    toast("الإشعارات تعمل بكفاءة داخل التطبيق ♡");
+    toast(uiText("الإشعارات تعمل بكفاءة داخل التطبيق ♡","Notifications work inside the app ♡"));
     return;
   }
   
-  if(!(await isSupported()))throw new Error("إشعارات Firebase غير مدعومة في هذا المتصفح");
+  if(!(await isSupported()))throw new Error(uiText("إشعارات Firebase غير مدعومة في هذا المتصفح","Firebase notifications are not supported in this browser."));
   const permission=await Notification.requestPermission();
-  if(permission!=="granted")throw new Error("لم يتم السماح بالإشعارات");
+  if(permission!=="granted")throw new Error(uiText("لم يتم السماح بالإشعارات","Notification permission was not granted."));
   const swUrl = new URL("./firebase-messaging-sw.js", import.meta.url);
   const appScope = new URL("./", import.meta.url);
   let registration;
@@ -275,7 +277,7 @@ async function enablePushNotifications(){
     await navigator.serviceWorker.ready;
   } catch (error) {
     console.error("Service worker registration failed:", error);
-    throw new Error(`تعذر تسجيل ملف الإشعارات (${error?.message || error})`);
+    throw new Error(`${uiText("تعذر تسجيل ملف الإشعارات","Could not register the notifications service worker")} (${error?.message || error})`);
   }
   const messaging=getMessaging(app);
   let token;
@@ -285,13 +287,13 @@ async function enablePushNotifications(){
     console.error("Firebase push token failed:", error);
     const code = String(error?.code ?? error?.name ?? "unknown");
     const message = String(error?.message ?? error ?? "حدث خطأ غير معروف");
-    throw new Error(`فشل إنشاء رمز الإشعارات (${code}): ${message}`);
+    throw new Error(`${uiText("فشل إنشاء رمز الإشعارات","Failed to create notification token")} (${code}): ${message}`);
   }
-  if(!token)throw new Error("تعذر إنشاء رمز الإشعارات");
+  if(!token)throw new Error(uiText("تعذر إنشاء رمز الإشعارات","Could not create a notification token."));
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{
     token, platform:"web-android", updatedAt:serverTimestamp()
   });
-  toast("تم تفعيل الإشعارات على هذا الجهاز ♡");
+  toast(uiText("تم تفعيل الإشعارات على هذا الجهاز ♡","Notifications enabled on this device ♡"));
 }
 
 async function syncAndroidTokenToFirestore() {
@@ -323,13 +325,6 @@ async function notifyRecipients(threadIdValue,messageIdValue){
   }catch(error){console.warn("Could not call notification worker:",error)}
 }
 
-$("enableNotificationsBtn").addEventListener("click",async()=>{
-  const button=$("enableNotificationsBtn");
-  button.disabled=true;
-  try{await enablePushNotifications()}
-  catch(error){console.error(error);toast(error.message||"تعذر تفعيل الإشعارات")}
-  finally{button.disabled=false}
-});
 
 // زر تسجيل الدخول المباشر (منع تام للريفرش)
 const loginBtn = $("loginBtn");
@@ -595,7 +590,6 @@ async function openChat(target){
   if(stopMessages){stopMessages();stopMessages=null;}
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
-  startTypingListener(id);
   setThreadRead(id);
   const ref=doc(db,"threads",id);
 
@@ -607,13 +601,14 @@ async function openChat(target){
       await setDoc(ref,{
         kind:target.kind||"direct",
         ...(target.kind==="group"?{groupName:"S.T.M 🌷",groupPhotoURL:"",admins:[]}:{}),
-        participants:(target.kind==="group"?GROUP.participants:[currentUser.uid,target.id]).sort(),
-        participantNames:target.kind==="group"?USERNAMES.slice(0,3):[currentProfile.username,target.username],
+        participants:target.kind==="group"?GROUP.participants:(target.kind==="self"?[currentUser.uid]:[currentUser.uid,target.id].sort()),
+        participantNames:target.kind==="group"?USERNAMES.slice(0,3):(target.kind==="self"?[currentProfile.username||"You!"]:[currentProfile.username,target.username]),
         createdAt:serverTimestamp(),
         updatedAt:serverTimestamp()
       });
       if(openVersion!==chatOpenVersion)return;
     }
+    startTypingListener(id);
     if(target.kind==="group"){
       const fresh=await getDoc(ref);
       activeGroupMeta={name:fresh.data()?.groupName||"S.T.M 🌷",photoURL:fresh.data()?.groupPhotoURL||"",bannerURL:fresh.data()?.groupBannerURL||"",admins:fresh.data()?.admins||[]};
@@ -646,7 +641,7 @@ async function openChat(target){
   }catch(err){
     if(openVersion!==chatOpenVersion)return;
     console.error("Could not open chat:",err);
-    toast("تعذر فتح المحادثة. راجع الاتصال وقواعد Firestore");
+    toast(uiText("تعذر فتح المحادثة. راجع الاتصال وقواعد Firestore","Could not open chat. Check your connection and Firestore rules."));
   }
 }
 
@@ -1211,7 +1206,7 @@ $("closeSettings")?.addEventListener("click",closeSettings);
 settingsModal?.addEventListener("click",e=>{if(e.target===settingsModal)closeSettings()});
 $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  const button=$("enableNotificationsBtn");button.disabled=true;
- try{await enablePushNotifications()}catch(error){console.error(error);toast(error.message||"تعذر تفعيل الإشعارات")}
+ try{await enablePushNotifications()}catch(error){console.error("Push notification setup failed:",error);toast(uiText("تعذر تفعيل الإشعارات","Could not enable notifications."));}
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});

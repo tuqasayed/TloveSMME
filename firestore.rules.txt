@@ -66,11 +66,23 @@ service cloud.firestore {
     }
 
     match /threads/{threadId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      // Allow signed-in users to check whether a deterministic thread ID exists.
+      // Existing thread contents remain readable only by listed participants.
+      // This lets a user create a new private thread after getDoc() returns missing.
+      allow get: if signedIn()
+        && (!exists(/databases/$(database)/documents/threads/$(threadId))
+          || request.auth.uid in resource.data.participants);
+      allow list: if signedIn() && request.auth.uid in resource.data.participants;
       allow create: if signedIn()
         && request.resource.data.participants is list
-        && (request.resource.data.participants.size() == 2 || request.resource.data.participants.size() == 3)
         && request.auth.uid in request.resource.data.participants
+        && (
+          (request.resource.data.kind == 'self'
+            && request.resource.data.participants.size() == 1
+            && request.resource.data.participants[0] == request.auth.uid)
+          || (request.resource.data.kind != 'self'
+            && (request.resource.data.participants.size() == 2 || request.resource.data.participants.size() == 3))
+        )
         && (request.resource.data.kind != 'group'
           || (request.resource.data.admins is list && request.resource.data.admins.size() == 0)
           || developer()

@@ -5,7 +5,7 @@ function removeEscapedNewlineArtifacts(root=document.body){
   const remove=[];
   while(walker.nextNode()){
     const value=walker.currentNode.nodeValue||"";
-    if(/^\s*n(?:\s*\\n\s*n){1,}\s*\\?\s*$/i.test(value))remove.push(walker.currentNode);
+    if(/^\s*n(?:\s*\n\s*n){1,}\s*\?\s*$/i.test(value))remove.push(walker.currentNode);
   }
   remove.forEach(node=>node.remove());
 }
@@ -316,16 +316,42 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
   finally{button.disabled=false}
 });
 
-$("loginForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const name=$("username").value.trim();
-  if(!USERNAMES.some(n=>n.toLowerCase()===name.toLowerCase()))return $("loginError").textContent="اسم المستخدم غير مسموح به.";
-  try{
-    await signInWithEmailAndPassword(auth,emailFor(name),$("password").value);
-  }catch(err){
-    console.error(err);
-    $("loginError").textContent="اسم المستخدم أو كلمة المرور غير صحيحة.";
-  }
+// زر تسجيل الدخول المباشر بمنع تام لأي ريفرش
+const loginBtn = $("loginBtn");
+if (loginBtn) {
+  loginBtn.addEventListener("click", async () => {
+    const usernameInput = $("username");
+    const passwordInput = $("password");
+    const errorEl = $("loginError");
+    
+    if (!usernameInput || !passwordInput) return;
+    
+    const name = usernameInput.value.trim();
+    const pass = passwordInput.value;
+    
+    if (!USERNAMES.some(n => n.toLowerCase() === name.toLowerCase())) {
+      if (errorEl) errorEl.textContent = "اسم المستخدم غير مسموح به.";
+      return;
+    }
+    
+    try {
+      if (errorEl) errorEl.textContent = "جاري تسجيل الدخول...";
+      await signInWithEmailAndPassword(auth, emailFor(name), pass);
+    } catch (err) {
+      console.error("Login error:", err);
+      if (errorEl) errorEl.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة.";
+    }
+  });
+}
+
+// دعم الضغط على زر Enter داخل الحقول عشان يسجل دخول من غير ريفرش
+["username", "password"].forEach(id => {
+  $(id)?.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("loginBtn")?.click();
+    }
+  });
 });
 
 $("logoutBtn").onclick=async()=>{
@@ -968,7 +994,7 @@ async function uploadAvatarToCloudinary(file){
   if(!result.secure_url)throw new Error("Cloudinary لم يرجع رابط الصورة");return result.secure_url;
 }
 
-function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
+function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
 
 $("profileForm").onsubmit=async e=>{
   e.preventDefault();const displayName=$("displayNameInput").value.trim();if(!displayName)return;
@@ -1012,7 +1038,7 @@ async function openPublicProfile(profile){
   if(!profile)return;const modal=$("publicProfileModal");
   $("publicProfileName").textContent=profile.displayName||profile.username||"مستخدم";$("publicProfileName").style.cssText=nameStyle(profile);$("publicProfileDecoration").innerHTML=profile.decoration?`<img src="${decorationUrl(profile.decoration)}" alt="">`:"";
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||"لا توجد نبذة تعريفية بعد.";
-  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\\",'')}")`:profileGradient(profile);
+  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\",'')}")`:profileGradient(profile);
   const avatar=$("publicProfileAvatar");avatar.innerHTML=profile.photoURL?`<img src="${$safe(profile.photoURL)}" alt="">`:$safe((profile.displayName||profile.username||"♡").slice(0,1));avatar.style.width=avatar.style.height="104px";avatar.style.backgroundImage=avatarGradient(profile);avatar.classList.toggle('has-decoration',!!profile.decoration);
   const list=$("publicStoriesItems");list.innerHTML="<span class='profile-hint'>جاري تحميل الحالات...</span>";modal.classList.remove("hidden");
   try{

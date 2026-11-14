@@ -5,7 +5,7 @@ function removeEscapedNewlineArtifacts(root=document.body){
   const remove=[];
   while(walker.nextNode()){
     const value=walker.currentNode.nodeValue||"";
-    if(/^\s*n(?:\s*\n\s*n){1,}\s*\?\s*$/i.test(value))remove.push(walker.currentNode);
+    if(/^\s*n(?:\s*\n\s*n){1,}\s*\\?\s*$/i.test(value))remove.push(walker.currentNode);
   }
   remove.forEach(node=>node.remove());
 }
@@ -246,9 +246,24 @@ function expandSidebarWhenNoChat(){
   updateCollapsedUnreadIndicator();
 }
 
+// دالة تفعيل الإشعارات الذكية المحدثة (تتعامل مع WebView والويب وتمنع الأخطاء)
 async function enablePushNotifications(){
   if(!currentUser)throw new Error("سجّلي الدخول أولًا");
-  if(!("serviceWorker" in navigator) || !("Notification" in window))throw new Error("المتصفح لا يدعم إشعارات الويب");
+  
+  const nativeToken = localStorage.getItem('fcm_token');
+  if (nativeToken && nativeToken.length > 20) {
+    await setDoc(doc(db, "users", currentUser.uid, "fcmTokens", nativeToken),{
+      token: nativeToken, platform: "android-webview", updatedAt: serverTimestamp()
+    }, { merge: true });
+    toast("تم تفعيل الإشعارات بنجاح ♡");
+    return;
+  }
+
+  if(!("serviceWorker" in navigator) || !("Notification" in window)){
+    toast("الإشعارات تعمل بكفاءة داخل التطبيق ♡");
+    return;
+  }
+  
   if(!(await isSupported()))throw new Error("إشعارات Firebase غير مدعومة في هذا المتصفح");
   const permission=await Notification.requestPermission();
   if(permission!=="granted")throw new Error("لم يتم السماح بالإشعارات");
@@ -316,7 +331,7 @@ $("enableNotificationsBtn").addEventListener("click",async()=>{
   finally{button.disabled=false}
 });
 
-// زر تسجيل الدخول المباشر بمنع تام لأي ريفرش
+// زر تسجيل الدخول المباشر (منع تام للريفرش)
 const loginBtn = $("loginBtn");
 if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
@@ -344,7 +359,7 @@ if (loginBtn) {
   });
 }
 
-// دعم الضغط على زر Enter داخل الحقول عشان يسجل دخول من غير ريفرش
+// دعم الضغط على زر Enter لتسجيل الدخول من الحقول مباشرة من غير ريفرش
 ["username", "password"].forEach(id => {
   $(id)?.addEventListener("keydown", e => {
     if (e.key === "Enter") {
@@ -994,7 +1009,7 @@ async function uploadAvatarToCloudinary(file){
   if(!result.secure_url)throw new Error("Cloudinary لم يرجع رابط الصورة");return result.secure_url;
 }
 
-function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
+function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
 
 $("profileForm").onsubmit=async e=>{
   e.preventDefault();const displayName=$("displayNameInput").value.trim();if(!displayName)return;
@@ -1038,7 +1053,7 @@ async function openPublicProfile(profile){
   if(!profile)return;const modal=$("publicProfileModal");
   $("publicProfileName").textContent=profile.displayName||profile.username||"مستخدم";$("publicProfileName").style.cssText=nameStyle(profile);$("publicProfileDecoration").innerHTML=profile.decoration?`<img src="${decorationUrl(profile.decoration)}" alt="">`:"";
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||"لا توجد نبذة تعريفية بعد.";
-  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\",'')}")`:profileGradient(profile);
+  const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\\",'')}")`:profileGradient(profile);
   const avatar=$("publicProfileAvatar");avatar.innerHTML=profile.photoURL?`<img src="${$safe(profile.photoURL)}" alt="">`:$safe((profile.displayName||profile.username||"♡").slice(0,1));avatar.style.width=avatar.style.height="104px";avatar.style.backgroundImage=avatarGradient(profile);avatar.classList.toggle('has-decoration',!!profile.decoration);
   const list=$("publicStoriesItems");list.innerHTML="<span class='profile-hint'>جاري تحميل الحالات...</span>";modal.classList.remove("hidden");
   try{

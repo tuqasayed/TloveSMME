@@ -147,6 +147,7 @@ async function sendFcm(token, title, body, accessToken, threadId, messageId) {
           notification: { title, body },
           data: { threadId, messageId },
           webpush: {
+            headers: { TTL: "86400", Urgency: "high" },
             notification: { tag: `bubble-chat-${threadId}`, renotify: false }
           }
         }

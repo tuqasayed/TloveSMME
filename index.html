@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=bubble-square-dock-reply-theme-20261113" rel="stylesheet"/>
+  <link href="style.css?v=bubble-settings-selfchat-support-20261114b" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -98,12 +98,7 @@
        </small>
       </div>
       <div class="side-actions">
-       <button aria-label="تبديل الوضع" class="icon-btn theme-toggle" id="themeToggle" title="تبديل الوضع الفاتح والداكن" type="button">
-        🌙
-       </button>
-       <button class="icon-btn" id="logoutBtn" title="تسجيل الخروج">
-        &rarrhk;
-       </button>
+       <button class="icon-btn settings-toggle" id="settingsToggle" type="button" aria-label="الإعدادات" aria-haspopup="dialog" aria-expanded="false" title="الإعدادات">الإعدادات ⚙</button>
       </div>
      </header>
      <button class="me-card profile-trigger" id="profileBtn">
@@ -121,7 +116,6 @@
       <i class="online-dot">
       </i>
      </button>
-     <button class="soft-btn" id="enableNotificationsBtn" type="button" style="width:100%;margin:10px 0">🔔 تفعيل الإشعارات</button>
      <div class="section-label">
       المحادثات
       <span>
@@ -132,7 +126,6 @@
      </div>
      <div class="side-footer">
       <button class="install-app-btn" id="installAppBtn" type="button" aria-label="تثبيت Bubble Chat كتطبيق">⬇ <span>تثبيت التطبيق</span></button>
-      <button class="credits-trigger" id="creditsBtn" type="button" aria-haspopup="dialog" aria-controls="creditsModal"><span class="credits-trigger-icon">✦</span><span>حقوق العمل</span><span class="credits-trigger-arrow">✧</span></button>
      </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
@@ -197,6 +190,8 @@
       </div>
       <input id="stickerUploadInput" type="file" accept="image/*,.gif" hidden/>
       <form class="composer" id="messageForm">
+       <button class="tool-btn" id="imageMessageBtn" title="إرسال صورة" type="button" aria-label="إرسال صورة">🖼️</button>
+       <input id="imageMessageInput" type="file" accept="image/*" hidden>
        <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button">
         😊
        </button>
@@ -212,7 +207,7 @@
     </section>
    </section>
   </main>
-  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">كاميرا</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
+  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">✎</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
   <div class="modal hidden" id="profileModal">
    <form class="modal-card" id="profileForm">
     <button class="modal-close" id="closeProfile" type="button">
@@ -223,7 +218,7 @@
     </h2>
     <section class="profile-editor-hero">
       <div class="profile-editor-banner" id="profileBannerStage"><span>غلاف الملف الشخصي</span></div>
-      <label class="banner-edit-pencil" for="bannerFile" title="تغيير البنر">✎</label>
+      <label class="banner-edit-pencil" for="bannerFile" title="تغيير البنر" aria-label="تغيير البنر"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></label>
       <input id="bannerFile" type="file" accept="image/*" hidden>
       <div class="profile-editor-avatar-row"><div class="profile-editor-avatar-wrap">
         <div class="avatar cyan" id="profileAvatarPreview">♡</div><div class="profile-editor-decoration" id="editorDecoration"></div>
@@ -282,26 +277,46 @@
   <div class="modal hidden" id="storyViewer"><section class="story-viewer-card"><button class="modal-close" id="closeStoryViewer" type="button">&times;</button><div id="storyViewerMedia"></div><p id="storyViewerCaption"></p><button id="deleteViewedStory" class="story-delete-btn hidden" type="button">حذف حالتي</button></section></div>
   <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
   <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
-  <audio id="creditsMusic" src="fl.mp3" preload="auto"></audio>
-  <section class="credits-modal hidden" id="creditsModal" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">
-   <div class="credits-curtain credits-curtain-left"></div><div class="credits-curtain credits-curtain-right"></div>
-   <div class="credits-stage">
-    <button class="credits-close" id="closeCredits" type="button" aria-label="إغلاق">&times;</button>
-    <div class="credits-spotlight"></div><div class="credits-film">BUBBLE CHAT PRESENTS</div>
-    <div class="credits-trophy">✦</div><p class="credits-kicker">بطاقة العمل</p>
-    <h2 id="creditsTitle">صنع بقرف 🙂</h2><div class="credits-divider"><span>✧</span></div>
-    <div class="credits-list">
-     <div class="credit-line"><span>تصميم</span><b>محمدي</b></div><div class="credit-line"><span>إخراج</span><b>محمدي</b></div>
-     <div class="credit-line"><span>تطوير وبرمجة</span><b>محمدي</b></div><div class="credit-line"><span>كتابة وتأليف</span><b>محمدي</b></div>
-     <div class="credit-line"><span>تنسيق وإشراف فني</span><b>محمدي</b></div><div class="credit-line"><span>مساعد المخرج</span><b>محمدي</b></div>
-     <div class="credit-line"><span>إنتاج وتنفيذ</span><b>محمدي</b></div><div class="credit-line"><span>حقوق الملكية</span><b>محمدي</b></div>
-    </div>
-    <div class="credits-award"><span class="award-stars">✦ ✧ ✦</span><p>جائزة أكثر شخص يستحق جائزة «أكثر واحد فاضي لدرجة إنه يكتب كل ده» تذهب إلى...</p><strong>محمدي 🏆</strong></div>
+
+  <div class="modal hidden" id="settingsModal"><section class="modal-card app-settings-card" role="dialog" aria-modal="true" aria-label="الإعدادات">
+   <button class="modal-close" id="closeSettings" type="button">&times;</button><h2>الإعدادات ⚙</h2>
+   <button class="settings-action" id="themeToggle" type="button">🌙 الوضع الليلي</button>
+   <button class="settings-action" id="enableNotificationsBtn" type="button">🔔 تفعيل الإشعارات</button>
+   <button class="settings-action" id="languageToggle" type="button" aria-pressed="false">🌐 English</button>
+   <button class="settings-action" id="supportOpenBtn" type="button">✉️ الدعم</button>
+   <button class="settings-action hidden" id="developerOpenBtn" type="button">🛠 لوحة المطور</button>
+   <button class="settings-action settings-logout" id="logoutBtn" type="button">↪ تسجيل الخروج</button>
+  </section></div>
+  <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
+  <div class="modal hidden" id="supportModal"><section class="modal-card support-card" role="dialog" aria-modal="true" aria-label="الدعم">
+   <button class="modal-close" id="closeSupport" type="button">&times;</button><h2>الدعم ✉️</h2>
+   <p class="profile-hint">اكتب المشكلة أو اقتراح الميزة، والرسالة هتوصل للمطور في محادثة خاصة.</p>
+   <label>نوع الرسالة<select id="supportType"><option value="problem">مشكلة</option><option value="feature">اقتراح ميزة</option><option value="other">أخرى</option></select></label>
+   <textarea id="supportMessage" rows="6" maxlength="5000" placeholder="اكتب رسالتك بالتفصيل..."></textarea>
+   <button class="primary-btn" id="sendSupportBtn" type="button">إرسال للمطور</button><div id="mySupportTickets" class="support-ticket-list"></div>
+   <div class="support-thread hidden" id="supportThread"><div class="support-thread-head"><strong id="supportThreadTitle">محادثة الدعم</strong><button id="closeSupportThread" type="button">إغلاق المحادثة</button></div>
+    <div class="support-thread-messages" id="supportThreadMessages"></div>
+    <form id="supportReplyForm" class="support-reply-form"><textarea id="supportReplyInput" rows="2" maxlength="5000" placeholder="اكتب ردك..."></textarea><button type="submit">إرسال</button></form>
    </div>
-  </section>
+  </section></div>
+  <div class="modal hidden" id="developerModal"><section class="modal-card developer-card" role="dialog" aria-modal="true" aria-label="لوحة المطور">
+   <button class="modal-close" id="closeDeveloper" type="button">&times;</button><h2>لوحة المطور 🛠</h2>
+   <section class="maintenance-controls"><h3>وضع الصيانة العام</h3><textarea id="maintenanceMessage" rows="2" maxlength="300" placeholder="رسالة الصيانة التي ستظهر للجميع"></textarea>
+    <label>المدة بالدقائق<input id="maintenanceMinutes" type="number" min="1" max="1440" value="15"></label>
+    <button class="primary-btn" id="startMaintenanceBtn" type="button">تفعيل فاصل الصيانة</button><button class="settings-action hidden" id="stopMaintenanceBtn" type="button">إنهاء الصيانة الآن</button>
+   </section>
+   <div class="developer-columns"><section><h3>المشاكل والاقتراحات</h3><div id="developerTickets" class="support-ticket-list"></div></section>
+    <section><h3>محادثة الدعم</h3><div class="support-thread-messages developer-thread-messages" id="developerThreadMessages"></div>
+     <form id="developerReplyForm" class="support-reply-form"><textarea id="developerReplyInput" rows="2" maxlength="5000" placeholder="رد المطور..."></textarea><button type="submit">إرسال</button></form>
+     <button class="settings-action settings-logout" id="deleteSupportTicketBtn" type="button" disabled>حذف محادثة الدعم المحددة</button>
+    </section></div>
+  </section></div>
+  <div class="maintenance-screen hidden" id="maintenanceScreen" role="status" aria-live="polite"><div class="maintenance-card">
+   <div class="maintenance-icon">🛠</div><h1>فاصل صيانة</h1><p id="maintenanceScreenMessage">التطبيق هيرجع يشتغل قريبًا.</p><strong id="maintenanceCountdown">--:--</strong><small>شكرًا لصبركم ♡</small>
+  </div></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=bubble-square-dock-reply-theme-20261113" type="module">
+  <script src="app.js?v=bubble-settings-selfchat-support-20261114b" type="module">
   </script>
  </body>
 </html>

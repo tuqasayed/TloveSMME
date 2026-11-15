@@ -60,7 +60,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['token','platform','updatedAt'])
           && request.resource.data.token is string
           && request.resource.data.token.size() > 20
-          && request.resource.data.platform in ['web-android','android-webview'];
+          && request.resource.data.platform in ['web','web-android','android-webview'];
         allow delete: if signedIn() && request.auth.uid == userId;
       }
     }

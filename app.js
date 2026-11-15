@@ -119,7 +119,7 @@ function watchUnreadThread(thread){
 }
 
 const userProfiles=new Map();
-const USERNAMES=["Samaa","Tuqa","Menna","Developer"], GROUP_ID="bubble-chat-three-friends", GROUP={id:GROUP_ID,kind:"group",username:"الجروب",displayName:"S.T.M 🌷",participants:[]};
+const USERNAMES=["Samaa","Tuqa","Menna"], GROUP_ID="bubble-chat-three-friends", GROUP={id:GROUP_ID,kind:"group",username:"الجروب",displayName:"S.T.M 🌷",participants:[]};
 const STICKERS = [
   { src: "https://res.cloudinary.com/svigkr4e/image/upload/1.jpg", label: "ستيكر 1" },
   { src: "https://res.cloudinary.com/svigkr4e/image/upload/2.jpg", label: "ستيكر 2" },
@@ -366,16 +366,6 @@ onAuthStateChanged(auth,async user=>{
     if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}
     currentProfile={id:user.uid,...s.data()};
     currentProfile.displayName ||= currentProfile.username;
-    if(currentProfile.username?.toLowerCase()==="developer" && currentProfile.role!=="developer"){
-      await signOut(auth);
-      currentUser=currentProfile=null;
-      return showLogin("حساب المطور غير مُعتمد في إعدادات Firebase.");
-    }
-    if(currentProfile.role==="developer" && currentProfile.username?.toLowerCase()!=="developer"){
-      await signOut(auth);
-      currentUser=currentProfile=null;
-      return showLogin("بيانات حساب المطور غير متطابقة.");
-    }
     
 
     renderMe();
@@ -485,17 +475,9 @@ function refreshPresenceUI(){userProfiles.forEach(p=>updateContactCard(p));updat
 async function loadContacts(){
   stopUnreadListeners();
   if(stopContacts){stopContacts();stopContacts=null;}
-  if(currentProfile?.role==="developer"){
-    userProfiles.clear();
-    userProfiles.set(currentUser.uid,currentProfile);
-    GROUP.participants=[];
-    contactsInitialized=true;
-    $("contacts").innerHTML=`<div class="developer-private-notice">${uiText("حساب المطور مخصص لإدارة تذاكر الدعم فقط، ولا يملك صلاحية عرض محادثات الأعضاء أو ملفاتهم.","The developer account is limited to support tickets and cannot access members’ chats or profiles.")}</div>`;
-    return;
-  }
   const publicUsersQuery=query(collection(db,"users"),where("username","in",USERNAMES.slice(0,3)));
   stopContacts=onSnapshot(publicUsersQuery,snapshot=>{
-    const users=snapshot.docs.map(d=>({id:d.id,...d.data()})).filter(u=>u.role!=="developer"&&String(u.username||"").toLowerCase()!=="developer");
+    const users=snapshot.docs.map(d=>({id:d.id,...d.data()}));
     userProfiles.clear();
     users.users?.forEach?.(u=>userProfiles.set(u.id,u))||users.forEach(u=>userProfiles.set(u.id,u));
     if(currentProfile){
@@ -822,13 +804,10 @@ async function reactTo(m,emoji){
   await updateDoc(r,{reactions});
 }
 
-// @mentions in group chat and private support tickets.
+// @mentions in group chat.
 function mentionCandidates(kind){
   if(kind==="group")return (GROUP.participants||[]).map(id=>userProfiles.get(id)).filter(Boolean);
-  if(kind!=="support")return [];
-  const owner=selectedDeveloperTicketOwner||null;
-  const people=[currentProfile,owner,{username:"Developer",displayName:"Developer",id:"developer-system"}].filter(Boolean);
-  return [...new Map(people.map(p=>[String(p.username||p.displayName||p.id).toLowerCase(),p])).values()];
+  return [];
 }
 function attachMentionPicker(input,menu,getKind){
   if(!input||!menu||input.dataset.mentionReady)return;input.dataset.mentionReady="1";
@@ -849,11 +828,7 @@ function attachMentionPicker(input,menu,getKind){
   input.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
   input.addEventListener("blur",()=>setTimeout(close,140));
 }
-let selectedDeveloperTicketOwner=null;
 attachMentionPicker($("messageInput"),$("chatMentionMenu"),()=>isGroup()?"group":"none");
-attachMentionPicker($("supportMessage"),$("supportMentionMenu"),()=>"support");
-attachMentionPicker($("supportReplyInput"),$("supportReplyMentionMenu"),()=>"support");
-attachMentionPicker($("developerReplyInput"),$("developerMentionMenu"),()=>"support");
 
 $("messageForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -957,14 +932,14 @@ function openGroupSettings(){
 
 function renderGroupMembers(){
   const list=$("groupMembersList");if(!list)return;
-  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa"||currentProfile?.role==="developer";
+  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa";
   list.innerHTML=GROUP.participants.map(uid=>{const person=userProfiles.get(uid)||{},admin=activeGroupMeta.admins.includes(uid),label=person.displayName||person.username||"عضو",photo=person.photoURL;return `<div class="group-member-row"><span class="group-member-avatar">${photo?`<img src="${$safe(photo)}" alt="">`:$safe(label.slice(0,1))}</span><span class="group-member-identity"><strong>${$safe(label)}</strong><small>${admin?"مسؤول المجموعة":"عضو"}</small></span>${isAdmin&&uid!==currentUser.uid?`<button type="button" data-role-uid="${$safe(uid)}">${admin?"إزالة المسؤول":"تعيين مسؤول"}</button>`:`<small class="group-role-pill">${admin?"مسؤول":"عضو"}</small>`}</div>`}).join("");
   list.querySelectorAll("[data-role-uid]").forEach(button=>button.addEventListener("click",()=>{const uid=button.dataset.roleUid;activeGroupMeta.admins=activeGroupMeta.admins.includes(uid)?activeGroupMeta.admins.filter(x=>x!==uid):[...activeGroupMeta.admins,uid];renderGroupMembers();}));
 }
 
 $("closeGroupSettings")?.addEventListener("click",()=>$("groupSettingsModal").classList.add("hidden"));
 $("saveGroupSettings")?.addEventListener("click",async()=>{
-  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa"||currentProfile?.role==="developer";
+  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa";
   if(!isAdmin){$("groupSettingsError").textContent="إعدادات الجروب متاحة للأدمن فقط.";return;}
   const name=$("groupNameInput").value.trim();if(!name){$("groupSettingsError").textContent="اكتب اسمًا للجروب.";return;}
   const button=$("saveGroupSettings");button.disabled=true;
@@ -1090,7 +1065,7 @@ async function loadMyStories(){
 }
 
 async function openPublicProfile(profile){
-  if(!profile||profile.role==="developer"||String(profile.username||"").toLowerCase()==="developer")return;const modal=$("publicProfileModal"),en=localStorage.getItem("bubble-chat-language")==="en";
+  if(!profile)return;const modal=$("publicProfileModal"),en=localStorage.getItem("bubble-chat-language")==="en";
   $("publicProfileName").textContent=profile.displayName||profile.username||(en?"User":"مستخدم");$("publicProfileName").style.cssText=nameStyle(profile);$("publicProfileDecoration").innerHTML=profile.decoration?`<img src="${decorationUrl(profile.decoration)}" alt="">`:"";
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||(en?"No bio yet.":"لا توجد نبذة تعريفية بعد.");
   const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\\",'')}")`:profileGradient(profile);
@@ -1229,27 +1204,26 @@ $("imageLightbox")?.addEventListener("click",e=>{if(e.target===$("imageLightbox"
 
 // تبديل نصوص الواجهة فقط؛ يظل اتجاه التطبيق RTL كما هو حتى في الإنجليزية.
 const uiTranslations={
- 'settingsTitle':['الإعدادات ⚙','Settings ⚙'],'night':['🌙 الوضع الليلي','🌙 Dark mode'],'notifications':['🔔 تفعيل الإشعارات','🔔 Enable notifications'],'support':['✉️ الدعم','✉️ Support'],'developer':['🛠 لوحة المطور','🛠 Developer panel'],'logout':['↪ تسجيل الخروج','↪ Log out'],'language':['🌐 English','🌐 العربية'],
+ 'settingsTitle':['الإعدادات ⚙','Settings ⚙'],'night':['🌙 الوضع الليلي','🌙 Dark mode'],'notifications':['🔔 تفعيل الإشعارات','🔔 Enable notifications'],'logout':['↪ تسجيل الخروج','↪ Log out'],'language':['🌐 English','🌐 العربية'],
  'conversations':['المحادثات','Chats'],'usernameLabel':['اسم المستخدم','Username'],'passwordLabel':['كلمة المرور','Password'],'login':['تسجيل الدخول','Log in'],'install':['تثبيت التطبيق','Install app'],'sidebarHide':['إخفاء الشريط الجانبي','Hide sidebar'],'sidebarShow':['إظهار الشريط الجانبي','Show sidebar'],'newMessages':['رسائل جديدة','New messages'],'chatSearch':['بحث في المحادثة','Search chat'],'pinnedMessages':['الرسائل المثبتة','Pinned messages'],'profileEdit':['تعديل الملف الشخصي ✎','Edit profile ✎'],'welcome':['أهلًا بيكم في بابل شات ♡','Welcome to Bubble Chat ♡'],'sendImage':['إرسال صورة','Send image'],'sticker':['الملصقات','Stickers'],'messagePlaceholder':['اكتب رسالة...','Write a message...'],'settingsAria':['الإعدادات','Settings']
 };
 function setUiLanguage(lang){const en=lang==='en';document.documentElement.lang=en?'en':'ar';document.documentElement.dir='rtl';
  const set=(selector,key,attr)=>{const el=document.querySelector(selector);if(el){const pair=uiTranslations[key];if(pair){if(attr)el.setAttribute(attr,pair[en?1:0]);else el.textContent=pair[en?1:0];}}};
- set('#settingsModal h2','settingsTitle');set('#settingsToggle','settingsTitle');set('#themeToggle','night');set('#enableNotificationsBtn','notifications');set('#supportOpenBtn','support');set('#developerOpenBtn','developer');set('#logoutBtn','logout');set('#languageToggle','language');const sectionLabel=document.querySelector('.section-label');if(sectionLabel?.firstChild)sectionLabel.firstChild.nodeValue=uiTranslations.conversations[en?1:0]+' '; set('.me-card small','profileEdit');set('.side-header small','welcome');set('label[for=username]','usernameLabel');set('label[for=password]','passwordLabel');set('#installAppBtn span','install');set('#sidebarToggle','sidebarHide','title');set('#sidebarToggle','sidebarHide','aria-label');set('#sidebarDockToggle','sidebarShow','title');set('#sidebarDockToggle','sidebarShow','aria-label');set('#imageMessageBtn','sendImage','title');set('#imageMessageBtn','sendImage','aria-label');set('#stickerBtn','sticker','title');set('#messageInput','messagePlaceholder','placeholder');
+ set('#settingsModal h2','settingsTitle');set('#settingsToggle','settingsTitle');set('#themeToggle','night');set('#enableNotificationsBtn','notifications');set('#logoutBtn','logout');set('#languageToggle','language');const sectionLabel=document.querySelector('.section-label');if(sectionLabel?.firstChild)sectionLabel.firstChild.nodeValue=uiTranslations.conversations[en?1:0]+' '; set('.me-card small','profileEdit');set('.side-header small','welcome');set('label[for=username]','usernameLabel');set('label[for=password]','passwordLabel');set('#installAppBtn span','install');set('#sidebarToggle','sidebarHide','title');set('#sidebarToggle','sidebarHide','aria-label');set('#sidebarDockToggle','sidebarShow','title');set('#sidebarDockToggle','sidebarShow','aria-label');set('#imageMessageBtn','sendImage','title');set('#imageMessageBtn','sendImage','aria-label');set('#stickerBtn','sticker','title');set('#messageInput','messagePlaceholder','placeholder');
  const labels=[['.empty-state h2','أهلًا بيكم في Bubble Chat','Welcome to Bubble Chat'],['#chatSearchInput','بحث في الرسائل','Search messages','placeholder'],['#supportMessage','اكتب رسالتك بالتفصيل...','Describe your message...','placeholder'],['#supportReplyInput','اكتب ردك...','Write a reply...','placeholder'],['#profileBioInput','اكتب نبذة بسيطة عنك...','Write a short bio...','placeholder'],['#displayNameInput','الاسم الظاهر','Display name','aria-label'],['#username','اكتب اسم المستخدم','Enter username','placeholder'],['#password','كلمة المرور','Password','aria-label'],['#messageInput','اكتب رسالة...','Write a message...','placeholder']];
  labels.forEach(([selector,ar,enText,attr])=>{const node=document.querySelector(selector);if(node){const value=en?enText:ar;if(attr)node.setAttribute(attr,value);else if(node.matches('input,textarea'))node.placeholder=value;else node.textContent=value;}});
- const supportTitle=document.querySelector('#supportModal h2');if(supportTitle)supportTitle.textContent=en?'Support ✉️':'الدعم ✉️';const supportHint=document.querySelector('#supportModal .profile-hint');if(supportHint)supportHint.textContent=en?'Describe an issue or suggest a feature. Your message will reach the developer privately.':'اكتب المشكلة أو اقتراح الميزة، والرسالة هتوصل للمطور في محادثة خاصة.';
  const setLeading=(selector,value)=>{const node=document.querySelector(selector);if(!node)return;const textNode=[...node.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.trim());if(textNode)textNode.nodeValue=' '+value+' ';};
  setLeading('#loginBtn',en?'Log in':'تسجيل الدخول');setLeading('#chatSearchToggle',en?'Search chat':'بحث في المحادثة');setLeading('#pinnedToggle',en?'Pinned messages':'الرسائل المثبتة');setLeading('#collapsedUnreadIndicator',en?'New messages':'رسائل جديدة');set('#settingsToggle','settingsTitle','title');
- const leadTranslations=[['#groupSettingsModal h2','تفاصيل الجروب','Group details'],['#groupBannerPreview span','غلاف الجروب','Group cover'],['.group-name-field','اسم الجروب','Group name'],['.group-members-heading','الأعضاء والصلاحيات','Members & permissions'],['#saveGroupSettings','حفظ التعديلات','Save changes'],['#profileModal .profile-editor-banner span','غلاف الملف الشخصي','Profile cover'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal label[for=bannerFile]','تغيير البنر','Change banner'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .dual-color-row label:first-child','اللون الأول','First color'],['#profileModal .dual-color-row label:last-child','اللون الثاني','Second color'],['#profileModal .font-picker-label:first-of-type','خط الاسم','Name font'],['#profileModal .font-picker-label:last-of-type','إطار الصورة الشخصية','Profile frame'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#storyCaptionInput','اكتب كلام الحالة...','Write your story...'],['#publishStoryBtn','نشر الحالة','Publish story'],['#profileForm > button[type=submit]','حفظ التغييرات','Save changes'],['#bannerCropModal h3','ظبّط صورة البنر','Adjust banner image'],['#bannerCropModal p','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل','Move the image and choose the part to show on your profile'],['.crop-zoom-label','تكبير الصورة','Zoom image'],['#cancelBannerCrop2','إلغاء','Cancel'],['#confirmBannerCrop','استخدام الصورة','Use image'],['#publicProfileModal h2','الملف الشخصي','Profile'],['#publicProfileModal .stories-strip h3','الحالة','Story'],['#supportModal h2','الدعم ✉️','Support ✉️'],['#developerModal h2','لوحة المطور 🛠','Developer panel 🛠'],['#developerModal .maintenance-controls h3','وضع الصيانة العام','Global maintenance mode'],['#startMaintenanceBtn','تفعيل فاصل الصيانة','Enable maintenance'],['#stopMaintenanceBtn','إنهاء الصيانة الآن','End maintenance now'],['#maintenanceScreen h1','فاصل صيانة','Maintenance break']];
+ const leadTranslations=[['#groupSettingsModal h2','تفاصيل الجروب','Group details'],['#groupBannerPreview span','غلاف الجروب','Group cover'],['.group-name-field','اسم الجروب','Group name'],['.group-members-heading','الأعضاء والصلاحيات','Members & permissions'],['#saveGroupSettings','حفظ التعديلات','Save changes'],['#profileModal .profile-editor-banner span','غلاف الملف الشخصي','Profile cover'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal label[for=bannerFile]','تغيير البنر','Change banner'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .dual-color-row label:first-child','اللون الأول','First color'],['#profileModal .dual-color-row label:last-child','اللون الثاني','Second color'],['#profileModal .font-picker-label:first-of-type','خط الاسم','Name font'],['#profileModal .font-picker-label:last-of-type','إطار الصورة الشخصية','Profile frame'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#storyCaptionInput','اكتب كلام الحالة...','Write your story...'],['#publishStoryBtn','نشر الحالة','Publish story'],['#profileForm > button[type=submit]','حفظ التغييرات','Save changes'],['#bannerCropModal h3','ظبّط صورة البنر','Adjust banner image'],['#bannerCropModal p','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل','Move the image and choose the part to show on your profile'],['.crop-zoom-label','تكبير الصورة','Zoom image'],['#cancelBannerCrop2','إلغاء','Cancel'],['#confirmBannerCrop','استخدام الصورة','Use image'],['#publicProfileModal h2','الملف الشخصي','Profile'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
 
  leadTranslations.forEach(([selector,ar,enText])=>setLeading(selector,en?enText:ar));
  const staticTextPairs={
-  'صندوق التذاكر':'Ticket inbox','الكل':'All','الأخطاء':'Issues','الميزات':'Features','أخرى':'Other','إغلاق التذكرة':'Close ticket','إعادة فتح التذكرة':'Reopen ticket','لا توجد تذاكر في هذا القسم.':'No tickets in this category.','كل':'Every','صبرٍ':'patience','جبر':'healing','اسمك':'Your name','إخفاء الشريط الجانبي':'Hide sidebar','إظهار الشريط الجانبي':'Show sidebar','إرسال':'Send','إرسال صورة':'Send image','الملصقات':'Stickers','المزيد من خيارات المحادثة':'More chat options','المزيد':'More','خيارات المحادثة':'Chat options','بحث في المحادثة':'Search chat','الرسائل المثبتة':'Pinned messages','الانتقال لآخر الشات':'Go to latest message','قائمة الملصقات':'Stickers','تفاصيل الجروب':'Group details','غلاف الجروب':'Group cover','تغيير البنر':'Change banner','تغيير صورة الجروب':'Change group photo','اسم الجروب':'Group name','الأعضاء والصلاحيات':'Members & permissions','حفظ التعديلات':'Save changes','ملفك الشخصي ✨':'Your profile ✨','غلاف الملف الشخصي':'Profile cover','تغيير الصورة':'Change photo','صورتك الشخصية':'Your profile photo','الاسم الظاهر':'Display name','نبذة تعريفية':'Bio','اكتب نبذة بسيطة عنك...':'Write a short bio...','ألوان الاسم':'Name colors','اللون الأول':'First color','اللون الثاني':'Second color','خط الاسم':'Name font','إطار الصورة الشخصية':'Profile frame','بدون إطار':'No frame','الإطار 1':'Frame 1','الإطار 2':'Frame 2','الإطار 3':'Frame 3','الإطار 4':'Frame 4','اختيار ديكوريشن الصورة':'Choose profile decoration','الحالات':'Stories','إضافة حالة':'Add story','حالة نصية':'Text story','صورة':'Photo','فيديو':'Video','اكتب كلام الحالة...':'Write your story...','لم يتم اختيار ملف':'No file selected','نشر الحالة':'Publish story','حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.':'Your active stories will appear here. You can view or delete them.','لا توجد حالة نشطة عندك بعد':'You don’t have any active stories yet.','لا توجد حالات نشطة حاليًا.':'No active stories yet.','مفيش حالات نشطة عندك حاليًا.':'You don’t have any active stories yet.','الحالة بتختفي بعد 24 ساعة.':'Stories disappear after 24 hours.','حفظ التغييرات':'Save changes','تحديد صورة البنر':'Crop banner image','ظبّط صورة البنر':'Adjust banner image','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل':'Move the image and choose what appears on your profile','تكبير الصورة':'Zoom image','إلغاء':'Cancel','استخدام الصورة':'Use image','الملف الشخصي':'Profile','الحالة':'Story','حذف حالتي':'Delete my story','نوع الرسالة':'Message type','مشكلة':'Issue','اقتراح ميزة':'Feature suggestion','أخرى':'Other','اكتب رسالتك بالتفصيل...':'Describe your message...','إرسال للمطور':'Send to developer','محادثة الدعم':'Support conversation','إغلاق المحادثة':'Close conversation','اكتب ردك...':'Write your reply...','لوحة المطور 🛠':'Developer panel 🛠','وضع الصيانة العام':'Global maintenance mode','رسالة الصيانة التي ستظهر للجميع':'Maintenance message shown to everyone','المدة بالدقائق':'Duration in minutes','تفعيل فاصل الصيانة':'Enable maintenance','إنهاء الصيانة الآن':'End maintenance now','المشاكل والاقتراحات':'Issues & suggestions','رد المطور...':'Developer reply...','حذف محادثة الدعم المحددة':'Delete selected support conversation','فاصل صيانة':'Maintenance break','التطبيق هيرجع يشتغل قريبًا.':'The app will be back soon.','شكرًا لصبركم ♡':'Thanks for your patience ♡','عرض الصورة':'Image viewer','الصورة بحجم كبير':'Full-size image'
+  'كل':'Every','صبرٍ':'patience','جبر':'healing','اسمك':'Your name','إخفاء الشريط الجانبي':'Hide sidebar','إظهار الشريط الجانبي':'Show sidebar','إرسال':'Send','إرسال صورة':'Send image','الملصقات':'Stickers','المزيد من خيارات المحادثة':'More chat options','المزيد':'More','خيارات المحادثة':'Chat options','بحث في المحادثة':'Search chat','الرسائل المثبتة':'Pinned messages','الانتقال لآخر الشات':'Go to latest message','قائمة الملصقات':'Stickers','تفاصيل الجروب':'Group details','غلاف الجروب':'Group cover','تغيير البنر':'Change banner','تغيير صورة الجروب':'Change group photo','اسم الجروب':'Group name','الأعضاء والصلاحيات':'Members & permissions','حفظ التعديلات':'Save changes','ملفك الشخصي ✨':'Your profile ✨','غلاف الملف الشخصي':'Profile cover','تغيير الصورة':'Change photo','صورتك الشخصية':'Your profile photo','الاسم الظاهر':'Display name','نبذة تعريفية':'Bio','اكتب نبذة بسيطة عنك...':'Write a short bio...','ألوان الاسم':'Name colors','اللون الأول':'First color','اللون الثاني':'Second color','خط الاسم':'Name font','إطار الصورة الشخصية':'Profile frame','بدون إطار':'No frame','الإطار 1':'Frame 1','الإطار 2':'Frame 2','الإطار 3':'Frame 3','الإطار 4':'Frame 4','اختيار ديكوريشن الصورة':'Choose profile decoration','الحالات':'Stories','إضافة حالة':'Add story','حالة نصية':'Text story','صورة':'Photo','فيديو':'Video','اكتب كلام الحالة...':'Write your story...','لم يتم اختيار ملف':'No file selected','نشر الحالة':'Publish story','حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.':'Your active stories will appear here. You can view or delete them.','لا توجد حالة نشطة عندك بعد':'You don’t have any active stories yet.','لا توجد حالات نشطة حاليًا.':'No active stories yet.','مفيش حالات نشطة عندك حاليًا.':'You don’t have any active stories yet.','الحالة بتختفي بعد 24 ساعة.':'Stories disappear after 24 hours.','حفظ التغييرات':'Save changes','تحديد صورة البنر':'Crop banner image','ظبّط صورة البنر':'Adjust banner image','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل':'Move the image and choose what appears on your profile','تكبير الصورة':'Zoom image','إلغاء':'Cancel','استخدام الصورة':'Use image','الملف الشخصي':'Profile','الحالة':'Story','حذف حالتي':'Delete my story','عرض الصورة':'Image viewer','الصورة بحجم كبير':'Full-size image'
  };
- const staticRoots=['#loginView','.sidebar','.chat-header','.composer','#groupSettingsModal','#profileModal','#bannerCropModal','#publicProfileModal','#storyViewer','#settingsModal','#supportModal','#developerModal','#maintenanceScreen'];
+ const staticRoots=['#loginView','.sidebar','.chat-header','.composer','#groupSettingsModal','#profileModal','#bannerCropModal','#publicProfileModal','#storyViewer','#settingsModal',];
  staticRoots.forEach(root=>document.querySelectorAll(root).forEach(scope=>scope.querySelectorAll('*').forEach(node=>node.childNodes.forEach(child=>{if(child.nodeType!==Node.TEXT_NODE)return;const key=child.nodeValue.trim();if(!key)return;const translated=en?staticTextPairs[key]:Object.keys(staticTextPairs).find(ar=>staticTextPairs[ar]===key);if(translated){const leading=child.nodeValue.match(/^\s*/)?.[0]||'';const trailing=child.nodeValue.match(/\s*$/)?.[0]||'';child.nodeValue=leading+(en?staticTextPairs[key]:translated)+trailing;}}))));
 
- const staticTranslations=[['#profileModal h2','ملفك الشخصي ✨','Your profile ✨'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#addStoryBtn b','إضافة حالة','Add story'],['#publicProfileModal .stories-strip h3','الحالة','Story'],['#supportType option[value=problem]','مشكلة','Issue'],['#supportType option[value=feature]','اقتراح ميزة','Feature suggestion'],['#supportType option[value=other]','أخرى','Other'],['#sendSupportBtn','إرسال للمطور','Send to developer'],['#closeSupportThread','إغلاق المحادثة','Close conversation'],['#maintenanceScreen h1','فاصل صيانة','Maintenance break'],['#maintenanceScreen small','شكرًا لصبركم ♡','Thanks for your patience ♡']];
+ const staticTranslations=[['#profileModal h2','ملفك الشخصي ✨','Your profile ✨'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#addStoryBtn b','إضافة حالة','Add story'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
  staticTranslations.forEach(([selector,ar,enText])=>{const node=document.querySelector(selector);if(node)node.textContent=en?enText:ar;});
  $("settingsToggle")?.setAttribute('aria-label',uiTranslations.settingsAria[en?1:0]);$("settingsToggle")?.setAttribute('title',uiTranslations.settingsAria[en?1:0]);$("imageLightbox")?.setAttribute('aria-label',en?'Image viewer':'عرض الصورة');$("lightboxImage")?.setAttribute('alt',en?'Full-size image':'الصورة بحجم كبير');$("closeImageLightbox")?.setAttribute('aria-label',en?'Close':'إغلاق');
  localStorage.setItem('bubble-chat-language',en?'en':'ar');$("languageToggle")?.setAttribute('aria-pressed',String(en));
@@ -1269,178 +1243,6 @@ $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});
-const supportModal=$("supportModal"),developerModal=$("developerModal");
-let activeSupportTicketId=null,stopMyTickets=null,stopSupportMessages=null,stopDeveloperTickets=null,stopDeveloperMessages=null,selectedDeveloperTicketId=null;
-const supportTypeLabel={problem:"مشكلة",feature:"اقتراح ميزة",other:"أخرى"};
-const supportTypeText=type=>({problem:uiText("مشكلة","Issue"),feature:uiText("اقتراح ميزة","Feature suggestion"),other:uiText("أخرى","Other")}[type]||uiText("رسالة دعم","Support message"));
-let developerTicketCache=[],developerTicketFilter="all",selectedDeveloperTicketData=null;
-function renderDeveloperTicketList(){
- const root=$("developerTickets");if(!root)return;root.innerHTML="";
- const filtered=developerTicketCache.filter(item=>developerTicketFilter==="all"||item.data.type===developerTicketFilter);
- if(!filtered.length){root.innerHTML=`<p class="developer-empty-state">${uiText("لا توجد تذاكر في هذا القسم.","No tickets in this category.")}</p>`;return;}
- filtered.forEach(({id,data})=>{
-  const b=document.createElement("button");b.className="support-ticket-item"+(selectedDeveloperTicketId===id?" selected":"");b.type="button";
-  b.innerHTML=`<strong>${$safe(supportTypeText(data.type))}</strong><small>${$safe(data.ownerName||uiText("عضو","Member"))} · ${$safe(data.subject||uiText("بدون عنوان","Untitled"))}</small><span>${data.status==="closed"?uiText("مغلقة","Closed"):uiText("مفتوحة","Open")}</span>`;
-  b.addEventListener("click",()=>selectDeveloperTicket(id,data));root.appendChild(b);
- });
-}
-$("developerTicketFilters")?.querySelectorAll("[data-ticket-filter]").forEach(button=>button.addEventListener("click",()=>{
- developerTicketFilter=button.dataset.ticketFilter;$("developerTicketFilters").querySelectorAll("button").forEach(b=>b.classList.toggle("is-active",b===button));renderDeveloperTicketList();
-}));
-function supportMessageNode(message,developerView=false){
- const row=document.createElement("div");row.className="support-message"+(message.senderUid===currentUser?.uid?" mine":"");
- const who=message.senderName||(message.senderRole==="developer"?"المطور":"صاحب الحساب");
- const body=document.createElement("p");body.innerHTML=$safe(message.text||"").replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,'$1<span class="mention-tag">$2</span>');
- const meta=document.createElement("small");meta.textContent=who;
- row.append(meta,body);return row;
-}
-function watchSupportMessages(ticketId,container,developerView=false){
- if(stopSupportMessages){stopSupportMessages();stopSupportMessages=null}
- const q=query(collection(db,"supportTickets",ticketId,"messages"),orderBy("createdAt","asc"));
- stopSupportMessages=onSnapshot(q,s=>{
-  container.innerHTML="";
-  s.docs.forEach(d=>container.appendChild(supportMessageNode(d.data(),developerView)));
-  container.scrollTop=container.scrollHeight;
- },e=>{console.error(e);toast("تعذر تحميل رسائل الدعم")});
-}
-function openMySupportTicket(ticketId,title){
- activeSupportTicketId=ticketId;
- $("supportThreadTitle").textContent=title||"محادثة الدعم";
- $("supportThread").classList.remove("hidden");
- watchSupportMessages(ticketId,$("supportThreadMessages"));
-}
-function renderMyTickets(){
- if(stopMyTickets){stopMyTickets();stopMyTickets=null}
- if(!currentUser)return;
- const q=query(collection(db,"supportTickets"),where("ownerUid","==",currentUser.uid));
- stopMyTickets=onSnapshot(q,s=>{
-  const root=$("mySupportTickets");root.innerHTML="";
-  s.docs.sort((a,b)=>(b.data().updatedAt?.toMillis?.()||0)-(a.data().updatedAt?.toMillis?.()||0)).forEach(d=>{
-   const data=d.data(),b=document.createElement("button");b.className="support-ticket-item";b.type="button";
-   b.innerHTML=`<strong>${$safe(supportTypeText(data.type))}</strong><small>${$safe(data.subject||uiText("محادثة دعم","Support conversation"))}</small><span>${data.status==="closed"?uiText("مغلقة","Closed"):uiText("مفتوحة","Open")}</span>`;
-   b.onclick=()=>openMySupportTicket(d.id,data.subject||"محادثة الدعم");root.appendChild(b);
-  });
- },e=>console.warn("My support tickets:",e));
-}
-$("supportOpenBtn")?.addEventListener("click",()=>{closeSettings();supportModal.classList.remove("hidden");renderMyTickets()});
-$("closeSupport")?.addEventListener("click",()=>supportModal.classList.add("hidden"));
-supportModal?.addEventListener("click",e=>{if(e.target===supportModal)supportModal.classList.add("hidden")});
-$("closeSupportThread")?.addEventListener("click",()=>{$("supportThread").classList.add("hidden");if(stopSupportMessages){stopSupportMessages();stopSupportMessages=null}activeSupportTicketId=null});
-$("sendSupportBtn")?.addEventListener("click",async()=>{
- const text=$("supportMessage").value.trim();if(!text)return toast("اكتب رسالتك الأول");
- const btn=$("sendSupportBtn");btn.disabled=true;
- try{
-  const type=$("supportType").value, ticket=await addDoc(collection(db,"supportTickets"),{
-   ownerUid:currentUser.uid,ownerName:currentProfile.displayName||currentProfile.username||"عضو",ownerUsername:currentProfile.username||"",
-   type,subject:text.slice(0,90),status:"open",createdAt:serverTimestamp(),updatedAt:serverTimestamp()
-  });
-  await addDoc(collection(db,"supportTickets",ticket.id,"messages"),{
-   text,senderUid:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username||"عضو",
-   senderRole:"user",createdAt:serverTimestamp()
-  });
-  $("supportMessage").value="";openMySupportTicket(ticket.id,supportTypeText(type)+" · "+text.slice(0,45));toast("وصلت رسالتك للمطور ♡");
- }catch(e){console.error(e);toast("تعذر إرسال الرسالة. راجع قواعد Firestore")}
- finally{btn.disabled=false}
-});
-$("supportReplyForm")?.addEventListener("submit",async e=>{
- e.preventDefault();const text=$("supportReplyInput").value.trim();if(!text||!activeSupportTicketId)return;
- try{
-  await addDoc(collection(db,"supportTickets",activeSupportTicketId,"messages"),{text,senderUid:currentUser.uid,senderName:currentProfile.displayName||"عضو",senderRole:"user",createdAt:serverTimestamp()});
-  await updateDoc(doc(db,"supportTickets",activeSupportTicketId),{updatedAt:serverTimestamp(),status:"open"});$("supportReplyInput").value="";
- }catch(err){console.error(err);toast("تعذر إرسال الرد")}
-});
-function isDeveloper(){return currentProfile?.role==="developer"}
-function openDeveloperPanel(){
- if(!isDeveloper())return;
- closeSettings();developerModal.classList.remove("hidden");watchDeveloperTickets();watchMaintenance();
-}
-$("developerOpenBtn")?.addEventListener("click",openDeveloperPanel);
-$("closeDeveloper")?.addEventListener("click",()=>developerModal.classList.add("hidden"));
-developerModal?.addEventListener("click",e=>{if(e.target===developerModal)developerModal.classList.add("hidden")});
-function watchDeveloperTickets(){
- if(stopDeveloperTickets){stopDeveloperTickets();stopDeveloperTickets=null}
- const q=query(collection(db,"supportTickets"),orderBy("updatedAt","desc"));
- stopDeveloperTickets=onSnapshot(q,s=>{
-  developerTicketCache=s.docs.map(d=>({id:d.id,data:d.data()}));
-  renderDeveloperTicketList();
-  if(selectedDeveloperTicketId){const selected=developerTicketCache.find(item=>item.id===selectedDeveloperTicketId);if(selected){selectedDeveloperTicketData=selected.data;updateDeveloperTicketActions();}}
- },e=>{console.error(e);toast("تعذر تحميل قائمة الدعم")});
-}
-function selectDeveloperTicket(ticketId,data){
- selectedDeveloperTicketOwner={username:data.ownerUsername||data.ownerName,displayName:data.ownerName,id:data.ownerUid};
- selectedDeveloperTicketId=ticketId;selectedDeveloperTicketData=data;updateDeveloperTicketActions();renderDeveloperTicketList();
- if(stopDeveloperMessages){stopDeveloperMessages();stopDeveloperMessages=null}
- const q=query(collection(db,"supportTickets",ticketId,"messages"),orderBy("createdAt","asc"));
- stopDeveloperMessages=onSnapshot(q,s=>{
-  const root=$("developerThreadMessages");root.innerHTML="";
-  s.docs.forEach(d=>root.appendChild(supportMessageNode(d.data(),true)));
-  root.scrollTop=root.scrollHeight;
- },e=>console.error(e));
-}
-function updateDeveloperTicketActions(){
- const del=$("deleteSupportTicketBtn"),toggle=$("toggleSupportTicketStatusBtn");
- if(del)del.disabled=!selectedDeveloperTicketId;
- if(toggle){toggle.disabled=!selectedDeveloperTicketId;toggle.textContent=selectedDeveloperTicketData?.status==="closed"?uiText("إعادة فتح التذكرة","Reopen ticket"):uiText("إغلاق التذكرة","Close ticket");}
-}
-$("languageToggle")?.addEventListener("click",()=>updateDeveloperTicketActions());
-$("toggleSupportTicketStatusBtn")?.addEventListener("click",async()=>{
- if(!isDeveloper()||!selectedDeveloperTicketId||!selectedDeveloperTicketData)return;
- const next=selectedDeveloperTicketData.status==="closed"?"open":"closed";
- try{await updateDoc(doc(db,"supportTickets",selectedDeveloperTicketId),{status:next,updatedAt:serverTimestamp()});selectedDeveloperTicketData={...selectedDeveloperTicketData,status:next};updateDeveloperTicketActions();toast(next==="closed"?uiText("تم إغلاق التذكرة","Ticket closed"):uiText("تمت إعادة فتح التذكرة","Ticket reopened"));}
- catch(error){console.error(error);toast("تعذر تحديث حالة التذكرة")}
-});
-$("developerReplyForm")?.addEventListener("submit",async e=>{
- e.preventDefault();const text=$("developerReplyInput").value.trim();if(!text||!selectedDeveloperTicketId||!isDeveloper())return;
- try{
-  await addDoc(collection(db,"supportTickets",selectedDeveloperTicketId,"messages"),{text,senderUid:currentUser.uid,senderName:"المطور",senderRole:"developer",createdAt:serverTimestamp()});
-  await updateDoc(doc(db,"supportTickets",selectedDeveloperTicketId),{updatedAt:serverTimestamp()});$("developerReplyInput").value="";
- }catch(err){console.error(err);toast("تعذر إرسال رد المطور")}
-});
-$("deleteSupportTicketBtn")?.addEventListener("click",async()=>{
- if(!isDeveloper()||!selectedDeveloperTicketId)return;
- if(!confirm("حذف محادثة الدعم ورسائلها نهائيًا؟"))return;
- try{
-  const ref=collection(db,"supportTickets",selectedDeveloperTicketId,"messages"),messages=await getDocs(ref);
-  for(const item of messages.docs)await deleteDoc(item.ref);
-  await deleteDoc(doc(db,"supportTickets",selectedDeveloperTicketId));
-  selectedDeveloperTicketId=null;selectedDeveloperTicketData=null;selectedDeveloperTicketOwner=null;$("developerThreadMessages").innerHTML="";updateDeveloperTicketActions();renderDeveloperTicketList();toast("تم حذف محادثة الدعم");
- }catch(e){console.error(e);toast("تعذر حذف المحادثة")}
-});
-
-// وضع الصيانة عام ومؤقت؛ صلاحية تشغيله وإيقافه محصورة بحساب المطور المعتمد.
-let maintenanceSnapshot=null,maintenanceTick=null;
-function renderMaintenance(data){
- const screen=$("maintenanceScreen"),enabled=!!data?.enabled,expiry=data?.endsAt?.toDate?data.endsAt.toDate():data?.endsAt?new Date(data.endsAt):null;
- const active=enabled&&(!expiry||expiry.getTime()>Date.now());
- if(isDeveloper()){screen.classList.add("hidden");$("stopMaintenanceBtn")?.classList.toggle("hidden",!active);return}
- screen.classList.toggle("hidden",!active);
- if(!active){if(maintenanceTick){clearInterval(maintenanceTick);maintenanceTick=null}return}
- $("maintenanceScreenMessage").textContent=data.message||"التطبيق هيرجع يشتغل قريبًا.";
- const update=()=>{
-  const remaining=Math.max(0,expiry?expiry.getTime()-Date.now():0),seconds=Math.floor(remaining/1000);
-  $("maintenanceCountdown").textContent=expiry?`${String(Math.floor(seconds/60)).padStart(2,"0")}:${String(seconds%60).padStart(2,"0")}`:"قريبًا";
-  if(expiry&&remaining<=0){screen.classList.add("hidden");clearInterval(maintenanceTick);maintenanceTick=null}
- };
- update();if(maintenanceTick)clearInterval(maintenanceTick);maintenanceTick=setInterval(update,1000);
-}
-function watchMaintenance(){
- if(maintenanceSnapshot)return;
- maintenanceSnapshot=onSnapshot(doc(db,"system","maintenance"),s=>renderMaintenance(s.exists()?s.data():{enabled:false}),e=>console.warn("Maintenance listener:",e));
-}
-$("startMaintenanceBtn")?.addEventListener("click",async()=>{
- if(!isDeveloper())return;
- const minutes=Math.min(1440,Math.max(1,Number($("maintenanceMinutes").value)||15));
- try{
-  await setDoc(doc(db,"system","maintenance"),{enabled:true,message:$("maintenanceMessage").value.trim()||"التطبيق متوقف مؤقتًا للصيانة.",endsAt:new Date(Date.now()+minutes*60000),updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});
-  toast("تم تفعيل فاصل الصيانة للجميع");
- }catch(e){console.error(e);toast("تعذر تفعيل الصيانة")}
-});
-$("stopMaintenanceBtn")?.addEventListener("click",async()=>{
- if(!isDeveloper())return;
- try{await setDoc(doc(db,"system","maintenance"),{enabled:false,updatedAt:serverTimestamp(),updatedBy:currentUser.uid},{merge:true});toast("تم إنهاء الصيانة")}
- catch(e){console.error(e);toast("تعذر إنهاء الصيانة")}
-});
-
 // صور المحادثات: الرفع يتم إلى Cloudinary ثم يُحفظ رابط الصورة في الرسالة.
 async function uploadChatImage(file){
  if(!file?.type?.startsWith("image/"))throw new Error("اختار صورة صالحة");
@@ -1461,9 +1263,6 @@ $("imageMessageInput")?.addEventListener("change",async e=>{
  finally{button.disabled=false}
 });
 
-// إظهار لوحة المطور بعد التحقق من role الموثوق في وثيقة الحساب.
-watchMaintenance();
-const authUiObserver=setInterval(()=>{$("developerOpenBtn")?.classList.toggle("hidden",!isDeveloper())},700);
 const sidebarToggle = document.getElementById("sidebarToggle");
 const chatLayout = document.querySelector(".chat-view");
 if (sidebarToggle && chatLayout) {

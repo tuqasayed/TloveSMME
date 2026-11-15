@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=bubble-settings-selfchat-support-20261115c" rel="stylesheet"/>
+  <link href="style.css?v=bubble-no-developer-support-20261115" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -286,40 +286,12 @@
    <button class="settings-action" id="themeToggle" type="button">🌙 الوضع الليلي</button>
    <button class="settings-action" id="enableNotificationsBtn" type="button">🔔 تفعيل الإشعارات</button>
    <button class="settings-action" id="languageToggle" type="button" aria-pressed="false">🌐 English</button>
-   <button class="settings-action" id="supportOpenBtn" type="button">✉️ الدعم</button>
-   <button class="settings-action hidden" id="developerOpenBtn" type="button">🛠 لوحة المطور</button>
    <button class="settings-action settings-logout" id="logoutBtn" type="button">↪ تسجيل الخروج</button>
   </section></div>
   <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
-  <div class="modal hidden" id="supportModal"><section class="modal-card support-card" role="dialog" aria-modal="true" aria-label="الدعم">
-   <button class="modal-close" id="closeSupport" type="button">&times;</button><h2>الدعم ✉️</h2>
-   <p class="profile-hint">اكتب المشكلة أو اقتراح الميزة، والرسالة هتوصل للمطور في محادثة خاصة.</p>
-   <label>نوع الرسالة<select id="supportType"><option value="problem">مشكلة</option><option value="feature">اقتراح ميزة</option><option value="other">أخرى</option></select></label>
-   <div class="mention-host support-mention-host"><textarea id="supportMessage" rows="6" maxlength="5000" placeholder="اكتب رسالتك بالتفصيل..."></textarea><div class="mention-menu hidden" id="supportMentionMenu" role="listbox" aria-label="اقتراحات المنشن"></div></div>
-   <button class="primary-btn" id="sendSupportBtn" type="button">إرسال للمطور</button><div id="mySupportTickets" class="support-ticket-list"></div>
-   <div class="support-thread hidden" id="supportThread"><div class="support-thread-head"><strong id="supportThreadTitle">محادثة الدعم</strong><button id="closeSupportThread" type="button">إغلاق المحادثة</button></div>
-    <div class="support-thread-messages" id="supportThreadMessages"></div>
-    <form id="supportReplyForm" class="support-reply-form"><div class="mention-host"><textarea id="supportReplyInput" rows="2" maxlength="5000" placeholder="اكتب ردك..."></textarea><div class="mention-menu hidden" id="supportReplyMentionMenu" role="listbox"></div></div><button type="submit">إرسال</button></form>
-   </div>
-  </section></div>
-  <div class="modal hidden" id="developerModal"><section class="modal-card developer-card" role="dialog" aria-modal="true" aria-label="لوحة المطور">
-   <button class="modal-close" id="closeDeveloper" type="button">&times;</button><h2>لوحة المطور 🛠</h2>
-   <section class="maintenance-controls"><h3>وضع الصيانة العام</h3><textarea id="maintenanceMessage" rows="2" maxlength="300" placeholder="رسالة الصيانة التي ستظهر للجميع"></textarea>
-    <label>المدة بالدقائق<input id="maintenanceMinutes" type="number" min="1" max="1440" value="15"></label>
-    <button class="primary-btn" id="startMaintenanceBtn" type="button">تفعيل فاصل الصيانة</button><button class="settings-action hidden" id="stopMaintenanceBtn" type="button">إنهاء الصيانة الآن</button>
-   </section>
-   <div class="developer-columns"><section><h3>صندوق التذاكر</h3><div class="developer-ticket-filters" id="developerTicketFilters" role="group" aria-label="تصفية التذاكر"><button type="button" class="is-active" data-ticket-filter="all">الكل</button><button type="button" data-ticket-filter="problem">الأخطاء</button><button type="button" data-ticket-filter="feature">الميزات</button><button type="button" data-ticket-filter="other">أخرى</button></div><div id="developerTickets" class="support-ticket-list"></div></section>
-    <section><h3>محادثة الدعم</h3><div class="support-thread-messages developer-thread-messages" id="developerThreadMessages"></div>
-     <form id="developerReplyForm" class="support-reply-form"><div class="mention-host"><textarea id="developerReplyInput" rows="2" maxlength="5000" placeholder="رد المطور..."></textarea><div class="mention-menu hidden" id="developerMentionMenu" role="listbox"></div></div><button type="submit">إرسال</button></form>
-     <div class="developer-ticket-actions"><button class="settings-action" id="toggleSupportTicketStatusBtn" type="button" disabled>إغلاق التذكرة</button><button class="settings-action settings-logout" id="deleteSupportTicketBtn" type="button" disabled>حذف محادثة الدعم المحددة</button></div>
-    </section></div>
-  </section></div>
-  <div class="maintenance-screen hidden" id="maintenanceScreen" role="status" aria-live="polite"><div class="maintenance-card">
-   <div class="maintenance-icon">🛠</div><h1>فاصل صيانة</h1><p id="maintenanceScreenMessage">التطبيق هيرجع يشتغل قريبًا.</p><strong id="maintenanceCountdown">--:--</strong><small>شكرًا لصبركم ♡</small>
-  </div></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=bubble-settings-selfchat-support-20261115c" type="module">
+  <script src="app.js?v=bubble-no-developer-support-20261115" type="module">
   </script>
  </body>
 </html>

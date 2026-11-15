@@ -167,11 +167,19 @@ function paintAvatar(element,profile){
   element.style.setProperty("--user-color",colorOf(profile));
   element.style.backgroundImage=avatarGradient(profile);
   element.textContent="";
-  if(!photo){element.textContent=initial;return;}
-  const fallback=document.createElement("span");fallback.className="avatar-fallback";fallback.textContent=initial;element.appendChild(fallback);
-  const img=document.createElement("img");img.alt="";img.loading="eager";img.decoding="async";
-  img.onerror=()=>{img.remove();};
-  img.src=photo;element.appendChild(img);
+  if(photo){
+    const fallback=document.createElement("span");fallback.className="avatar-fallback";fallback.textContent=initial;element.appendChild(fallback);
+    const img=document.createElement("img");img.alt="";img.loading="eager";img.decoding="async";
+    img.onerror=()=>{img.remove();};
+    img.src=photo;element.appendChild(img);
+  }else{
+    element.appendChild(document.createTextNode(initial));
+  }
+  if(profile?.decoration){
+    const overlay=document.createElement("span");overlay.className="chat-avatar-decoration";
+    const deco=document.createElement("img");deco.alt="";deco.src=decorationUrl(profile.decoration);
+    overlay.appendChild(deco);element.appendChild(overlay);
+  }
 }
 
 function renderChatAvatar(target){
@@ -1021,15 +1029,24 @@ function renderDecorationGallery(){
     updateProfileCustomizationPreview();
   }));
 }
+renderDecorationGallery();
 
 function updateProfileCustomizationPreview(){
   const name=$("displayNameInput"),c1=$("profileColor").value,c2=$("profileColor2").value;
   if(name){const p={color1:c1,color2:c2,nameFont:$("nameFontSelect").value};$("profileNamePreview").style.cssText=nameStyle(p);$("profileNamePreview").textContent=name.value||"Cute";}
   const deco=$("decorationSelect").value;
   $("profileAvatarPreview").style.backgroundImage=avatarGradient();
-  $("editorDecoration").innerHTML=deco?`<img src="${decorationUrl(deco)}" alt="">`:"";
+  const preview=$("editorDecoration"),src=deco?decorationUrl(deco):"";
+  const current=preview.querySelector("img");
+  if(!src){
+    if(current)current.remove();
+  }else if(!current||current.getAttribute("src")!==src){
+    preview.innerHTML=`<img src="${src}" alt="">`;
+  }
   $("profileAvatarPreview").classList.toggle('has-decoration',!!deco);
-  renderDecorationGallery();
+  $("decorationGallery")?.querySelectorAll("[data-decoration]").forEach(button=>
+    button.classList.toggle("is-selected",button.dataset.decoration===deco)
+  );
 }
 
 function applyColorPair(c1,c2){$("profileColor").value=c1;$("profileColor2").value=c2;updateProfileCustomizationPreview();}

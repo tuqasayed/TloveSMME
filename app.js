@@ -223,7 +223,8 @@ if ("serviceWorker" in navigator) {
   const workerUrl = new URL("./firebase-messaging-sw.js", import.meta.url);
   const workerScope = new URL("./", import.meta.url).pathname;
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(workerUrl.href, { scope: workerScope })
+    navigator.serviceWorker.register(workerUrl.href, { scope: workerScope, updateViaCache: "none" })
+      .then(registration => registration.update())
       .catch(error => console.warn("تعذر تسجيل Service Worker:", error));
   }, { once: true });
 }
@@ -263,7 +264,8 @@ async function enablePushNotifications(){
   const appScope = new URL("./", import.meta.url);
   let registration;
   try {
-    registration = await navigator.serviceWorker.register(swUrl.href, { scope: appScope.pathname });
+    registration = await navigator.serviceWorker.register(swUrl.href, { scope: appScope.pathname, updateViaCache: "none" });
+    await registration.update();
     await navigator.serviceWorker.ready;
   } catch (error) {
     console.error("Service worker registration failed:", error);
@@ -281,7 +283,7 @@ async function enablePushNotifications(){
   }
   if(!token)throw new Error(uiText("تعذر إنشاء رمز الإشعارات","Could not create a notification token."));
   await setDoc(doc(db,"users",currentUser.uid,"fcmTokens",token),{
-    token, platform:"web-android", updatedAt:serverTimestamp()
+    token, platform:"web", updatedAt:serverTimestamp()
   });
   toast(uiText("تم تفعيل الإشعارات على هذا الجهاز ♡","Notifications enabled on this device ♡"));
 }

@@ -135,7 +135,7 @@ async function getRecipientTokens(uid, accessToken) {
     .filter(token => typeof token === "string" && token.length > 20);
 }
 
-async function sendFcm(token, title, body, accessToken, threadId, messageId) {
+async function sendFcm(token, title, body, accessToken, threadId, messageId, senderId, senderName) {
   const response = await fetch(
     `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
     {
@@ -154,7 +154,9 @@ async function sendFcm(token, title, body, accessToken, threadId, messageId) {
             title,
             body,
             threadId: String(threadId),
-            messageId: String(messageId)
+            messageId: String(messageId),
+            senderId: String(senderId || ''),
+            senderName: String(senderName || '')
           },
           webpush: {
             headers: { TTL: "86400", Urgency: "high" }
@@ -216,8 +218,10 @@ export default {
       const preview = message.sticker ? "أرسل ملصقًا" : String(message.text || "رسالة جديدة").slice(0, 160);
       const senderLabel = String(message.senderName || "رسالة جديدة").slice(0, 48);
       const groupLabel = thread.kind === "group" ? String(thread.groupName || "الجروب").slice(0, 36) : "";
-      const title = (groupLabel ? `${senderLabel} · ${groupLabel}` : senderLabel).slice(0, 80);
-      const detailedPreview = groupLabel ? `${groupLabel}: ${preview}` : preview;
+      // In a group, show the group name as the notification title and the
+      // sender plus message in the body. In a direct chat, show the sender.
+      const title = (groupLabel || senderLabel).slice(0, 80);
+      const detailedPreview = groupLabel ? `${senderLabel}: ${preview}` : preview;
 
       let sent = 0;
       let failed = 0;
@@ -229,7 +233,7 @@ export default {
         tokenCount += tokens.length;
 
         for (const token of tokens) {
-          const result = await sendFcm(token, title, detailedPreview, accessToken, threadId, messageId);
+          const result = await sendFcm(token, title, detailedPreview, accessToken, threadId, messageId, uid, senderLabel);
           if (result.ok) {
             sent++;
           } else {

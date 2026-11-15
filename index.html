@@ -2,7 +2,7 @@
 <html dir="rtl" lang="ar">
  <head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+  <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport"/>
   <meta content="#f7f5ff" name="theme-color"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=bubble-settings-selfchat-support-20261114b" rel="stylesheet"/>
+  <link href="style.css?v=bubble-settings-selfchat-support-20261115c" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -190,15 +190,18 @@
       </div>
       <input id="stickerUploadInput" type="file" accept="image/*,.gif" hidden/>
       <form class="composer" id="messageForm">
-       <button class="tool-btn" id="imageMessageBtn" title="إرسال صورة" type="button" aria-label="إرسال صورة">🖼️</button>
+       <button aria-label="إرسال" class="send-btn" type="submit">➤</button>
+       <div class="mention-host"><textarea autocomplete="off" id="messageInput" maxlength="2000" rows="1" placeholder="اكتب رسالة..."></textarea><div class="mention-menu hidden" id="chatMentionMenu" role="listbox" aria-label="اقتراحات المنشن"></div></div>
+       <div class="composer-media-wrap">
+        <button class="composer-media-toggle" id="composerMediaToggle" type="button" aria-label="فتح أدوات الصور والستيكرات" aria-expanded="false" title="الصور والستيكرات">
+         <span></span><span></span><span></span><span></span>
+        </button>
+        <div class="composer-media-menu hidden" id="composerMediaMenu" aria-label="أدوات المرفقات">
+         <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button" aria-label="الملصقات">😊 <span>الستيكرات</span></button>
+         <button class="tool-btn" id="imageMessageBtn" title="إرسال صورة" type="button" aria-label="إرسال صورة">🖼️ <span>الصور</span></button>
+        </div>
+       </div>
        <input id="imageMessageInput" type="file" accept="image/*" hidden>
-       <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button">
-        😊
-       </button>
-       <textarea autocomplete="off" id="messageInput" maxlength="2000" rows="1" placeholder="اكتب رسالة..."></textarea>
-       <button aria-label="إرسال" class="send-btn" type="submit">
-        ➤
-       </button>
       </form>
       <p class="composer-note">
        ♡ . ♡
@@ -238,7 +241,7 @@
       </div>
       <label class="font-picker-label">خط الاسم<select id="nameFontSelect"><option value="noto">Noto Sans</option><option value="arabic">Noto Sans Arabic</option><option value="serif">Noto Serif</option><option value="arabic-serif">Noto Naskh Arabic</option><option value="mono">Noto Sans Mono</option><option value="kufi">Noto Kufi Arabic</option></select></label>
       <div class="profile-name-preview" id="profileNamePreview">Cute · محمد</div>
-      <label class="font-picker-label">إطار الصورة الشخصية<select id="decorationSelect" class="visually-hidden-select"><option value="">بدون إطار</option><option value="1">الإطار 1</option><option value="2">الإطار 2</option><option value="3">الإطار 3</option><option value="4">الإطار 4</option></select></label>
+      <label class="font-picker-label">إطار الصورة الشخصية<select id="decorationSelect" class="visually-hidden-select"><option value="">بدون إطار</option><option value="1">الإطار 1</option><option value="2">الإطار 2</option><option value="3">الإطار 3</option><option value="4">الإطار 4</option><option value="5">الإطار 5</option><option value="6">الإطار 6</option><option value="7">الإطار 7</option><option value="8">الإطار 8</option><option value="9">الإطار 9</option><option value="10">الإطار 10</option><option value="11">الإطار 11</option><option value="12">الإطار 12</option><option value="13">الإطار 13</option><option value="14">الإطار 14</option></select></label>
       <div class="decoration-gallery" id="decorationGallery" aria-label="اختيار ديكوريشن الصورة"></div>
       
     </div>
@@ -292,11 +295,11 @@
    <button class="modal-close" id="closeSupport" type="button">&times;</button><h2>الدعم ✉️</h2>
    <p class="profile-hint">اكتب المشكلة أو اقتراح الميزة، والرسالة هتوصل للمطور في محادثة خاصة.</p>
    <label>نوع الرسالة<select id="supportType"><option value="problem">مشكلة</option><option value="feature">اقتراح ميزة</option><option value="other">أخرى</option></select></label>
-   <textarea id="supportMessage" rows="6" maxlength="5000" placeholder="اكتب رسالتك بالتفصيل..."></textarea>
+   <div class="mention-host support-mention-host"><textarea id="supportMessage" rows="6" maxlength="5000" placeholder="اكتب رسالتك بالتفصيل..."></textarea><div class="mention-menu hidden" id="supportMentionMenu" role="listbox" aria-label="اقتراحات المنشن"></div></div>
    <button class="primary-btn" id="sendSupportBtn" type="button">إرسال للمطور</button><div id="mySupportTickets" class="support-ticket-list"></div>
    <div class="support-thread hidden" id="supportThread"><div class="support-thread-head"><strong id="supportThreadTitle">محادثة الدعم</strong><button id="closeSupportThread" type="button">إغلاق المحادثة</button></div>
     <div class="support-thread-messages" id="supportThreadMessages"></div>
-    <form id="supportReplyForm" class="support-reply-form"><textarea id="supportReplyInput" rows="2" maxlength="5000" placeholder="اكتب ردك..."></textarea><button type="submit">إرسال</button></form>
+    <form id="supportReplyForm" class="support-reply-form"><div class="mention-host"><textarea id="supportReplyInput" rows="2" maxlength="5000" placeholder="اكتب ردك..."></textarea><div class="mention-menu hidden" id="supportReplyMentionMenu" role="listbox"></div></div><button type="submit">إرسال</button></form>
    </div>
   </section></div>
   <div class="modal hidden" id="developerModal"><section class="modal-card developer-card" role="dialog" aria-modal="true" aria-label="لوحة المطور">
@@ -305,10 +308,10 @@
     <label>المدة بالدقائق<input id="maintenanceMinutes" type="number" min="1" max="1440" value="15"></label>
     <button class="primary-btn" id="startMaintenanceBtn" type="button">تفعيل فاصل الصيانة</button><button class="settings-action hidden" id="stopMaintenanceBtn" type="button">إنهاء الصيانة الآن</button>
    </section>
-   <div class="developer-columns"><section><h3>المشاكل والاقتراحات</h3><div id="developerTickets" class="support-ticket-list"></div></section>
+   <div class="developer-columns"><section><h3>صندوق التذاكر</h3><div class="developer-ticket-filters" id="developerTicketFilters" role="group" aria-label="تصفية التذاكر"><button type="button" class="is-active" data-ticket-filter="all">الكل</button><button type="button" data-ticket-filter="problem">الأخطاء</button><button type="button" data-ticket-filter="feature">الميزات</button><button type="button" data-ticket-filter="other">أخرى</button></div><div id="developerTickets" class="support-ticket-list"></div></section>
     <section><h3>محادثة الدعم</h3><div class="support-thread-messages developer-thread-messages" id="developerThreadMessages"></div>
-     <form id="developerReplyForm" class="support-reply-form"><textarea id="developerReplyInput" rows="2" maxlength="5000" placeholder="رد المطور..."></textarea><button type="submit">إرسال</button></form>
-     <button class="settings-action settings-logout" id="deleteSupportTicketBtn" type="button" disabled>حذف محادثة الدعم المحددة</button>
+     <form id="developerReplyForm" class="support-reply-form"><div class="mention-host"><textarea id="developerReplyInput" rows="2" maxlength="5000" placeholder="رد المطور..."></textarea><div class="mention-menu hidden" id="developerMentionMenu" role="listbox"></div></div><button type="submit">إرسال</button></form>
+     <div class="developer-ticket-actions"><button class="settings-action" id="toggleSupportTicketStatusBtn" type="button" disabled>إغلاق التذكرة</button><button class="settings-action settings-logout" id="deleteSupportTicketBtn" type="button" disabled>حذف محادثة الدعم المحددة</button></div>
     </section></div>
   </section></div>
   <div class="maintenance-screen hidden" id="maintenanceScreen" role="status" aria-live="polite"><div class="maintenance-card">
@@ -316,7 +319,7 @@
   </div></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=bubble-settings-selfchat-support-20261114b" type="module">
+  <script src="app.js?v=bubble-settings-selfchat-support-20261115c" type="module">
   </script>
  </body>
 </html>

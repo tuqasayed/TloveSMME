@@ -652,13 +652,56 @@ $("messageInput").addEventListener("blur",stopTypingNow);
 function activeThreadId(){return isGroup()?GROUP_ID:threadId(currentUser.uid,activeChat.id)}
 
 function renderMessages(docs){
-  const box=$("messages");box.innerHTML="";const pinned=[];
+  const box=$("messages");
+  const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<90;
+  const wasEmpty=box.childElementCount===0;
+  const pinned=[];
   const messages=docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
   activeMessagesCache=messages;
+
+  // Reuse unchanged message DOM nodes. Rebuilding the whole list on every Firestore
+  // snapshot restarts image/GIF decoding and avatar decorations, causing prolonged flicker.
+  const existing=new Map([...box.children].map(node=>[node.dataset.messageId,node]));
+  const wanted=new Set(messages.map(m=>m.id));
+  existing.forEach((node,id)=>{if(!wanted.has(id)){node.remove();existing.delete(id);}});
+  let position=0;
   messages.forEach(m=>{
     if(m.pinned)pinned.push(m);
-    // Keep the original per-message avatar layout; no Telegram-style floating/sticky avatar behavior.
-    box.appendChild(messageNode(m));
+    const signature=JSON.stringify(m);
+    let row=existing.get(m.id);
+    if(!row||row.dataset.renderSignature!==signature){
+      const fresh=messageNode(m);
+      fresh.dataset.messageId=m.id;
+      fresh.dataset.renderSignature=signature;
+      if(row){
+        // Keep already-loaded media DOM nodes when only message metadata changes.
+        // Moving the existing <img> node (rather than cloning/reloading it) keeps
+        // animated GIFs at their current frame and prevents image decode flicker.
+        const persistentMediaSelectors=[
+          ".message-photo", ".sticker-image", ".chat-avatar-decoration img",
+          ".message-avatar > img", ".reply-sticker-thumb"
+        ];
+        persistentMediaSelectors.forEach(selector=>{
+          const oldNodes=[...row.querySelectorAll(selector)];
+          const newNodes=[...fresh.querySelectorAll(selector)];
+          oldNodes.forEach((oldNode,index)=>{
+            const newNode=newNodes[index];
+            if(!newNode)return;
+            const oldSrc=oldNode.currentSrc||oldNode.src;
+            const newSrc=newNode.getAttribute("src")||newNode.src;
+            if(oldSrc&&newSrc&&new URL(oldSrc,location.href).href===new URL(newSrc,location.href).href){
+              newNode.replaceWith(oldNode);
+            }
+          });
+        });
+        row.replaceWith(fresh);
+        row=fresh;
+      }else row=fresh;
+      existing.set(m.id,row);
+    }
+    const atPosition=box.children[position]||null;
+    if(atPosition!==row)box.insertBefore(row,atPosition);
+    position++;
   });
   const pinnedBar=$("pinnedBar");
   pinnedBar.innerHTML="";
@@ -674,7 +717,7 @@ function renderMessages(docs){
     });
     pinnedBar.appendChild(list);
   }else pinnedBar.classList.add("hidden");
-  box.scrollTop=box.scrollHeight;
+  if(wasEmpty||wasAtBottom)box.scrollTop=box.scrollHeight;
   updateScrollBottomButton();
   if(!$("chatSearchPanel").classList.contains("hidden"))filterChatSearch();
 }

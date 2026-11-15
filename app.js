@@ -145,7 +145,14 @@ function nameStyle(p){
  const fonts={noto:"'Noto Sans','Noto Sans Arabic','Noto Sans JP','Noto Sans SC','Noto Sans KR',sans-serif",arabic:"'Noto Sans Arabic','Noto Sans',sans-serif",serif:"'Noto Serif','Noto Naskh Arabic',serif","arabic-serif":"'Noto Naskh Arabic','Noto Serif',serif",mono:"'Noto Sans Mono','Noto Sans Arabic',monospace",kufi:"'Noto Kufi Arabic','Noto Sans',sans-serif"};
  return `font-family:${fonts[p?.nameFont]||fonts.noto};font-weight:700;background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`
 }
-function decorationUrl(value){const id=String(value??'');return /^(?:[1-9]|1[0-4])$/.test(id)?`./${id}.gif`:""}
+function decorationUrl(value){
+  // Accept the stored decoration as an id ("3"), filename ("3.gif"),
+  // or relative path ("./3.gif" / "decorations/3.gif"). Always serve
+  // the original GIF from the same directory as index.html.
+  const raw=String(value??"").trim().replaceAll("\\","/");
+  const match=raw.match(/(?:^|\/)0?([1-9]|1[0-4])(?:\.gif)?$/i);
+  return match?`./${Number(match[1])}.gif`:"";
+}
 function applyMyTheme(){if(currentProfile)document.documentElement.style.setProperty("--theme-color",colorOf(currentProfile))}
 
 function avatarMarkup(p,size=""){

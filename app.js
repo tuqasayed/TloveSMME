@@ -156,7 +156,7 @@ const STICKERS = [
 ];
 
 const $safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const emailFor=name=>`${name.toLowerCase()}@bubblechat.app`;
+const emailFor=name=>name.toLowerCase()==="dev"?"developer@bubblechat.app":`${name.toLowerCase()}@bubblechat.app`;
 function threadId(a,b){return [a,b].sort().join("_")}
 function isGroup(){return activeChat?.kind==="group"}
 function colorOf(p){return p?.color1||p?.color||({Samaa:"#55cbd5",Tuqa:"#ed8fbd",Menna:"#a78be8"}[p?.username]||"#a78be8")}

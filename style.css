@@ -3596,3 +3596,20 @@ html.dev-mode {
   overflow-x:hidden!important;
   overflow-y:auto!important;
 }
+
+/* Floating maintenance bubble: overlays the page without shifting the login form. */
+.maintenance-overlay{position:fixed!important;inset:0 0 auto!important;z-index:99999!important;display:flex!important;justify-content:center;align-items:flex-start;width:100%!important;max-width:none!important;min-height:0!important;margin:0!important;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 0!important;box-sizing:border-box!important;background:transparent!important;pointer-events:none!important;animation:none!important;}
+.maintenance-dialog{position:relative;pointer-events:auto;width:min(390px,calc(100vw - 28px))!important;max-width:390px!important;min-height:0!important;padding:13px 42px 13px 15px!important;border-radius:24px 24px 28px 28px!important;border:1px solid #c9a9ef55!important;background:linear-gradient(145deg,#252130f2,#17151ff5)!important;color:#f8f2ff!important;box-shadow:0 14px 38px #0008,0 0 25px #c77be733!important;text-align:start!important;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);animation:maintenanceCloudDrop .7s cubic-bezier(.18,.82,.24,1.18) both!important;}
+.maintenance-dialog:before,.maintenance-dialog:after{content:"";position:absolute;z-index:-1;border-radius:50%;background:inherit;border:1px solid #c9a9ef38;}
+.maintenance-dialog:before{width:65px;height:38px;top:-13px;left:28px;}
+.maintenance-dialog:after{width:48px;height:31px;top:-9px;right:38px;}
+.maintenance-close{position:absolute;top:8px;right:9px;width:29px;height:29px;border:0;border-radius:50%;background:#ffffff18;color:#fff;font-size:23px;line-height:1;display:grid;place-items:center;cursor:pointer;}
+.maintenance-symbol{width:30px!important;height:30px!important;margin:0 0 6px!important;border-radius:12px!important;font-size:19px!important;}
+.maintenance-kicker{font-size:8px!important;letter-spacing:1.5px!important;color:#d5a9ff!important;}
+.maintenance-dialog h2{font-size:17px!important;margin:3px 0 6px!important;color:#fff!important;}
+.maintenance-message{padding:0!important;border:0!important;background:transparent!important;color:#e9e0f3!important;font-size:12px!important;line-height:1.7!important;}
+.maintenance-return{justify-content:flex-start!important;width:auto!important;margin:8px 0 0!important;padding:6px 9px!important;border-radius:12px!important;border:1px solid #d5b6f02b!important;background:#ffffff0b!important;}
+.maintenance-clock{width:24px!important;height:24px!important;flex-basis:24px!important;font-size:19px!important;}
+.maintenance-return small{font-size:9px!important;color:#c0b1d0!important;}.maintenance-return strong{font-size:12px!important;color:#fff!important;}
+@keyframes maintenanceCloudDrop{0%{opacity:0;transform:translateY(-55px) scale(.88);filter:blur(9px)}65%{opacity:1;transform:translateY(5px) scale(1.015);filter:blur(0)}100%{transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.maintenance-dialog{animation:none!important}}

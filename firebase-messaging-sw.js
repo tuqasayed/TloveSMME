@@ -34,17 +34,23 @@ self.addEventListener('push', event => {
     // foreground, background, and fully closed.
     const data = payload.data || payload;
     const threadId = String(data.threadId || '');
-    const messageBody = String(data.body || 'عندك رسالة جديدة ♡').slice(0, 180);
-    const title = String(data.title || 'Bubble Chat 🫧').slice(0, 80);
+    const messageBody = String(data.body || 'افتح المحادثة لقراءة رسائلك الجديدة').slice(0, 180);
+    const title = 'لديك رسائل جديدة ♡';
+
+    // Suppress system notifications while Bubble Chat is visible in the foreground.
+    // Background tabs and closed PWA windows continue to receive notifications.
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const appIsForeground = windows.some(client => client.visibilityState === 'visible' && client.focused);
+    if (appIsForeground) return;
 
     await self.registration.showNotification(title, {
       body: messageBody,
       icon: ICON_URL,
       badge: BADGE_URL,
       data: { threadId },
-      // Keep separate conversations as separate stacked notifications.
-      // A new message in the same conversation updates that conversation's alert.
-      tag: threadId ? `bubble-chat-${threadId}` : `bubble-chat-${Date.now()}`,
+      // Use one shared notification for messages from every conversation.
+      // Each new message updates this same notification instead of stacking another one.
+      tag: 'bubble-chat-new-messages',
       renotify: false,
       requireInteraction: false,
       timestamp: Date.now()

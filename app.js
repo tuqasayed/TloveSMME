@@ -14,7 +14,7 @@ else removeEscapedNewlineArtifacts();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -102,18 +102,36 @@ function stopUnreadListeners(){unreadStops.forEach(stop=>stop());unreadStops.cle
 
 function watchUnreadThread(thread){
   if(unreadStops.has(thread))return;
-  const qUnread=query(collection(db,"threads",thread,"messages"),orderBy("createdAt","asc"));let initialized=false;
+  const key=readKey(thread);
+  let lastRead=Number(localStorage.getItem(key));
+  if(!Number.isFinite(lastRead)){
+    // First visit: start tracking from now instead of downloading the full chat history.
+    lastRead=Date.now();
+    localStorage.setItem(key,String(lastRead));
+  }
+  // Only listen to messages newer than this user's last-read timestamp.
+  // This avoids a full-history snapshot for every conversation in the sidebar.
+  const qUnread=query(
+    collection(db,"threads",thread,"messages"),
+    where("createdAt",">",Timestamp.fromMillis(lastRead)),
+    orderBy("createdAt","asc")
+  );
   const stop=onSnapshot(qUnread,snapshot=>{
-    const docs=snapshot.docs,latest=docs.at(-1)?.data()?.createdAt,latestTime=latest?.toMillis?.()||Date.now(),key=readKey(thread);
-    let lastRead=Number(localStorage.getItem(key));
-    if(!initialized&&!Number.isFinite(lastRead)){localStorage.setItem(key,String(latestTime));lastRead=lastRead;}
+    const docs=snapshot.docs;
+    const latest=docs.at(-1)?.data()?.createdAt;
+    const latestTime=latest?.toMillis?.()||lastRead;
     const isOpen=activeChat&&(activeChat.kind==="group"?GROUP_ID:threadId(currentUser.uid,activeChat.id))===thread;
-    if(isOpen)setThreadRead(thread,latestTime);
-    else{
-      const unread=docs.filter(d=>{const m=d.data(),time=m.createdAt?.toMillis?.()||0;return m.senderId!==currentUser.uid&&time>lastRead;}).length;
+    if(isOpen){
+      if(latestTime>lastRead){lastRead=latestTime;setThreadRead(thread,latestTime);}
+      else setThreadRead(thread,lastRead);
+    }else{
+      const currentLastRead=Number(localStorage.getItem(key))||lastRead;
+      const unread=docs.filter(d=>{
+        const m=d.data(),time=m.createdAt?.toMillis?.()||0;
+        return m.senderId!==currentUser.uid&&time>currentLastRead;
+      }).length;
       unreadCounts.set(thread,unread);updateUnreadBadge(thread);
     }
-    initialized=true;
   },error=>console.warn("Unread listener failed:",error));
   unreadStops.set(thread,stop);
 }

@@ -2135,6 +2135,9 @@ html,body,body *{ -webkit-user-select:none!important;user-select:none!important;
 input,textarea,[contenteditable="true"],[contenteditable="true"] *{ -webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important; }
 img,video,svg{ -webkit-user-drag:none!important;user-drag:none; }
 ::selection{background:transparent!important;color:inherit!important}
+/* Soft lilac highlight for text selected inside the chat composer. */
+#messageInput::selection{background:rgba(173,145,255,.48)!important;color:#fff!important;text-shadow:0 0 8px rgba(173,145,255,.18)}
+#messageInput::-moz-selection{background:rgba(173,145,255,.48)!important;color:#fff!important}
 
 /* Floating return-to-latest button */
 .active-chat{position:relative}

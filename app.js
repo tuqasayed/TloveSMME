@@ -408,15 +408,15 @@ if (loginBtn) {
       sessionStorage.setItem("bubble-chat-auth-mode",selectedAuthMode);
       if(err.code==="app/timeout"){
         await signOut(authClient).catch(()=>{});
-        if(errorEl)errorEl.textContent="الاتصال اتأخر ولم يكتمل تسجيل الدخول. تأكد من الإنترنت وحاول مرة أخرى.";
+        if(errorEl)errorEl.textContent="تعذر تسجيل الدخول حاليًا. حاول مرة أخرى.";
       }else{
         if(errorEl)errorEl.textContent=err.code==="dev/profile-not-configured"
-          ?err.message
+          ?"تعذر فتح لوحة المطوّر. حاول مرة أخرى."
           :err.code==="permission-denied"
-            ?"تم تسجيل الدخول لكن لا توجد صلاحية لقراءة ملف المطوّر في Firestore. راجع قواعد users/{uid}."
+            ?"تعذر تسجيل الدخول حاليًا. حاول مرة أخرى."
             :["auth/invalid-credential","auth/wrong-password","auth/user-not-found","auth/invalid-email"].includes(err.code)
               ?"اسم المستخدم أو كلمة المرور غير صحيحة."
-              :`تعذر تسجيل الدخول (${err.code||"خطأ"}). ${err.message||"حاول مرة أخرى."}`;
+              :"تعذر تسجيل الدخول حاليًا. حاول مرة أخرى.";
       }
     } finally {
       if(loginBtn){loginBtn.disabled=false;loginBtn.removeAttribute("aria-busy");}
@@ -511,13 +511,13 @@ onAuthStateChanged(developerAuth,async user=>{
     const profile=profileSnap.exists()?profileSnap.data():null;
     if(!profile||String(profile.username||"").toLowerCase()!=="dev"){
       await signOut(developerAuth);
-      showLogin("حساب المطوّر غير مُجهّز بشكل صحيح.");
+      showLogin("تعذر فتح لوحة المطوّر. حاول مرة أخرى.");
       return;
     }
     showDeveloperDashboard();
   }catch(error){
     console.error("Developer login error:",error);
-    showLogin(error.code==="app/timeout"?"الاتصال بقاعدة البيانات اتأخر أثناء تحميل لوحة المطوّر. تحقق من الإنترنت وحاول مجددًا.":`تعذر تحميل لوحة المطوّر (${error.code||"خطأ"}).`);
+    showLogin("تعذر فتح لوحة المطوّر حاليًا. حاول مرة أخرى.");
   }
 });
 
@@ -536,7 +536,7 @@ onAuthStateChanged(auth,async user=>{
   currentUser=user;
   try{
     const s=await withTimeout(getDoc(doc(db,"users",user.uid)),12000,"تأخر تحميل ملف الحساب");
-    if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}
+    if(!s.exists()){await signOut(auth);return showLogin("اسم المستخدم أو كلمة المرور غير صحيحة.")}
     currentProfile={id:user.uid,...s.data()};
     currentProfile.displayName ||= currentProfile.username;
     if(selectedAuthMode!=="user") return;
@@ -554,7 +554,7 @@ onAuthStateChanged(auth,async user=>{
     await loadContacts();
   }catch(e){
     console.error(e);
-    showLogin(`تعذر تحميل الحساب (${e.code||"unknown"}). ${e.message||"راجع صلاحيات Firestore وإعدادات Firebase."}`);
+    showLogin("تعذر تسجيل الدخول حاليًا. حاول مرة أخرى.");
   }
 });
 

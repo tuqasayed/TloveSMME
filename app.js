@@ -379,7 +379,29 @@ if (loginBtn) {
       sessionStorage.setItem("bubble-chat-auth-mode",selectedAuthMode);
       if (errorEl) errorEl.textContent = "جاري تسجيل الدخول...";
       if(loginBtn){loginBtn.disabled=true;loginBtn.setAttribute("aria-busy","true");}
-      await withTimeout(signInWithEmailAndPassword(authClient,emailFor(name),pass),18000,"تأخر رد خادم تسجيل الدخول");
+      const credential=await withTimeout(
+        signInWithEmailAndPassword(authClient,emailFor(name),pass),
+        18000,
+        "تأخر رد خادم تسجيل الدخول"
+      );
+      // Complete the developer transition here instead of relying only on the
+      // asynchronous auth observer; this prevents the login label from being
+      // left on "جاري تسجيل الدخول" after Firebase Auth succeeds.
+      if(name.toLowerCase()==="dev"){
+        const profileSnap=await withTimeout(
+          getDoc(doc(developerDb,"users",credential.user.uid)),
+          12000,
+          "تأخر تحميل ملف المطوّر"
+        );
+        const profile=profileSnap.exists()?profileSnap.data():null;
+        if(!profile||String(profile.username||"").toLowerCase()!=="dev"){
+          const profileError=new Error("حساب المطوّر غير مُجهّز بشكل صحيح. تأكد من وجود users/{UID} وبداخله username: dev.");
+          profileError.code="dev/profile-not-configured";
+          throw profileError;
+        }
+        showDeveloperDashboard();
+        if(errorEl)errorEl.textContent="";
+      }
     } catch (err) {
       console.error("Login error:", err);
       selectedAuthMode=previousMode;
@@ -388,7 +410,13 @@ if (loginBtn) {
         await signOut(authClient).catch(()=>{});
         if(errorEl)errorEl.textContent="الاتصال اتأخر ولم يكتمل تسجيل الدخول. تأكد من الإنترنت وحاول مرة أخرى.";
       }else{
-        if(errorEl)errorEl.textContent=["auth/invalid-credential","auth/wrong-password","auth/user-not-found","auth/invalid-email"].includes(err.code)?"اسم المستخدم أو كلمة المرور غير صحيحة.":`تعذر تسجيل الدخول (${err.code||"خطأ"}). حاول مرة أخرى.`;
+        if(errorEl)errorEl.textContent=err.code==="dev/profile-not-configured"
+          ?err.message
+          :err.code==="permission-denied"
+            ?"تم تسجيل الدخول لكن لا توجد صلاحية لقراءة ملف المطوّر في Firestore. راجع قواعد users/{uid}."
+            :["auth/invalid-credential","auth/wrong-password","auth/user-not-found","auth/invalid-email"].includes(err.code)
+              ?"اسم المستخدم أو كلمة المرور غير صحيحة."
+              :`تعذر تسجيل الدخول (${err.code||"خطأ"}). ${err.message||"حاول مرة أخرى."}`;
       }
     } finally {
       if(loginBtn){loginBtn.disabled=false;loginBtn.removeAttribute("aria-busy");}

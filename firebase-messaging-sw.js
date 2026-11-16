@@ -53,15 +53,18 @@ async function registerRecentSender(senderId, senderName) {
 
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
-    // Do not show a system notification while the chat is actively open.
-    // A visible AND focused app tab is considered foreground; hidden tabs
-    // (background) and closed apps are allowed to receive notifications.
+    // Suppress the system notification only while a Bubble Chat page
+    // inside this service worker's scope is visibly on screen. A hidden tab
+    // (background) or a closed app must still receive the notification.
     try {
+      const scopePath = new URL(APP_URL).pathname;
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const appIsForeground = windows.some(client =>
-        client.visibilityState === 'visible' && client.focused === true
-      );
-      if (appIsForeground) return;
+      const appIsVisible = windows.some(client => {
+        let clientPath = '';
+        try { clientPath = new URL(client.url).pathname; } catch (_) { return false; }
+        return clientPath.startsWith(scopePath) && client.visibilityState === 'visible';
+      });
+      if (appIsVisible) return;
     } catch (error) {
       // If foreground detection fails, continue with notification delivery
       // rather than silently dropping messages.

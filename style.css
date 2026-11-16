@@ -3613,3 +3613,52 @@ html.dev-mode {
 .maintenance-return small{font-size:9px!important;color:#c0b1d0!important;}.maintenance-return strong{font-size:12px!important;color:#fff!important;}
 @keyframes maintenanceCloudDrop{0%{opacity:0;transform:translateY(-55px) scale(.88);filter:blur(9px)}65%{opacity:1;transform:translateY(5px) scale(1.015);filter:blur(0)}100%{transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.maintenance-dialog{animation:none!important}}
+
+/* Reliable vertical scrolling for the developer dashboard on tablets and touch devices. */
+html.dev-mode,
+html:has(body.dev-mode) {
+  height:100%!important;
+  min-height:100%!important;
+  overflow:hidden!important;
+}
+body.dev-mode {
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none;
+}
+body.dev-mode .app-shell {
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+}
+body.dev-mode .developer-view {
+  display:block!important;
+  position:relative!important;
+  width:100%!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  box-sizing:border-box!important;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+}
+body.dev-mode .dev-card {
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin:0 auto 18px!important;
+}
+@media (min-width:600px) and (max-width:1200px) {
+  body.dev-mode .developer-view {padding:16px 18px calc(28px + env(safe-area-inset-bottom,0px))!important;}
+  body.dev-mode .dev-card {width:min(1120px,100%)!important;}
+}

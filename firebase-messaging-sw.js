@@ -23,83 +23,28 @@ function openStateDb() {
   });
 }
 
-async function registerRecentSender(senderId, senderName) {
-  // IndexedDB survives service-worker termination, unlike ordinary globals.
-  try {
-    const db = await openStateDb();
-    const result = await new Promise((resolve, reject) => {
-      const tx = db.transaction('state', 'readwrite');
-      const store = tx.objectStore('state');
-      const get = store.get('recent-senders');
-      get.onsuccess = () => {
-        const now = Date.now();
-        const previous = (get.result || []).filter(item => now - item.at < RECENT_WINDOW_MS);
-        const key = senderId || senderName || 'unknown';
-        const updated = previous.filter(item => item.key !== key);
-        updated.push({ key, name: senderName || 'شخص ما', at: now });
-        store.put(updated, 'recent-senders');
-        resolve(new Set(updated.map(item => item.key)).size > 1);
-      };
-      get.onerror = () => reject(get.error);
-      tx.onerror = () => reject(tx.error);
-    });
-    db.close();
-    return result;
-  } catch (error) {
-    console.warn('Could not update push aggregation state:', error);
-    return false;
-  }
-}
-
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
-    // Match the known-working hb.zip behavior: suppress only when a Bubble
-    // Chat window is both visible and focused. Background/hidden windows and
-    // a fully closed app are allowed to display the notification.
-    try {
-      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const appIsForeground = windows.some(client =>
-        client.visibilityState === 'visible' && client.focused === true
-      );
-      if (appIsForeground) return;
-    } catch (error) {
-      // If foreground detection fails, continue with notification delivery
-      // rather than silently dropping messages.
-      console.warn('Could not detect foreground app state:', error);
-    }
-
     let payload = {};
     try { payload = event.data ? event.data.json() : {}; } catch (_) {
       try { payload = { data: { body: event.data?.text() || '' } }; } catch (_) {}
     }
-    // FCM data-only messages expose our fields under payload.data.
+
+    // Firebase sends data-only messages; handle them in every app state:
+    // foreground, background, and fully closed.
     const data = payload.data || payload;
     const threadId = String(data.threadId || '');
-    const senderId = String(data.senderId || data.senderName || '');
-    const senderName = String(data.senderName || 'صديق');
     const messageBody = String(data.body || 'عندك رسالة جديدة ♡').slice(0, 180);
-    const multipleSenders = await registerRecentSender(senderId, senderName);
-
-    const title = multipleSenders
-      ? 'لديك رسائل جديدة..'
-      : String(data.title || 'Bubble Chat 🫧').slice(0, 80);
-    const body = multipleSenders
-      ? 'لديك رسائل جديدة من أكثر من شخص. افتح المحادثات لعرضها.'
-      : messageBody;
-
-    if (multipleSenders) {
-      const oldNotifications = await self.registration.getNotifications();
-      oldNotifications.forEach(notification => notification.close());
-    }
+    const title = String(data.title || 'Bubble Chat 🫧').slice(0, 80);
 
     await self.registration.showNotification(title, {
-      body,
+      body: messageBody,
       icon: ICON_URL,
       badge: BADGE_URL,
-      data: { threadId: multipleSenders ? '' : threadId },
-      // Same conversation => update its existing notification, not a new one.
-      // Different senders in the short aggregation window => one combined alert.
-      tag: multipleSenders ? 'bubble-chat-multiple-senders' : (threadId ? `bubble-chat-${threadId}` : 'bubble-chat-messages'),
+      data: { threadId },
+      // Keep separate conversations as separate stacked notifications.
+      // A new message in the same conversation updates that conversation's alert.
+      tag: threadId ? `bubble-chat-${threadId}` : `bubble-chat-${Date.now()}`,
       renotify: false,
       requireInteraction: false,
       timestamp: Date.now()

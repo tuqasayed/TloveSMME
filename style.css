@@ -3510,3 +3510,52 @@ body.amoled-mode .maintenance-dialog{--maint-bg:linear-gradient(145deg,#101014 0
 @media(max-width:480px){.maintenance-overlay{width:100%;max-width:470px;margin:12px auto 0;padding:0}.maintenance-dialog{border-radius:22px;padding:20px 16px}.maintenance-symbol{width:52px;height:52px;border-radius:18px}}
 @media(min-width:700px){.maintenance-overlay{max-width:520px}.maintenance-dialog{padding:28px 30px}}
 @media(prefers-reduced-motion:reduce){.maintenance-overlay,.maintenance-progress i{animation:none!important}}
+
+/* Tablet landscape: use the full horizontal canvas instead of the portrait stack. */
+@media screen and (orientation:landscape) and (min-width:700px) and (max-width:1400px) and (min-height:480px) {
+  .developer-view{
+    min-height:100svh;
+    padding:clamp(12px,2vw,24px);
+    align-items:start;
+    justify-items:center;
+  }
+  .dev-card{
+    width:min(1280px,100%);
+    max-width:1280px;
+    padding:clamp(16px,2vw,26px);
+    border-radius:24px;
+  }
+  .dev-header{margin-bottom:14px;gap:12px;}
+  .dev-card h1{font-size:clamp(21px,2.4vw,27px);}
+  .dev-sub{font-size:11px;margin-top:5px;}
+  .dev-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+  .dev-grid .dev-panel{padding:clamp(12px,1.4vw,18px);}
+  .dev-panel-wide{grid-column:span 2;}
+  .dev-stats-four{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .dev-stats div{padding:10px 5px;}
+  .dev-stats b{font-size:14px;}
+  .dev-stats small{font-size:9px;}
+  .dev-panel label{font-size:10px;margin:8px 0;}
+  .dev-panel input{padding:9px 10px;min-height:40px;font-size:14px;}
+  .dev-presets{gap:5px;margin:7px 0 9px;}
+  .dev-presets button,.dev-panel button{font-size:10px!important;padding:9px 10px;min-height:38px;}
+  .dev-tools button{flex:1 1 125px;}
+  .dev-log{max-height:150px;min-height:58px;font-size:9px;}
+  .dev-logout{max-width:260px;display:block;margin:12px auto 0;min-height:40px;}
+}
+
+/* Short landscape screens: keep the dashboard compact and avoid clipped controls. */
+@media screen and (orientation:landscape) and (min-width:700px) and (max-height:600px) {
+  .developer-view{padding:8px 12px;}
+  .dev-card{padding:13px 16px;}
+  .dev-header{margin-bottom:9px;}
+  .dev-grid{gap:8px;}
+  .dev-grid .dev-panel{padding:10px;}
+  .dev-panel h2{margin-bottom:8px;font-size:12px;}
+  .dev-panel label{gap:4px;margin:6px 0;}
+  .dev-panel input{min-height:34px;padding:7px 9px;}
+  .dev-panel button,.dev-presets button{min-height:32px;padding:7px 9px;font-size:9px!important;}
+  .dev-stats div{padding:7px 4px;}
+  .dev-log{max-height:100px;}
+  .dev-logout{margin-top:8px;padding:8px 12px;min-height:34px;}
+}

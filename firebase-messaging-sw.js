@@ -53,18 +53,15 @@ async function registerRecentSender(senderId, senderName) {
 
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
-    // Suppress the system notification only while a Bubble Chat page
-    // inside this service worker's scope is visibly on screen. A hidden tab
-    // (background) or a closed app must still receive the notification.
+    // Match the known-working hb.zip behavior: suppress only when a Bubble
+    // Chat window is both visible and focused. Background/hidden windows and
+    // a fully closed app are allowed to display the notification.
     try {
-      const scopePath = new URL(APP_URL).pathname;
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const appIsVisible = windows.some(client => {
-        let clientPath = '';
-        try { clientPath = new URL(client.url).pathname; } catch (_) { return false; }
-        return clientPath.startsWith(scopePath) && client.visibilityState === 'visible';
-      });
-      if (appIsVisible) return;
+      const appIsForeground = windows.some(client =>
+        client.visibilityState === 'visible' && client.focused === true
+      );
+      if (appIsForeground) return;
     } catch (error) {
       // If foreground detection fails, continue with notification delivery
       // rather than silently dropping messages.

@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
+    function isDeveloper() { return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'dev'; }
     function isMember(threadId) {
       return signedIn()
         && exists(/databases/$(database)/documents/threads/$(threadId))
@@ -16,8 +17,8 @@ service cloud.firestore {
     }
 
     match /stickers/{stickerId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+      allow read: if signedIn() && !isDeveloper();
+      allow create: if signedIn() && !isDeveloper()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.url is string
         && request.resource.data.url.matches('https://res\\.cloudinary\\.com/.*')
@@ -27,19 +28,19 @@ service cloud.firestore {
     }
 
     match /stories/{storyId} {
-      allow read: if signedIn();
-      allow create: if signedIn()
+      allow read: if signedIn() && !isDeveloper();
+      allow create: if signedIn() && !isDeveloper()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.mediaType in ['image','video','text']
         && request.resource.data.caption is string
         && (request.resource.data.mediaType == 'text' || request.resource.data.mediaUrl is string);
-      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && !isDeveloper() && resource.data.uid == request.auth.uid;
     }
 
     match /users/{userId} {
       allow read: if signedIn()
         && (request.auth.uid == userId
-          || resource.data.username in ['Samaa', 'Tuqa', 'Menna']);
+          || (resource.data.username in ['Samaa', 'Tuqa', 'Menna'] && !isDeveloper()));
       allow create, delete: if false;
       allow update: if signedIn()
         && request.auth.uid == userId
@@ -60,15 +61,23 @@ service cloud.firestore {
       }
     }
 
+    match /system/maintenance {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && isDeveloper()
+        && request.resource.data.keys().hasOnly(['enabled','message','startedAt','endsAt','durationMinutes','updatedAt']);
+      allow delete: if false;
+    }
+
     match /threads/{threadId} {
       // Allow signed-in users to check whether a deterministic thread ID exists.
       // Existing thread contents remain readable only by listed participants.
       // This lets a user create a new private thread after getDoc() returns missing.
-      allow get: if signedIn()
+      allow get: if signedIn() && !isDeveloper()
         && (!exists(/databases/$(database)/documents/threads/$(threadId))
           || request.auth.uid in resource.data.participants);
-      allow list: if signedIn() && request.auth.uid in resource.data.participants;
-      allow create: if signedIn()
+      allow list: if signedIn() && !isDeveloper() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && !isDeveloper()
         && request.resource.data.participants is list
         && request.auth.uid in request.resource.data.participants
         && (
@@ -81,7 +90,7 @@ service cloud.firestore {
         && (request.resource.data.kind != 'group'
           || (request.resource.data.admins is list && request.resource.data.admins.size() == 0)
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'Tuqa');
-      allow update: if signedIn()
+      allow update: if signedIn() && !isDeveloper()
         && request.auth.uid in resource.data.participants
         && request.resource.data.participants == resource.data.participants
         && (

@@ -220,8 +220,10 @@ export default {
       const groupLabel = thread.kind === "group" ? String(thread.groupName || "الجروب").slice(0, 36) : "";
       // In a group, show the group name as the notification title and the
       // sender plus message in the body. In a direct chat, show the sender.
-      const title = (groupLabel || senderLabel).slice(0, 80);
-      const detailedPreview = groupLabel ? `${senderLabel}: ${preview}` : preview;
+      const title = "رسالة جديدة ♡";
+      const detailedPreview = groupLabel
+        ? `${groupLabel}:\n• ${senderLabel}:\n• ${preview}`
+        : `• ${senderLabel}:\n• ${preview}`;
 
       let sent = 0;
       let failed = 0;

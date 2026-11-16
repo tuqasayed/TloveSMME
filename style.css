@@ -3406,3 +3406,25 @@ body.dark-mode #messageForm.composer .composer-media-menu .tool-btn{background:#
 #messageForm.composer .send-btn{order:2!important;}
 #messageForm.composer .composer-media-menu{left:0!important;right:auto!important;transform-origin:top left!important;}
 @media(max-width:760px){#messageForm.composer .composer-media-menu{left:0!important;right:auto!important;}}
+
+
+/* Gentle page transitions, composer feedback, selection tint and developer-only console. */
+.login-view,.chat-view,.developer-view{animation:pageSoftIn .32s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes pageSoftIn{from{opacity:0;transform:translateY(8px) scale(.995)}to{opacity:1;transform:none}}
+#messageForm .send-btn{transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;}
+#messageForm .send-btn:active{transform:scale(.88) rotate(-9deg);filter:brightness(1.16);box-shadow:0 0 0 6px #a78be822;}
+#messageForm.composer textarea::selection{background:rgba(167,139,232,.42);color:inherit;}
+#messageForm.composer textarea::-moz-selection{background:rgba(167,139,232,.42);color:inherit;}
+.maintenance-notice{margin:10px 0 12px;padding:14px;border:1px solid #d9c7f4;border-radius:17px;background:linear-gradient(135deg,#f6efff,#fff8fc);color:#59456f;text-align:center;box-shadow:0 8px 26px #6b4a8b16;}
+.maintenance-notice strong{font-size:14px}.maintenance-notice p{font-size:12px;line-height:1.8;margin:7px 0}.maintenance-notice small{font-size:10px;color:#826b98}
+.developer-view{position:relative;z-index:5;min-height:100dvh;padding:22px 14px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% -15%,#302a4b 0,transparent 55%),#050508;color:#f5f1ff;}
+.developer-view.hidden{display:none!important}.dev-card{width:min(560px,100%);padding:24px;border:1px solid #ffffff18;border-radius:28px;background:linear-gradient(155deg,#15141d,#09090d);box-shadow:0 25px 90px #0009;}
+.dev-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:15px;background:#a78be822;color:#c9b4ff;font-size:18px;box-shadow:0 0 30px #a78be833}.dev-kicker{font:700 9px Arial;letter-spacing:3px;color:#a99acb;margin:18px 0 6px}.dev-card h1{font-size:25px;margin:0}.dev-sub{font-size:12px;color:#9c96aa;margin:7px 0 20px}.dev-panel{padding:17px;margin:13px 0;border:1px solid #ffffff14;border-radius:19px;background:#ffffff06}.dev-panel h2{font-size:14px;margin:0 0 13px}.dev-panel label{display:grid;gap:6px;margin:10px 0;color:#bdb5cc;font-size:11px}.dev-panel input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #ffffff20;border-radius:12px;background:#09090e;color:#fff;outline:none}.dev-panel input:focus{border-color:#a78be8;box-shadow:0 0 0 3px #a78be822}.dev-actions{display:flex;gap:8px;flex-wrap:wrap}.dev-panel button,.dev-logout{border:0;border-radius:12px;padding:11px 14px;background:linear-gradient(120deg,#8b6bc9,#b38bdc);color:white;font-weight:800;font-size:11px;cursor:pointer}.dev-panel button.secondary{background:#ffffff12;color:#ddd4ed;border:1px solid #ffffff18}.dev-state,.dev-note{font-size:11px;line-height:1.8;color:#b8aecb;margin:12px 0 0}.dev-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.dev-stats div{padding:12px 7px;border-radius:13px;background:#ffffff08;text-align:center}.dev-stats b,.dev-stats small{display:block}.dev-stats b{font-size:15px;color:#d6c3ff}.dev-stats small{font-size:9px;color:#9b93a9;margin-top:5px}.dev-log{max-height:145px;overflow:auto;white-space:pre-wrap;word-break:break-word;padding:11px;border-radius:12px;background:#050507;color:#c2b9d3;font:10px/1.7 monospace}.dev-logout{width:100%;margin-top:7px;background:#ffffff10;border:1px solid #ffffff18;color:#ddd4ed}
+/* True AMOLED: pure black surfaces, no gradients or raised grey panels. */
+body.amoled-mode,body.amoled-mode .app-shell,body.amoled-mode .chat-view,body.amoled-mode .conversation,body.amoled-mode .messages,body.amoled-mode .sidebar,body.amoled-mode .empty-state{background:#000!important;background-image:none!important;}
+body.amoled-mode .sidebar,body.amoled-mode .chat-header,body.amoled-mode .me-card,body.amoled-mode .composer,body.amoled-mode .chat-search-panel,body.amoled-mode .sidebar-mini-dock,body.amoled-mode .sidebar-mini-contact,body.amoled-mode .chat-tools-menu,body.amoled-mode .chat-tools-item,body.amoled-mode .modal-card,body.amoled-mode .group-member-row,body.amoled-mode .contact{background:#000!important;background-image:none!important;border-color:#242424!important;}
+body.amoled-mode .message.mine,body.amoled-mode .message.theirs{background:#101010!important;color:#f5f5f5!important;border:1px solid #252525!important;}
+body.amoled-mode .composer textarea,body.amoled-mode input,body.amoled-mode textarea,body.amoled-mode select{background:#050505!important;color:#fff!important;border-color:#292929!important;}
+body.amoled-mode .chat-view,body.amoled-mode .conversation,body.amoled-mode .sidebar{box-shadow:none!important;}
+body.amoled-mode .login-view{background:#000!important;}
+@media(prefers-reduced-motion:reduce){.login-view,.chat-view,.developer-view{animation:none!important}#messageForm .send-btn{transition:none!important}}

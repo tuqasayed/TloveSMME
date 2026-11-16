@@ -19,6 +19,9 @@ import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/fir
 import { firebaseConfig } from "./firebase-config.js";
 
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
+// Keep the developer session in a separate Firebase Auth app so it never replaces a regular user session.
+const developerApp=initializeApp(firebaseConfig,"bubble-chat-developer"), developerAuth=getAuth(developerApp), developerDb=getFirestore(developerApp);
+let selectedAuthMode=sessionStorage.getItem("bubble-chat-auth-mode")||"user";
 const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
 const NOTIFICATION_WORKER_URL="https://bubble-chat-notifications.mainmohammedy.workers.dev";
 const VAPID_PUBLIC_KEY="BNntJ7Pft1mjX9eAemavXWmOmjrZj9I-VDyV-zsqFm-otZV0WKadTAcgjUKJOrexkCzmhC2Lmy7tB2tqcQ5PXuI";
@@ -137,7 +140,7 @@ function watchUnreadThread(thread){
 }
 
 const userProfiles=new Map();
-const USERNAMES=["Samaa","Tuqa","Menna"], GROUP_ID="bubble-chat-three-friends", GROUP={id:GROUP_ID,kind:"group",username:"الجروب",displayName:"S.T.M 🌷",participants:[]};
+const USERNAMES=["Samaa","Tuqa","Menna"], DEV_USERNAME="dev", GROUP_ID="bubble-chat-three-friends", GROUP={id:GROUP_ID,kind:"group",username:"الجروب",displayName:"S.T.M 🌷",participants:[]};
 const STICKERS = [
   { src: "https://res.cloudinary.com/svigkr4e/image/upload/1.jpg", label: "ستيكر 1" },
   { src: "https://res.cloudinary.com/svigkr4e/image/upload/2.jpg", label: "ستيكر 2" },
@@ -263,8 +266,8 @@ if ("serviceWorker" in navigator) {
 }
 
 function timeOf(ts){const locale=localStorage.getItem("bubble-chat-language")==="en"?"en-US":"ar-EG";return ts?.toDate?ts.toDate().toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}):(locale==="en-US"?"Now":"الآن")}
-function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("loginError").textContent=msg}
-function showChat(){$("loginView").classList.add("hidden");$("chatView").classList.remove("hidden")}
+function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("developerView")?.classList.add("hidden");$("loginError").textContent=msg}
+function showChat(){$("loginView").classList.add("hidden");$("developerView")?.classList.add("hidden");$("chatView").classList.remove("hidden")}
 
 function expandSidebarWhenNoChat(){
   if(activeChat)return;
@@ -357,14 +360,16 @@ if (loginBtn) {
     const name = usernameInput.value.trim();
     const pass = passwordInput.value;
     
-    if (!USERNAMES.some(n => n.toLowerCase() === name.toLowerCase())) {
+    if (![...USERNAMES,DEV_USERNAME].some(n => n.toLowerCase() === name.toLowerCase())) {
       if (errorEl) errorEl.textContent = "اسم المستخدم غير مسموح به.";
       return;
     }
     
     try {
+      selectedAuthMode=name.toLowerCase()==="dev"?"developer":"user";
+      sessionStorage.setItem("bubble-chat-auth-mode",selectedAuthMode);
       if (errorEl) errorEl.textContent = "جاري تسجيل الدخول...";
-      await signInWithEmailAndPassword(auth, emailFor(name), pass);
+      await signInWithEmailAndPassword(selectedAuthMode==="developer"?developerAuth:auth, emailFor(name), pass);
     } catch (err) {
       console.error("Login error:", err);
       if (errorEl) errorEl.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة.";
@@ -382,6 +387,74 @@ if (loginBtn) {
   });
 });
 
+
+// Developer console: intentionally aggregate-only; it never queries user profiles,
+// conversations, message contents, or notification tokens.
+let stopMaintenanceWatch=null,maintenanceGuardStop=null;
+function ensureDeveloperView(){
+  let view=$("developerView");if(view)return view;
+  view=document.createElement("section");view.id="developerView";view.className="developer-view hidden";
+  view.innerHTML=`<div class="dev-card"><div class="dev-mark">●</div><p class="dev-kicker">BUBBLE CHAT · CONTROL CENTER</p><h1>لوحة المطوّر</h1><p class="dev-sub">إدارة التشغيل والصيانة ومتابعة حالة التطبيق</p>
+  <section class="dev-panel"><h2>وضع الصيانة</h2><label>مدة الفاصل بالدقائق<input id="devMaintenanceMinutes" type="number" min="1" max="10080" value="30"></label><label>رسالة للمستخدمين<input id="devMaintenanceMessage" maxlength="140" value="نعمل على تحسين Bubble Chat لتجربة أفضل ♡"></label><div class="dev-actions"><button id="devStartMaintenance" type="button">تفعيل فاصل الصيانة</button><button id="devStopMaintenance" type="button" class="secondary">إنهاء الصيانة</button></div><p id="devMaintenanceState" class="dev-state">جاري قراءة حالة التشغيل...</p></section>
+  <section class="dev-panel"><h2>مزايا وأخطاء التشغيل</h2><p class="dev-note">يعرض هذا القسم حالة الواجهة والأخطاء التقنية المحلية فقط، دون بيانات أو محادثات المستخدمين.</p><div class="dev-stats"><div><b id="devRuntimeStatus">يعمل</b><small>حالة الواجهة</small></div><div><b id="devErrorCount">0</b><small>أخطاء مسجلة</small></div><div><b id="devOnlineState">متصل</b><small>الاتصال</small></div></div><pre id="devErrorLog" class="dev-log">لا توجد أخطاء مسجلة.</pre><button id="devClearErrors" type="button" class="secondary">مسح السجل المحلي</button></section><button id="devLogout" class="dev-logout" type="button">تسجيل الخروج</button></div>`;
+  document.querySelector(".app-shell")?.prepend(view);
+  const errors=[];window.__bubbleDevErrors=errors;
+  window.addEventListener("error",e=>{errors.push(`${new Date().toLocaleTimeString()} · ${e.message||"Runtime error"}`);paintDevErrors();});
+  window.addEventListener("unhandledrejection",e=>{errors.push(`${new Date().toLocaleTimeString()} · ${String(e.reason?.message||e.reason||"Unhandled rejection")}`);paintDevErrors();});
+  $("devStartMaintenance").onclick=async()=>{const minutes=Math.max(1,Math.min(10080,Number($("devMaintenanceMinutes").value)||30));const message=$("devMaintenanceMessage").value.trim()||"نعمل على تحسين Bubble Chat ♡";try{await setDoc(doc(developerDb,"system","maintenance"),{enabled:true,message,startedAt:serverTimestamp(),endsAt:Timestamp.fromMillis(Date.now()+minutes*60000),durationMinutes:minutes,updatedAt:serverTimestamp()},{merge:true});$("devMaintenanceState").textContent=`تم تفعيل الصيانة لمدة ${minutes} دقيقة.`;}catch(e){$("devMaintenanceState").textContent="تعذر التفعيل: "+(e.message||e);}};
+  $("devStopMaintenance").onclick=async()=>{try{await setDoc(doc(developerDb,"system","maintenance"),{enabled:false,updatedAt:serverTimestamp()},{merge:true});$("devMaintenanceState").textContent="تم إنهاء الصيانة.";}catch(e){$("devMaintenanceState").textContent="تعذر إنهاء الصيانة: "+(e.message||e);}};
+  $("devClearErrors").onclick=()=>{errors.length=0;paintDevErrors();};
+  $("devLogout").onclick=async()=>{selectedAuthMode="user";sessionStorage.setItem("bubble-chat-auth-mode","user");await signOut(developerAuth);if(auth.currentUser){showLogin("تم تسجيل الخروج من لوحة المطوّر. سجّل دخولك بحسابك العادي.");}else showLogin();};
+  window.addEventListener("online",paintDevErrors);window.addEventListener("offline",paintDevErrors);
+  return view;
+}
+function paintDevErrors(){if(!$("developerView"))return;const errors=window.__bubbleDevErrors||[];$("devErrorCount").textContent=String(errors.length);$("devErrorLog").textContent=errors.slice(-30).join("\n")||"لا توجد أخطاء مسجلة.";$("devOnlineState").textContent=navigator.onLine?"متصل":"غير متصل";}
+function showDeveloperDashboard(){
+  $("loginView")?.classList.add("hidden");$("chatView")?.classList.add("hidden");
+  const view=ensureDeveloperView();view.classList.remove("hidden");paintDevErrors();
+  if(stopMaintenanceWatch)stopMaintenanceWatch();
+  stopMaintenanceWatch=onSnapshot(doc(developerDb,"system","maintenance"),snap=>{const d=snap.data()||{};const active=d.enabled&&(!d.endsAt?.toMillis||d.endsAt.toMillis()>Date.now());$("devMaintenanceState").textContent=active?`الصيانة مفعّلة حتى ${d.endsAt?.toDate?.().toLocaleString("ar-EG")||"وقت غير محدد"}`:"التطبيق يعمل دون فاصل صيانة.";},e=>{$("devMaintenanceState").textContent="تعذر قراءة حالة الصيانة: "+e.message;});
+}
+function showMaintenanceNotice(data){
+  let box=$("maintenanceNotice");if(!box){box=document.createElement("div");box.id="maintenanceNotice";box.className="maintenance-notice";$("loginForm")?.prepend(box);}
+  const end=data.endsAt?.toDate?.();const endText=end?end.toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"}):"قريبًا";
+  box.innerHTML=`<strong>🛠️ فاصل صيانة مؤقت</strong><p>${$safe(data.message||"نعمل على تحسين الخدمة لتعود إليكم بشكل أفضل ♡")}</p><small>الوقت المتوقع للعودة: ${$safe(endText)}</small>`;
+}
+function startMaintenanceGuard(){
+  if(maintenanceGuardStop)maintenanceGuardStop();
+  maintenanceGuardStop=onSnapshot(doc(db,"system","maintenance"),async snap=>{
+    const d=snap.data()||{};const active=!!d.enabled&&(!d.endsAt?.toMillis||d.endsAt.toMillis()>Date.now());
+    if(active&&currentUser&&String(currentProfile?.username||"").toLowerCase()!=="dev"){
+      showMaintenanceNotice(d);await signOut(auth);
+    }else if(!active)$("maintenanceNotice")?.remove();
+  },e=>console.warn("Maintenance status listener failed:",e));
+}
+
+
+// Developer authentication is observed independently from regular chat authentication.
+onAuthStateChanged(developerAuth,async user=>{
+  if(!user){
+    if(stopMaintenanceWatch){stopMaintenanceWatch();stopMaintenanceWatch=null;}
+    // Developer sign-out must never alter the independent regular-user session or UI.
+    if(selectedAuthMode==="developer") showLogin();
+    return;
+  }
+  if(selectedAuthMode!=="developer") return;
+  try{
+    const profileSnap=await getDoc(doc(developerDb,"users",user.uid));
+    const profile=profileSnap.exists()?profileSnap.data():null;
+    if(!profile||String(profile.username||"").toLowerCase()!=="dev"){
+      await signOut(developerAuth);
+      showLogin("حساب المطوّر غير مُجهّز بشكل صحيح.");
+      return;
+    }
+    showDeveloperDashboard();
+  }catch(error){
+    console.error("Developer login error:",error);
+    showLogin("تعذر تحميل لوحة المطوّر.");
+  }
+});
+
 onAuthStateChanged(auth,async user=>{
   chatOpenVersion++;
   if(stopMessages){stopMessages();stopMessages=null}
@@ -390,17 +463,24 @@ onAuthStateChanged(auth,async user=>{
   if(stopSharedStickers){stopSharedStickers();stopSharedStickers=null}
   sharedStickers=[];
   stopPresence();
+  if(maintenanceGuardStop){maintenanceGuardStop();maintenanceGuardStop=null;}
   contactsInitialized=false;
   activeChat=null;
-  if(!user){currentUser=currentProfile=null;showLogin();return}
+  if(!user){currentUser=currentProfile=null;if(selectedAuthMode==="user")showLogin();return}
   currentUser=user;
   try{
     const s=await getDoc(doc(db,"users",user.uid));
     if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}
     currentProfile={id:user.uid,...s.data()};
     currentProfile.displayName ||= currentProfile.username;
-    
-
+    if(selectedAuthMode!=="user") return;
+    // A missing/inaccessible maintenance document must not prevent normal sign-in.
+    const maintenanceSnap=await getDoc(doc(db,"system","maintenance")).catch(error=>{console.warn("Maintenance status unavailable:",error.code||error.message);return null;});
+    const maintenanceData=maintenanceSnap?.data()||{};
+    if(maintenanceData.enabled&&(!maintenanceData.endsAt?.toMillis||maintenanceData.endsAt.toMillis()>Date.now())){
+      showMaintenanceNotice(maintenanceData);await signOut(auth);return;
+    }
+    startMaintenanceGuard();
     renderMe();
     showChat();
     startPresence();
@@ -408,7 +488,7 @@ onAuthStateChanged(auth,async user=>{
     await loadContacts();
   }catch(e){
     console.error(e);
-    showLogin("تعذر تحميل الحساب. راجع إعدادات Firebase.");
+    showLogin(`تعذر تحميل الحساب (${e.code||"unknown"}). ${e.message||"راجع صلاحيات Firestore وإعدادات Firebase."}`);
   }
 });
 
@@ -1237,19 +1317,20 @@ async function uploadStoryToCloudinary(file,isVideo){const fd=new FormData();fd.
 
 const THEME_KEY = "bubble-chat-theme";
 function applyTheme(mode){
-  const dark = mode === "dark";
-  document.body.classList.toggle("dark-mode", dark);
+  document.body.classList.toggle("dark-mode", mode === "dark" || mode === "amoled");
+  document.body.classList.toggle("amoled-mode", mode === "amoled");
   const toggle = $("themeToggle");
-  if(toggle){ toggle.textContent = dark ? "☀️ الوضع الفاتح" : "🌙 الوضع الليلي"; toggle.title = dark ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"; toggle.setAttribute("aria-label", toggle.title); }
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.content = dark ? "#11121a" : "#f7f5ff";
+  const labels={light:"🌙 الوضع الليلي",dark:"⚫ وضع AMOLED",amoled:"☀️ الوضع الفاتح"};
+  if(toggle){toggle.textContent=labels[mode]||labels.light;toggle.title="تغيير المظهر";toggle.setAttribute("aria-label",toggle.title);}
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.content=mode==="amoled"?"#000000":mode==="dark"?"#11121a":"#f7f5ff";
 }
-applyTheme(localStorage.getItem(THEME_KEY) || "light");
+applyTheme(localStorage.getItem(THEME_KEY)||"light");
 $("themeToggle")?.addEventListener("click",()=>{
-  const next = document.body.classList.contains("dark-mode") ? "light" : "dark";
-  localStorage.setItem(THEME_KEY,next); applyTheme(next);
+  const current=localStorage.getItem(THEME_KEY)||"light";
+  const next=current==="light"?"dark":current==="dark"?"amoled":"light";
+  localStorage.setItem(THEME_KEY,next);applyTheme(next);
 });
-
 
 // إعدادات موحدة: الوضع الليلي، الإشعارات، الدعم، وتسجيل الخروج.
 // عارض الصور داخل الموقع بدل فتح تبويب خارجي.

@@ -8,6 +8,7 @@ const BADGE_URL = ICON_URL;
 const DB_NAME = 'bubble-chat-push-state';
 const DB_VERSION = 1;
 const RECENT_WINDOW_MS = 15000;
+const COALESCE_KEY = 'recent-notification-batch';
 
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
@@ -23,6 +24,23 @@ function openStateDb() {
   });
 }
 
+async function updateNotificationBatch() {
+  const db = await openStateDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('state', 'readwrite');
+    const store = tx.objectStore('state');
+    const request = store.get(COALESCE_KEY);
+    let count = 1;
+    request.onsuccess = () => {
+      const previous = request.result || {};
+      count = Date.now() - Number(previous.at || 0) <= RECENT_WINDOW_MS ? Number(previous.count || 0) + 1 : 1;
+      store.put({ at: Date.now(), count }, COALESCE_KEY);
+    };
+    tx.oncomplete = () => { db.close(); resolve(count); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
     let payload = {};
@@ -34,8 +52,8 @@ self.addEventListener('push', event => {
     // foreground, background, and fully closed.
     const data = payload.data || payload;
     const threadId = String(data.threadId || '');
-    const messageBody = String(data.body || 'افتح المحادثة لقراءة رسائلك الجديدة').slice(0, 180);
-    const title = 'لديك رسائل جديدة ♡';
+    let messageBody = String(data.body || 'افتح المحادثة لقراءة رسائلك الجديدة').slice(0, 240);
+    let title = 'رسالة جديدة ♡';
 
     // Suppress system notifications while Bubble Chat is visible in the foreground.
     // Background tabs and closed PWA windows continue to receive notifications.
@@ -43,6 +61,12 @@ self.addEventListener('push', event => {
     const appIsForeground = windows.some(client => client.visibilityState === 'visible' && client.focused);
     if (appIsForeground) return;
 
+    let batchCount = 1;
+    try { batchCount = await updateNotificationBatch(); } catch (error) { console.warn('Notification batch state failed:', error); }
+    if (batchCount > 1) {
+      title = 'لديك رسائل جديدة ♡';
+      messageBody = 'لديك رسائل جديدة ♡';
+    }
     await self.registration.showNotification(title, {
       body: messageBody,
       icon: ICON_URL,

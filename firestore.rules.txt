@@ -65,7 +65,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if signedIn()
         && isDeveloper()
-        && request.resource.data.keys().hasOnly(['enabled','message','startedAt','endsAt','durationMinutes','updatedAt']);
+        && request.resource.data.keys().hasOnly(['enabled','message','startedAt','endsAt','durationMinutes','openEnded','updatedAt']);
       allow delete: if false;
     }
 

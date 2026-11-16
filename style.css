@@ -3559,3 +3559,40 @@ body.amoled-mode .maintenance-dialog{--maint-bg:linear-gradient(145deg,#101014 0
   .dev-log{max-height:100px;}
   .dev-logout{margin-top:8px;padding:8px 12px;min-height:34px;}
 }
+
+/* Developer dashboard must use the document scroll, not the app's fixed chat viewport. */
+html:has(body.dev-mode),
+body.dev-mode {
+  height:auto!important;
+  min-height:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+}
+body.dev-mode .app-shell {
+  display:block!important;
+  height:auto!important;
+  min-height:100dvh!important;
+  overflow:visible!important;
+  padding:0!important;
+}
+body.dev-mode .developer-view {
+  display:block!important;
+  width:100%;
+  height:auto!important;
+  min-height:100dvh!important;
+  max-height:none!important;
+  overflow:visible!important;
+  padding:clamp(10px,2.5vw,28px);
+}
+body.dev-mode .dev-card {
+  width:min(1080px,100%);
+  margin:0 auto;
+}
+body.dev-mode .dev-logout {margin-bottom:8px;}
+body.dev-mode #loginBtn:disabled {opacity:.7;cursor:wait;}
+html.dev-mode {
+  height:auto!important;
+  min-height:100%!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+}

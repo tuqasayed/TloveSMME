@@ -266,8 +266,8 @@ if ("serviceWorker" in navigator) {
 }
 
 function timeOf(ts){const locale=localStorage.getItem("bubble-chat-language")==="en"?"en-US":"ar-EG";return ts?.toDate?ts.toDate().toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}):(locale==="en-US"?"Now":"الآن")}
-function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("developerView")?.classList.add("hidden");$("loginError").textContent=msg}
-function showChat(){$("loginView").classList.add("hidden");$("developerView")?.classList.add("hidden");$("chatView").classList.remove("hidden")}
+function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("loginError").textContent=msg}
+function showChat(){$("loginView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("chatView").classList.remove("hidden")}
 
 function expandSidebarWhenNoChat(){
   if(activeChat)return;
@@ -347,6 +347,13 @@ async function notifyRecipients(threadIdValue,messageIdValue){
 }
 
 
+// Avoid an endless "جاري تسجيل الدخول" state when the network/Auth/Firestore stalls.
+function withTimeout(promise,ms,label){
+  let timer;
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const error=new Error(label||"انتهت مهلة الاتصال");error.code="app/timeout";reject(error);},ms);});
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
+
 // زر تسجيل الدخول المباشر (منع تام للريفرش)
 const loginBtn = $("loginBtn");
 if (loginBtn) {
@@ -365,14 +372,26 @@ if (loginBtn) {
       return;
     }
     
+    const authClient=name.toLowerCase()==="dev"?developerAuth:auth;
+    const previousMode=selectedAuthMode;
     try {
       selectedAuthMode=name.toLowerCase()==="dev"?"developer":"user";
       sessionStorage.setItem("bubble-chat-auth-mode",selectedAuthMode);
       if (errorEl) errorEl.textContent = "جاري تسجيل الدخول...";
-      await signInWithEmailAndPassword(selectedAuthMode==="developer"?developerAuth:auth, emailFor(name), pass);
+      if(loginBtn){loginBtn.disabled=true;loginBtn.setAttribute("aria-busy","true");}
+      await withTimeout(signInWithEmailAndPassword(authClient,emailFor(name),pass),18000,"تأخر رد خادم تسجيل الدخول");
     } catch (err) {
       console.error("Login error:", err);
-      if (errorEl) errorEl.textContent = "اسم المستخدم أو كلمة المرور غير صحيحة.";
+      selectedAuthMode=previousMode;
+      sessionStorage.setItem("bubble-chat-auth-mode",selectedAuthMode);
+      if(err.code==="app/timeout"){
+        await signOut(authClient).catch(()=>{});
+        if(errorEl)errorEl.textContent="الاتصال اتأخر ولم يكتمل تسجيل الدخول. تأكد من الإنترنت وحاول مرة أخرى.";
+      }else{
+        if(errorEl)errorEl.textContent=["auth/invalid-credential","auth/wrong-password","auth/user-not-found","auth/invalid-email"].includes(err.code)?"اسم المستخدم أو كلمة المرور غير صحيحة.":`تعذر تسجيل الدخول (${err.code||"خطأ"}). حاول مرة أخرى.`;
+      }
+    } finally {
+      if(loginBtn){loginBtn.disabled=false;loginBtn.removeAttribute("aria-busy");}
     }
   });
 }
@@ -422,6 +441,7 @@ function buildDevReport(){const memory=performance.memory?.usedJSHeapSize?`${Mat
 function paintDevErrors(){if(!$("developerView"))return;const errors=window.__bubbleDevErrors||[];$("devErrorCount").textContent=String(errors.length);$("devErrorLog").textContent=errors.slice(-40).join("\n")||"لا توجد أخطاء مسجلة.";$("devOnlineState").textContent=navigator.onLine?"متصل":"غير متصل";$("devBrowserInfo").textContent=navigator.userAgent.includes("Firefox")?"Firefox":navigator.userAgent.includes("Edg")?"Edge":navigator.userAgent.includes("Chrome")?"Chrome":navigator.userAgent.includes("Safari")?"Safari":"متصفح آخر";$("devScreenInfo").textContent=`${screen.width} × ${screen.height}`;$("devLanguageInfo").textContent=navigator.language||"—";$("devMemoryInfo").textContent=performance.memory?.usedJSHeapSize?`${Math.round(performance.memory.usedJSHeapSize/1048576)} MB`:"غير متاحة";}
 function showDeveloperDashboard(){
   $("loginView")?.classList.add("hidden");$("chatView")?.classList.add("hidden");
+  document.body.classList.add("dev-mode");document.documentElement.classList.add("dev-mode");
   const view=ensureDeveloperView();view.classList.remove("hidden");paintDevErrors();
   if(stopMaintenanceWatch)stopMaintenanceWatch();
   stopMaintenanceWatch=onSnapshot(doc(developerDb,"system","maintenance"),snap=>{const d=snap.data()||{};const active=d.enabled&&(!d.endsAt?.toMillis||d.endsAt.toMillis()>Date.now());$("devMaintenanceState").textContent=active?`الصيانة مفعّلة حتى ${d.endsAt?.toDate?.().toLocaleString("ar-EG")||"وقت غير محدد"}`:"التطبيق يعمل دون فاصل صيانة.";},e=>{$("devMaintenanceState").textContent="تعذر قراءة حالة الصيانة: "+e.message;});
@@ -459,7 +479,7 @@ onAuthStateChanged(developerAuth,async user=>{
   }
   if(selectedAuthMode!=="developer") return;
   try{
-    const profileSnap=await getDoc(doc(developerDb,"users",user.uid));
+    const profileSnap=await withTimeout(getDoc(doc(developerDb,"users",user.uid)),12000,"تأخر تحميل ملف المطوّر");
     const profile=profileSnap.exists()?profileSnap.data():null;
     if(!profile||String(profile.username||"").toLowerCase()!=="dev"){
       await signOut(developerAuth);
@@ -469,7 +489,7 @@ onAuthStateChanged(developerAuth,async user=>{
     showDeveloperDashboard();
   }catch(error){
     console.error("Developer login error:",error);
-    showLogin("تعذر تحميل لوحة المطوّر.");
+    showLogin(error.code==="app/timeout"?"الاتصال بقاعدة البيانات اتأخر أثناء تحميل لوحة المطوّر. تحقق من الإنترنت وحاول مجددًا.":`تعذر تحميل لوحة المطوّر (${error.code||"خطأ"}).`);
   }
 });
 
@@ -487,13 +507,13 @@ onAuthStateChanged(auth,async user=>{
   if(!user){currentUser=currentProfile=null;if(selectedAuthMode==="user")showLogin();return}
   currentUser=user;
   try{
-    const s=await getDoc(doc(db,"users",user.uid));
+    const s=await withTimeout(getDoc(doc(db,"users",user.uid)),12000,"تأخر تحميل ملف الحساب");
     if(!s.exists()){await signOut(auth);return showLogin("الحساب غير مُجهّز في Firestore.")}
     currentProfile={id:user.uid,...s.data()};
     currentProfile.displayName ||= currentProfile.username;
     if(selectedAuthMode!=="user") return;
     // A missing/inaccessible maintenance document must not prevent normal sign-in.
-    const maintenanceSnap=await getDoc(doc(db,"system","maintenance")).catch(error=>{console.warn("Maintenance status unavailable:",error.code||error.message);return null;});
+    const maintenanceSnap=await withTimeout(getDoc(doc(db,"system","maintenance")),8000,"تأخر فحص الصيانة").catch(error=>{console.warn("Maintenance status unavailable:",error.code||error.message);return null;});
     const maintenanceData=maintenanceSnap?.data()||{};
     if(maintenanceData.enabled&&(!maintenanceData.endsAt?.toMillis||maintenanceData.endsAt.toMillis()>Date.now())){
       showMaintenanceNotice(maintenanceData);await signOut(auth);return;

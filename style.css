@@ -3694,3 +3694,71 @@ body.amoled-mode .modal{background:#000b!important;}
 .lightbox-download{position:absolute;top:9px;inset-inline-end:56px;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#ffffff18;color:#fff;text-decoration:none;font-size:21px;z-index:2;transition:background .18s ease,transform .18s ease;}
 .lightbox-download:hover{background:#ffffff30;transform:translateY(-1px);}
 @media(max-width:520px){.image-lightbox-card.is-portrait{width:94vw;height:92dvh;padding:48px 8px 10px}.lightbox-download{inset-inline-end:49px;}}
+
+/* AMOLED follow-up: the settings and chat overflow controls must not inherit night-mode surfaces. */
+body.amoled-mode #settingsToggle,
+body.amoled-mode .settings-toggle,
+body.amoled-mode #chatToolsToggle,
+body.amoled-mode .chat-tools-toggle,
+body.amoled-mode #pinnedToggle,
+body.amoled-mode .chat-tools-menu,
+body.amoled-mode .chat-tools-menu button,
+body.amoled-mode #pinnedBar,
+body.amoled-mode #settingsModal .modal-card,
+body.amoled-mode #settingsModal .settings-action {
+  background: #000 !important;
+  background-image: none !important;
+  color: #f5f1ff !important;
+  border-color: #29242f !important;
+  box-shadow: none !important;
+}
+body.amoled-mode #settingsToggle:hover,
+body.amoled-mode #chatToolsToggle:hover,
+body.amoled-mode .chat-tools-menu button:hover,
+body.amoled-mode #settingsModal .settings-action:hover {
+  background: #111 !important;
+  color: #fff !important;
+  border-color: #514365 !important;
+}
+body.amoled-mode .chat-tools-menu button svg,
+body.amoled-mode #settingsToggle svg,
+body.amoled-mode #chatToolsToggle svg { color: inherit !important; }
+body.amoled-mode #pinnedBar .pinned-heading,
+body.amoled-mode #pinnedBar .pinned-item { color: #eee8f7 !important; }
+
+/* AMOLED finishing: pinned messages use a restrained black/graphite surface;
+   reply previews stay neutral gray-white instead of inheriting the night palette. */
+body.amoled-mode #pinnedBar,
+body.amoled-mode .pinned-bar {
+  background: #0b0b0b !important;
+  background-image: none !important;
+  color: #eeeeee !important;
+  border-color: #292929 !important;
+  box-shadow: inset 0 1px 0 #ffffff08 !important;
+}
+body.amoled-mode #pinnedBar .pinned-heading,
+body.amoled-mode .pinned-bar .pinned-heading {
+  color: #e5e5e5 !important;
+}
+body.amoled-mode #pinnedBar .pinned-item,
+body.amoled-mode .pinned-bar .pinned-item {
+  background: #151515 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border-color: #303030 !important;
+}
+body.amoled-mode #pinnedBar .pinned-item span,
+body.amoled-mode .pinned-bar .pinned-item span {
+  color: #bdbdbd !important;
+}
+body.amoled-mode .reply-quote {
+  background: #191919 !important;
+  background-image: none !important;
+  color: #f2f2f2 !important;
+  border-right: 3px solid #a8a8a8 !important;
+  box-shadow: inset 0 0 0 1px #ffffff0d !important;
+}
+body.amoled-mode .reply-quote b,
+body.amoled-mode .reply-quote span {
+  color: #e6e6e6 !important;
+}

@@ -33,7 +33,7 @@ let stopContacts=null,presenceHeartbeat=null,presenceUiTimer=null,contactsInitia
 const PRESENCE_STALE_MS=65000;
 const READ_KEY_PREFIX="bubble-chat-read-";
 let lastIncomingSoundAt=0;
-let loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true;
+let loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true,initialChatPositioning=false;
 let audioUnlocked=false;
 
 function unlockChatSounds(){
@@ -748,7 +748,7 @@ async function openChat(target){
   if(stopMessages){stopMessages();stopMessages=null;}
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
-  loadedMessageDocs=new Map();oldestMessageCursor=null;loadingOlderMessages=false;hasOlderMessages=true;
+  loadedMessageDocs=new Map();oldestMessageCursor=null;loadingOlderMessages=false;hasOlderMessages=true;initialChatPositioning=true;
   $("messages").innerHTML="";
   setThreadRead(id);
   const ref=doc(db,"threads",id);
@@ -795,6 +795,15 @@ async function openChat(target){
       oldestMessageCursor=ordered.length?ordered[0]:null;
       hasOlderMessages=s.size===40;
       renderMessages(ordered);
+      if(firstMessagesSnapshot===false && initialChatPositioning){
+        // Wait for layout/media sizing, then anchor the conversation at its newest message.
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{
+          if(openVersion!==chatOpenVersion)return;
+          const messageBox=$("messages");
+          messageBox.scrollTop=messageBox.scrollHeight;
+          initialChatPositioning=false;
+        }));
+      }
     },e=>{
       if(openVersion!==chatOpenVersion)return;
       console.error("Messages listener failed:",e);
@@ -930,7 +939,7 @@ async function loadOlderMessages(){
   }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
   finally{loadingOlderMessages=false;}
 }
-$("messages").addEventListener("scroll",()=>{if($("messages").scrollTop<100)loadOlderMessages();},{passive:true});
+$("messages").addEventListener("scroll",()=>{if(!initialChatPositioning&&$("messages").scrollTop<100)loadOlderMessages();},{passive:true});
 
 const scrollBottomButton=$("scrollToBottom");
 function updateScrollBottomButton(){const box=$("messages");if(!box||!scrollBottomButton)return;const away=box.scrollHeight-box.scrollTop-box.clientHeight>220;scrollBottomButton.classList.toggle("is-visible",away&&!$("activeChat").classList.contains("hidden"));}

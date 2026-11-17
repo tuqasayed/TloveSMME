@@ -3845,3 +3845,7 @@ body.amoled-mode .sidebar-toggle:active { background:#151515 !important; }
 #imageLightbox .lightbox-download:hover { background:#333 !important; border-color:#ffffff70 !important; transform:scale(1.05); }
 #imageLightbox .modal-close:active,
 #imageLightbox .lightbox-download:active { transform:scale(.94); }
+
+/* Keep chat scroll position deterministic: browser smooth scrolling/anchoring can
+   otherwise fight message insertion and move the viewport when sending. */
+#messages.messages{scroll-behavior:auto!important;overflow-anchor:none;}

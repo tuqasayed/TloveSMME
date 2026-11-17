@@ -788,13 +788,15 @@ async function openChat(target){
       if(!activeChat)return;
       const currentId=activeChat.kind==="group"?GROUP_ID:threadId(currentUser.uid,activeChat.id);
       if(currentId!==id)return;
-      if(!firstMessagesSnapshot && s.docChanges().some(change=>change.type==="added"&&change.doc.data().senderId!==currentUser.uid))playIncomingSound();
+      const messageChanges=s.docChanges();
+      const ownMessageAdded=messageChanges.some(change=>change.type==="added"&&change.doc.data().senderId===currentUser.uid);
+      if(!firstMessagesSnapshot && messageChanges.some(change=>change.type==="added"&&change.doc.data().senderId!==currentUser.uid))playIncomingSound();
       firstMessagesSnapshot=false;
       s.docs.forEach(d=>loadedMessageDocs.set(d.id,d));
       const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
       oldestMessageCursor=ordered.length?ordered[0]:null;
       hasOlderMessages=s.size===40;
-      renderMessages(ordered);
+      renderMessages(ordered,{forceBottom:ownMessageAdded});
       if(firstMessagesSnapshot===false && initialChatPositioning){
         // Wait for layout/media sizing, then anchor the conversation at its newest message.
         requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -850,9 +852,9 @@ $("messageInput").addEventListener("blur",stopTypingNow);
 
 function activeThreadId(){return isGroup()?GROUP_ID:threadId(currentUser.uid,activeChat.id)}
 
-function renderMessages(docs){
+function renderMessages(docs,options={}){
   const box=$("messages");
-  const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<90;
+  const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<120;
   const wasEmpty=box.childElementCount===0;
   const pinned=[];
   const messages=docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
@@ -916,7 +918,13 @@ function renderMessages(docs){
     });
     pinnedBar.appendChild(list);
   }else pinnedBar.classList.add("hidden");
-  if(wasEmpty||wasAtBottom)box.scrollTop=box.scrollHeight;
+  if(options.forceBottom||wasEmpty||wasAtBottom){
+    // A newly-sent message must keep the conversation pinned to the latest message.
+    // Run after layout so text wrapping/media sizing cannot pull the viewport upward.
+    const stickToBottom=()=>{box.scrollTop=box.scrollHeight;};
+    stickToBottom();
+    requestAnimationFrame(()=>{if(options.forceBottom||wasEmpty||wasAtBottom)stickToBottom();});
+  }
   updateScrollBottomButton();
   if(!$("chatSearchPanel").classList.contains("hidden"))filterChatSearch();
 }
@@ -943,6 +951,7 @@ async function loadOlderMessages(){
 // This prevents layout shifts, initial positioning, short chats, or image decoding
 // from cascading into repeated Firestore reads.
 let olderLoadGestureUntil=0;
+let previousMessagesScrollTop=0;
 const messagesScroller=$("messages");
 messagesScroller.addEventListener("wheel",event=>{if(event.deltaY<0)olderLoadGestureUntil=Date.now()+900;},{passive:true});
 let messagesTouchY=null;
@@ -955,7 +964,12 @@ messagesScroller.addEventListener("touchmove",event=>{
 messagesScroller.addEventListener("touchend",()=>{messagesTouchY=null;},{passive:true});
 messagesScroller.addEventListener("scroll",()=>{
   const box=messagesScroller;
-  if(!initialChatPositioning&&Date.now()<olderLoadGestureUntil&&box.scrollTop<100&&box.scrollHeight>box.clientHeight+80){
+  const currentTop=box.scrollTop;
+  // Fetch history only when a real upward scroll movement follows the user's gesture.
+  // Programmatic repositioning after sending/rendering a message must never fetch a page.
+  const movedTowardTop=currentTop<previousMessagesScrollTop-2;
+  previousMessagesScrollTop=currentTop;
+  if(!initialChatPositioning&&movedTowardTop&&Date.now()<olderLoadGestureUntil&&currentTop<100&&box.scrollHeight>box.clientHeight+80){
     olderLoadGestureUntil=0;
     loadOlderMessages();
   }

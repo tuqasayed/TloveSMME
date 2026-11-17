@@ -14,7 +14,7 @@ else removeEscapedNewlineArtifacts();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -33,6 +33,7 @@ let stopContacts=null,presenceHeartbeat=null,presenceUiTimer=null,contactsInitia
 const PRESENCE_STALE_MS=65000;
 const READ_KEY_PREFIX="bubble-chat-read-";
 let lastIncomingSoundAt=0;
+let loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true;
 let audioUnlocked=false;
 
 function unlockChatSounds(){
@@ -747,6 +748,8 @@ async function openChat(target){
   if(stopMessages){stopMessages();stopMessages=null;}
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
+  loadedMessageDocs=new Map();oldestMessageCursor=null;loadingOlderMessages=false;hasOlderMessages=true;
+  $("messages").innerHTML="";
   setThreadRead(id);
   const ref=doc(db,"threads",id);
 
@@ -777,7 +780,8 @@ async function openChat(target){
       const groupNameNode=$("contacts").querySelector(".contact strong");if(groupNameNode)groupNameNode.textContent=activeGroupMeta.name;
     }
 
-    const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","asc"));
+    // Keep a live listener only for the newest 40 messages; older history is fetched in chunks on demand.
+    const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),limit(40));
     let firstMessagesSnapshot=true;
     const unsubscribe=onSnapshot(q,s=>{
       if(openVersion!==chatOpenVersion)return;
@@ -786,7 +790,11 @@ async function openChat(target){
       if(currentId!==id)return;
       if(!firstMessagesSnapshot && s.docChanges().some(change=>change.type==="added"&&change.doc.data().senderId!==currentUser.uid))playIncomingSound();
       firstMessagesSnapshot=false;
-      renderMessages(s.docs);
+      s.docs.forEach(d=>loadedMessageDocs.set(d.id,d));
+      const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
+      oldestMessageCursor=ordered.length?ordered[0]:null;
+      hasOlderMessages=s.size===40;
+      renderMessages(ordered);
     },e=>{
       if(openVersion!==chatOpenVersion)return;
       console.error("Messages listener failed:",e);
@@ -903,6 +911,26 @@ function renderMessages(docs){
   updateScrollBottomButton();
   if(!$("chatSearchPanel").classList.contains("hidden"))filterChatSearch();
 }
+
+async function loadOlderMessages(){
+  if(loadingOlderMessages||!hasOlderMessages||!oldestMessageCursor||!activeChat||!currentUser)return;
+  const box=$("messages"),id=activeThreadId(),openVersion=chatOpenVersion;
+  loadingOlderMessages=true;
+  const previousHeight=box.scrollHeight,previousTop=box.scrollTop;
+  try{
+    const olderQuery=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),startAfter(oldestMessageCursor),limit(40));
+    const snapshot=await getDocs(olderQuery);
+    if(openVersion!==chatOpenVersion)return;
+    snapshot.docs.forEach(d=>loadedMessageDocs.set(d.id,d));
+    hasOlderMessages=snapshot.size===40;
+    const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
+    oldestMessageCursor=ordered.length?ordered[0]:null;
+    renderMessages(ordered);
+    box.scrollTop=previousTop+(box.scrollHeight-previousHeight);
+  }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
+  finally{loadingOlderMessages=false;}
+}
+$("messages").addEventListener("scroll",()=>{if($("messages").scrollTop<100)loadOlderMessages();},{passive:true});
 
 const scrollBottomButton=$("scrollToBottom");
 function updateScrollBottomButton(){const box=$("messages");if(!box||!scrollBottomButton)return;const away=box.scrollHeight-box.scrollTop-box.clientHeight>220;scrollBottomButton.classList.toggle("is-visible",away&&!$("activeChat").classList.contains("hidden"));}
@@ -1406,7 +1434,7 @@ $("themeToggle")?.addEventListener("click",()=>{
 let lightboxScale=1,lightboxX=0,lightboxY=0,lightboxPointers=new Map(),lightboxGesture=null;
 function paintLightbox(){const image=$("lightboxImage");if(!image)return;image.style.transform=`translate3d(${lightboxX}px,${lightboxY}px,0) scale(${lightboxScale})`;image.classList.toggle("is-zoomed",lightboxScale>1.02);}
 function resetLightboxZoom(){lightboxScale=1;lightboxX=0;lightboxY=0;lightboxPointers.clear();lightboxGesture=null;paintLightbox();}
-function openImageLightbox(url){if(!url)return;resetLightboxZoom();$("lightboxImage").src=url;$("imageLightbox").classList.remove("hidden");}
+function openImageLightbox(url){if(!url)return;resetLightboxZoom();const image=$("lightboxImage"),modal=$("imageLightbox"),card=document.querySelector(".image-lightbox-card");image.onload=()=>{card?.classList.toggle("is-portrait",image.naturalHeight>image.naturalWidth*1.15);};image.src=url;$("downloadLightboxImage").href=url.includes("res.cloudinary.com")?url.replace("/upload/","/upload/fl_attachment/"):url;modal.classList.remove("hidden");}
 function closeImageLightbox(){$("imageLightbox").classList.add("hidden");$("lightboxImage").removeAttribute("src");resetLightboxZoom();}
 $("closeImageLightbox")?.addEventListener("click",closeImageLightbox);
 $("imageLightbox")?.addEventListener("click",e=>{if(e.target===$("imageLightbox"))closeImageLightbox()});

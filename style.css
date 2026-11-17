@@ -3662,3 +3662,35 @@ body.dev-mode .dev-card {
   body.dev-mode .developer-view {padding:16px 18px calc(28px + env(safe-area-inset-bottom,0px))!important;}
   body.dev-mode .dev-card {width:min(1120px,100%)!important;}
 }
+
+/* AMOLED palette: retain each component's semantic accent while replacing only its surfaces. */
+body.amoled-mode .contact:hover,body.amoled-mode .contact.selected,
+body.amoled-mode .chat-tools-menu,body.amoled-mode .chat-tools-item:hover,
+body.amoled-mode .settings-action,body.amoled-mode .pinned-bar,
+body.amoled-mode .chat-search-panel,body.amoled-mode .message-context-panel,
+body.amoled-mode .reaction-chip,body.amoled-mode .reply-quote,
+body.amoled-mode .mention-option,body.amoled-mode .sticker-tray,
+body.amoled-mode .modal-card,body.amoled-mode .profile-editor-section,
+body.amoled-mode .group-settings-section,body.amoled-mode .story-viewer-card {
+  background-color:#080808!important;background-image:none!important;color:#f4f0fa;
+  border-color:#29242f!important;
+}
+body.amoled-mode .contact.selected{box-shadow:inset 3px 0 var(--theme-color,#b89be5)!important;}
+body.amoled-mode .contact small,body.amoled-mode .chat-subtitle,
+body.amoled-mode .message-meta,body.amoled-mode .muted,body.amoled-mode .settings-description{color:#aaa3b3!important;}
+body.amoled-mode button:not(.message-image-link),body.amoled-mode .settings-action{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease;}
+body.amoled-mode .message.mine,body.amoled-mode .message.theirs{background:#0c0c0c!important;border-color:#292929!important;}
+body.amoled-mode .message.mine .message-meta,body.amoled-mode .message.theirs .message-meta{color:#aaa!important;}
+body.amoled-mode .composer{background:#000!important;border-top-color:#252525!important;}
+body.amoled-mode .composer textarea{background:#090909!important;}
+body.amoled-mode .modal{background:#000b!important;}
+
+/* Keep long chats and media smooth without removing existing animations. */
+.message-row{content-visibility:auto;contain-intrinsic-size:auto 88px;}
+.message-photo{will-change:auto;backface-visibility:hidden;}
+.messages{overscroll-behavior:contain;scroll-behavior:smooth;}
+.image-lightbox-card.is-portrait{width:min(92vw,560px);height:min(90dvh,900px);}
+.image-lightbox-card.is-portrait #lightboxImage{max-width:100%;max-height:100%;object-fit:contain;}
+.lightbox-download{position:absolute;top:9px;inset-inline-end:56px;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#ffffff18;color:#fff;text-decoration:none;font-size:21px;z-index:2;transition:background .18s ease,transform .18s ease;}
+.lightbox-download:hover{background:#ffffff30;transform:translateY(-1px);}
+@media(max-width:520px){.image-lightbox-card.is-portrait{width:94vw;height:92dvh;padding:48px 8px 10px}.lightbox-download{inset-inline-end:49px;}}

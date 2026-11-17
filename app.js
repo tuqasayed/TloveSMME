@@ -939,7 +939,27 @@ async function loadOlderMessages(){
   }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
   finally{loadingOlderMessages=false;}
 }
-$("messages").addEventListener("scroll",()=>{if(!initialChatPositioning&&$("messages").scrollTop<100)loadOlderMessages();},{passive:true});
+// Older pages are fetched only after an explicit upward gesture from the user.
+// This prevents layout shifts, initial positioning, short chats, or image decoding
+// from cascading into repeated Firestore reads.
+let olderLoadGestureUntil=0;
+const messagesScroller=$("messages");
+messagesScroller.addEventListener("wheel",event=>{if(event.deltaY<0)olderLoadGestureUntil=Date.now()+900;},{passive:true});
+let messagesTouchY=null;
+messagesScroller.addEventListener("touchstart",event=>{messagesTouchY=event.touches?.[0]?.clientY??null;},{passive:true});
+messagesScroller.addEventListener("touchmove",event=>{
+  const y=event.touches?.[0]?.clientY;
+  if(messagesTouchY!==null&&y!==undefined&&y>messagesTouchY+3)olderLoadGestureUntil=Date.now()+900;
+  messagesTouchY=y??messagesTouchY;
+},{passive:true});
+messagesScroller.addEventListener("touchend",()=>{messagesTouchY=null;},{passive:true});
+messagesScroller.addEventListener("scroll",()=>{
+  const box=messagesScroller;
+  if(!initialChatPositioning&&Date.now()<olderLoadGestureUntil&&box.scrollTop<100&&box.scrollHeight>box.clientHeight+80){
+    olderLoadGestureUntil=0;
+    loadOlderMessages();
+  }
+},{passive:true});
 
 const scrollBottomButton=$("scrollToBottom");
 function updateScrollBottomButton(){const box=$("messages");if(!box||!scrollBottomButton)return;const away=box.scrollHeight-box.scrollTop-box.clientHeight>220;scrollBottomButton.classList.toggle("is-visible",away&&!$("activeChat").classList.contains("hidden"));}

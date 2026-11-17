@@ -3762,3 +3762,86 @@ body.amoled-mode .reply-quote b,
 body.amoled-mode .reply-quote span {
   color: #e6e6e6 !important;
 }
+
+/* AMOLED sidebar handle: use a true-black surface rather than the night palette. */
+body.amoled-mode .sidebar-toggle,
+body.amoled-mode .sidebar-toggle:hover,
+body.amoled-mode .sidebar-toggle:focus-visible {
+  background: #050505 !important;
+  background-image: none !important;
+  color: #e8e8e8 !important;
+  border: 1px solid #343434 !important;
+  box-shadow: 0 3px 14px #000 !important;
+}
+body.amoled-mode .sidebar-toggle:active { background:#151515 !important; }
+
+/* Full-bleed WhatsApp-like image viewer: image fills the available screen,
+   with two small elegant controls grouped in the upper corner. */
+#imageLightbox {
+  position:fixed !important;
+  inset:0 !important;
+  padding:0 !important;
+  display:grid !important;
+  place-items:center !important;
+  background:rgba(0,0,0,.97) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  z-index:10000 !important;
+}
+#imageLightbox.hidden { display:none !important; }
+#imageLightbox .image-lightbox-card,
+.image-lightbox-card,
+.image-lightbox-card.is-portrait {
+  position:relative !important;
+  width:100vw !important;
+  height:100dvh !important;
+  max-width:100vw !important;
+  max-height:100dvh !important;
+  margin:0 !important;
+  padding:0 !important;
+  display:grid !important;
+  place-items:center !important;
+  overflow:hidden !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:#000 !important;
+  box-shadow:none !important;
+}
+#imageLightbox #lightboxImage,
+.image-lightbox-card #lightboxImage {
+  display:block !important;
+  width:auto !important;
+  height:auto !important;
+  max-width:100vw !important;
+  max-height:100dvh !important;
+  object-fit:contain !important;
+  border-radius:0 !important;
+}
+#imageLightbox .modal-close,
+#imageLightbox .lightbox-download {
+  position:absolute !important;
+  top:max(14px,env(safe-area-inset-top)) !important;
+  width:38px !important;
+  height:38px !important;
+  min-width:38px !important;
+  min-height:38px !important;
+  padding:0 !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px solid #ffffff35 !important;
+  border-radius:50% !important;
+  background:#171717d9 !important;
+  color:#fff !important;
+  box-shadow:0 2px 12px #0008 !important;
+  text-decoration:none !important;
+  z-index:5 !important;
+  font-size:19px !important;
+  line-height:1 !important;
+  transition:background .18s ease,transform .18s ease,border-color .18s ease !important;
+}
+#imageLightbox .modal-close { inset-inline-end:14px !important; inset-inline-start:auto !important; font-size:25px !important; }
+#imageLightbox .lightbox-download { inset-inline-end:60px !important; font-size:17px !important; }
+#imageLightbox .modal-close:hover,
+#imageLightbox .lightbox-download:hover { background:#333 !important; border-color:#ffffff70 !important; transform:scale(1.05); }
+#imageLightbox .modal-close:active,
+#imageLightbox .lightbox-download:active { transform:scale(.94); }

@@ -752,6 +752,7 @@ async function openChat(target){
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
   loadedMessageDocs=new Map();oldestMessageCursor=null;loadingOlderMessages=false;hasOlderMessages=true;initialChatPositioning=true;
+  previousMessagesScrollTop=0;
   $("messages").innerHTML="";
   setThreadRead(id);
   const ref=doc(db,"threads",id);
@@ -944,6 +945,8 @@ async function loadOlderMessages(){
   if(loadingOlderMessages||!hasOlderMessages||!oldestMessageCursor||!activeChat||!currentUser)return;
   const box=$("messages"),id=activeThreadId(),openVersion=chatOpenVersion;
   loadingOlderMessages=true;
+  const previousHeight=box.scrollHeight;
+  const previousTop=box.scrollTop;
   const anchor=[...box.querySelectorAll("[data-message-id]")].find(node=>node.getBoundingClientRect().bottom>box.getBoundingClientRect().top+2);
   const anchorTop=anchor?.getBoundingClientRect().top??null;
   try{
@@ -959,36 +962,26 @@ async function loadOlderMessages(){
       if(anchor&&anchor.isConnected&&anchorTop!==null){
         const delta=anchor.getBoundingClientRect().top-anchorTop;
         if(Math.abs(delta)>0.5)box.scrollTop+=delta;
+      }else{
+        box.scrollTop=previousTop+(box.scrollHeight-previousHeight);
       }
+      previousMessagesScrollTop=box.scrollTop;
     };
     restoreAnchor();requestAnimationFrame(restoreAnchor);
   }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
   finally{loadingOlderMessages=false;}
 }
-// Older pages are fetched only after an explicit upward gesture from the user.
-// This prevents layout shifts, initial positioning, short chats, or image decoding
-// from cascading into repeated Firestore reads.
-let olderLoadGestureUntil=0;
+// Load the next history page whenever the user reaches the top edge.
+// Do not depend on wheel/touch gesture timing: on Android those events can be
+// delivered separately from the scroll event, which previously blocked paging.
 let previousMessagesScrollTop=0;
 const messagesScroller=$("messages");
-messagesScroller.addEventListener("wheel",event=>{if(event.deltaY<0)olderLoadGestureUntil=Date.now()+900;},{passive:true});
-let messagesTouchY=null;
-messagesScroller.addEventListener("touchstart",event=>{messagesTouchY=event.touches?.[0]?.clientY??null;},{passive:true});
-messagesScroller.addEventListener("touchmove",event=>{
-  const y=event.touches?.[0]?.clientY;
-  if(messagesTouchY!==null&&y!==undefined&&y>messagesTouchY+3)olderLoadGestureUntil=Date.now()+900;
-  messagesTouchY=y??messagesTouchY;
-},{passive:true});
-messagesScroller.addEventListener("touchend",()=>{messagesTouchY=null;},{passive:true});
 messagesScroller.addEventListener("scroll",()=>{
   const box=messagesScroller;
   const currentTop=box.scrollTop;
-  // Fetch history only when a real upward scroll movement follows the user's gesture.
-  // Programmatic repositioning after sending/rendering a message must never fetch a page.
-  const movedTowardTop=currentTop<previousMessagesScrollTop-2;
+  const movedTowardTop=currentTop<previousMessagesScrollTop-1;
   previousMessagesScrollTop=currentTop;
-  if(!initialChatPositioning&&movedTowardTop&&Date.now()<olderLoadGestureUntil&&currentTop<100&&box.scrollHeight>box.clientHeight+80){
-    olderLoadGestureUntil=0;
+  if(!initialChatPositioning&&movedTowardTop&&currentTop<=160&&box.scrollHeight>box.clientHeight+20){
     loadOlderMessages();
   }
 },{passive:true});

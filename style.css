@@ -4181,3 +4181,119 @@ body.amoled-mode .message-decoration-heading span,body.dark-mode .message-decora
  .messages{padding:clamp(18px,2.4vw,30px)!important;}
  .message-row .message{max-width:min(74%,520px);}
 }
+
+
+/* FINAL FIX: decoration chooser geometry, bright emoji tiles and true AMOLED media launcher. */
+.message-decoration-picker{
+  position:fixed!important;box-sizing:border-box!important;
+  width:var(--decoration-chat-width,100%)!important;
+  max-width:var(--decoration-chat-width,100%)!important;
+  left:var(--decoration-chat-left,0px)!important;right:auto!important;
+  padding:16px clamp(12px,2vw,20px) calc(14px + env(safe-area-inset-bottom,0px))!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+}
+.message-decoration-picker .message-decoration-grid{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:clamp(8px,1.4vw,13px)!important;width:100%!important;min-width:0!important;
+}
+.message-decoration-picker .message-decoration-grid button{
+  box-sizing:border-box!important;display:flex!important;flex:initial!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  min-height:clamp(92px,12vw,116px)!important;padding:11px 5px!important;
+  gap:8px!important;border-radius:20px!important;overflow:hidden!important;
+  background:linear-gradient(155deg,#292633,#1c1a24)!important;
+  border:1px solid #ffffff18!important;color:#fff!important;
+  box-shadow:0 7px 18px #0004,inset 0 1px 0 #ffffff12!important;
+}
+.message-decoration-picker .deco-preview{
+  flex:0 0 auto!important;width:clamp(48px,6.7vw,66px)!important;
+  height:clamp(48px,6.7vw,66px)!important;border-radius:19px!important;
+  display:grid!important;place-items:center!important;font-style:normal!important;
+  font-size:clamp(27px,4vw,36px)!important;line-height:1!important;
+  box-shadow:inset 0 2px 3px #ffffffb8,0 5px 16px #0003,0 0 17px currentColor!important;
+  filter:saturate(1.18);
+}
+.message-decoration-picker .deco-preview-heart{background:linear-gradient(145deg,#ffe2f0,#ff91c2 58%,#f45a9d)!important;color:#d92d79!important;text-shadow:0 2px 5px #8c1d5544;}
+.message-decoration-picker .deco-preview-fire{background:linear-gradient(145deg,#fff0b8,#ffb45d 58%,#ff7848)!important;color:#f05b26!important;text-shadow:0 2px 5px #9e3d1f55;}
+.message-decoration-picker .deco-preview-sparkles{background:linear-gradient(145deg,#f0e7ff,#bba4ff 58%,#8d7aff)!important;color:#7250d9!important;text-shadow:0 2px 5px #46328b55;}
+.message-decoration-picker .deco-preview-flowers{background:linear-gradient(145deg,#fff0f7,#d9f7df 58%,#a9e7c0)!important;color:#d34e96!important;text-shadow:0 2px 5px #7c2e5a44;}
+.message-decoration-picker .deco-preview-envelope{background:linear-gradient(145deg,#fff1c9,#ffd58b 58%,#e9ad55)!important;color:#a86422!important;text-shadow:0 2px 5px #8a4c1e44;}
+.message-decoration-picker .deco-preview-none{background:linear-gradient(145deg,#e9e9f0,#bfc2d1)!important;color:#51566a!important;}
+.message-decoration-picker .message-decoration-grid button>span{font-size:clamp(12px,1.8vw,15px)!important;font-weight:900!important;line-height:1.2!important;white-space:nowrap!important;}
+body.dark-mode .message-decoration-picker .message-decoration-grid button,
+body.amoled-mode .message-decoration-picker .message-decoration-grid button{background:linear-gradient(155deg,#22212b,#15141b)!important;color:#fff!important;border-color:#ffffff18!important;}
+body.amoled-mode .message-decoration-picker{background:#050507!important;border-color:#292630!important;}
+@media(max-width:600px){
+ .message-decoration-picker .message-decoration-grid{gap:7px!important;}
+ .message-decoration-picker .message-decoration-grid button{min-height:90px!important;border-radius:16px!important;padding:9px 3px!important;}
+ .message-decoration-picker .deco-preview{width:48px!important;height:48px!important;border-radius:15px!important;font-size:27px!important;}
+}
+/* Keep all four attachment dots and their button surface pure black in AMOLED. */
+body.amoled-mode #messageForm.composer .composer-media-wrap,
+body.amoled-mode #messageForm.composer .composer-media-toggle,
+body.amoled-mode #messageForm.composer .composer-media-toggle:focus,
+body.amoled-mode #messageForm.composer .composer-media-toggle:active{
+  background:#000!important;background-color:#000!important;background-image:none!important;
+  border:1px solid #29242f!important;color:#f4eaff!important;
+  box-shadow:none!important;filter:none!important;
+}
+body.amoled-mode #messageForm.composer .composer-media-toggle span{
+  display:block!important;background:#eee2ff!important;color:#eee2ff!important;
+  opacity:1!important;box-shadow:0 0 5px #d9c5ff22!important;
+}
+
+/* Refined message-decoration picker: balanced sizing, vivid-but-soft colors. */
+.message-decoration-picker{
+  width:var(--decoration-chat-width,100%)!important;
+  max-width:var(--decoration-chat-width,100%)!important;
+  max-height:min(46dvh,360px)!important;
+  padding:15px clamp(12px,2.2vw,19px) calc(13px + env(safe-area-inset-bottom,0px))!important;
+  border-radius:22px 22px 0 0!important;
+  box-sizing:border-box!important;
+}
+.message-decoration-heading{margin:0 1px 13px!important;align-items:center!important;}
+.message-decoration-heading strong{font-size:16px!important;font-weight:900!important;}
+.message-decoration-heading span{font-size:11px!important;opacity:.78;}
+.message-decoration-picker .message-decoration-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:9px!important;
+}
+.message-decoration-picker .message-decoration-grid button{
+  min-height:clamp(82px,10vw,102px)!important;
+  padding:9px 5px!important;gap:7px!important;
+  border-radius:17px!important;
+  box-shadow:0 4px 12px #00000012,inset 0 1px 0 #ffffff16!important;
+  transition:transform .16s ease,border-color .16s ease,filter .16s ease!important;
+}
+.message-decoration-picker .message-decoration-grid button:active{transform:scale(.965)!important;}
+.message-decoration-picker .deco-preview{
+  width:clamp(43px,5.8vw,56px)!important;height:clamp(43px,5.8vw,56px)!important;
+  border-radius:15px!important;font-size:clamp(25px,3.5vw,31px)!important;
+  box-shadow:inset 0 1px 2px #ffffffc0,0 3px 10px #0002,0 0 10px color-mix(in srgb,currentColor 15%,transparent)!important;
+  filter:saturate(1.08)!important;
+}
+.message-decoration-picker .message-decoration-grid button>span{font-size:clamp(11px,1.5vw,13px)!important;font-weight:850!important;}
+.message-decoration-picker .deco-preview-heart{background:linear-gradient(145deg,#ffe8f2,#ffafd0 65%,#f783b3)!important;}
+.message-decoration-picker .deco-preview-fire{background:linear-gradient(145deg,#fff2cd,#ffd08b 65%,#ff9b70)!important;}
+.message-decoration-picker .deco-preview-sparkles{background:linear-gradient(145deg,#f1eaff,#cfc2ff 65%,#a99aff)!important;}
+.message-decoration-picker .deco-preview-flowers{background:linear-gradient(145deg,#fff0f6,#e4f6e7 65%,#bce8ce)!important;}
+.message-decoration-picker .deco-preview-envelope{background:linear-gradient(145deg,#fff3d6,#ffdfa3 65%,#f1c477)!important;}
+.message-decoration-picker .deco-preview-none{background:linear-gradient(145deg,#eeeeF3,#cfd1dc)!important;}
+body.amoled-mode .message-decoration-picker{background:#050507!important;border-color:#292630!important;box-shadow:0 -12px 34px #000!important;}
+body.amoled-mode .message-decoration-picker .message-decoration-grid button{background:linear-gradient(155deg,#1b1a21,#111115)!important;border-color:#ffffff16!important;}
+/* The four-dot media launcher stays genuinely black in AMOLED, including its wrapper. */
+body.amoled-mode #messageForm.composer .composer-media-wrap,
+body.amoled-mode #messageForm.composer .composer-media-toggle,
+body.amoled-mode #messageForm.composer .composer-media-toggle:hover,
+body.amoled-mode #messageForm.composer .composer-media-toggle:focus-visible,
+body.amoled-mode #messageForm.composer .composer-media-toggle:active{
+  background:#000!important;background-color:#000!important;background-image:none!important;
+  border-color:#29242f!important;color:#f4eaff!important;box-shadow:none!important;filter:none!important;
+}
+@media(max-width:600px){
+ .message-decoration-picker{max-height:min(43dvh,310px)!important;padding:13px 10px calc(11px + env(safe-area-inset-bottom,0px))!important;}
+ .message-decoration-picker .message-decoration-grid{gap:7px!important;}
+ .message-decoration-picker .message-decoration-grid button{min-height:78px!important;padding:7px 3px!important;border-radius:15px!important;}
+ .message-decoration-picker .deco-preview{width:43px!important;height:43px!important;border-radius:13px!important;font-size:25px!important;}
+ .message-decoration-heading{margin-bottom:10px!important;}
+}

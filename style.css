@@ -4297,3 +4297,6 @@ body.amoled-mode #messageForm.composer .composer-media-toggle:active{
  .message-decoration-picker .deco-preview{width:43px!important;height:43px!important;border-radius:13px!important;font-size:25px!important;}
  .message-decoration-heading{margin-bottom:10px!important;}
 }
+
+/* Keep the decoration sheet attached directly to the message composer (no floating gap). */
+.message-decoration-picker{bottom:var(--decoration-picker-bottom,0px)!important;border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;}

@@ -75,15 +75,16 @@ service cloud.firestore {
       allow delete: if isDeveloper();
       match /replies/{replyId} {
         allow read: if signedIn();
-        allow create: if signedIn()
+        // Ordinary inbox broadcasts are read-only for members. Daily-question
+        // answers are handled separately under /dailyQuestions/{questionId}/answers.
+        allow create: if isDeveloper()
           && request.resource.data.keys().hasOnly(['uid','displayName','body','senderRole','createdAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.displayName is string
           && request.resource.data.body is string
           && request.resource.data.body.size() > 0
           && request.resource.data.body.size() <= 1000
-          && ((isDeveloper() && request.resource.data.senderRole == 'developer')
-            || (!isDeveloper() && request.resource.data.senderRole == 'member'));
+          && request.resource.data.senderRole == 'developer';
         allow update: if false;
         allow delete: if isDeveloper();
       }

@@ -4012,3 +4012,21 @@ body.dev-mode .dev-inbox-card{min-width:0;}
 body.dev-mode .dev-inbox-reply-form{min-width:0;}
 body.dev-mode .dev-inbox-reply-form input{min-width:0;}
 @media(max-width:520px){body.dev-mode .dev-actions{grid-template-columns:1fr;}body.dev-mode .dev-presets{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* Compact, theme-aware daily-question reply action. */
+.daily-question-card form button{
+  justify-self:start!important;width:auto!important;min-width:64px!important;height:34px!important;min-height:34px!important;
+  padding:0 16px!important;border-radius:10px!important;font-size:12px!important;line-height:1!important;
+  background:#8d79cf!important;color:#fff!important;border:1px solid rgba(141,121,207,.28)!important;
+  box-shadow:0 3px 9px rgba(141,121,207,.16)!important;transition:background .18s ease,transform .18s ease!important;
+}
+.daily-question-card form button:hover{transform:translateY(-1px)!important;background:#806bc4!important;}
+body.dark-mode .daily-question-card form button{background:#39334f!important;border-color:#51466f!important;color:#f5f1ff!important;box-shadow:none!important;}
+body.amoled-mode .daily-question-card form button{background:#211b30!important;border-color:#3b3151!important;color:#fff!important;box-shadow:none!important;}
+body.dark-mode .daily-question-card form button:hover{background:#48405f!important;}
+body.amoled-mode .daily-question-card form button:hover{background:#302542!important;}
+
+/* Bell on the left, Arabic inbox label on the right. */
+.notifications-entry{direction:ltr!important;flex-direction:row!important;gap:8px!important;}
+.notifications-entry .notification-bell{order:0!important;}
+.notifications-entry .notification-entry-label{order:1!important;text-align:right!important;}

@@ -4030,3 +4030,11 @@ body.amoled-mode .daily-question-card form button:hover{background:#302542!impor
 .notifications-entry{direction:ltr!important;flex-direction:row!important;gap:8px!important;}
 .notifications-entry .notification-bell{order:0!important;}
 .notifications-entry .notification-entry-label{order:1!important;text-align:right!important;}
+
+/* Developer quick actions: keep the back-to-top control first and visible above the dashboard. */
+.dev-quickbar{display:flex;align-items:center;justify-content:flex-start;gap:9px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border:1px solid #ffffff16;border-radius:16px;background:#ffffff08;}
+.dev-quickbar button{min-height:38px;padding:8px 14px;border:1px solid #ffffff20;border-radius:12px;background:#ffffff0d;color:#e9e2f5;font-size:11px;font-weight:800;cursor:pointer;}
+.dev-quickbar .dev-top-button{order:0;background:linear-gradient(120deg,#8b6bc9,#b38bdc);border-color:transparent;color:#fff;}
+.dev-quickbar #devClearLocalErrors{order:1;}
+.dev-quickbar button:active{transform:scale(.97);}
+@media(max-width:760px){.dev-quickbar{position:sticky;top:0;z-index:20;margin:0 0 10px;padding:8px;background:#111019ed;backdrop-filter:blur(12px);}.dev-quickbar button{min-height:38px;}}

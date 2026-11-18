@@ -3979,3 +3979,36 @@ body.amoled-mode .notifications-entry:hover{background:#0b0b0b!important;border-
   .notifications-entry .notification-bell{width:28px!important;height:28px!important;min-width:28px!important;flex-basis:28px!important;}
   .notifications-entry .notification-entry-label{font-size:12px!important;}
 }
+
+
+/* Inbox button exactly follows the Settings control dimensions and theme. */
+.notifications-entry{
+  width:auto!important;min-width:116px!important;height:42px!important;min-height:42px!important;
+  margin:0!important;padding:0 14px!important;gap:7px!important;border-radius:13px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex-direction:row!important;direction:rtl!important;
+  background:linear-gradient(135deg,#fff,#f6efff)!important;background-image:linear-gradient(135deg,#fff,#f6efff)!important;
+  color:#9a79c5!important;border:1px solid #eee4f7!important;
+  box-shadow:0 5px 16px #9a79c526!important;font-size:13px!important;font-weight:800!important;
+}
+.notifications-entry .notification-bell{width:auto!important;height:auto!important;min-width:0!important;flex:0 0 auto!important;border-radius:0!important;background:transparent!important;font-size:19px!important;}
+.notifications-entry .notification-entry-label{flex:0 1 auto!important;text-align:center!important;direction:rtl!important;font-size:13px!important;font-weight:800!important;}
+body.dark-mode .notifications-entry{background:#242330!important;background-image:none!important;color:var(--ink,#eeeaf8)!important;border-color:#3a3547!important;box-shadow:none!important;}
+body.dark-mode .notifications-entry .notification-bell{background:transparent!important;color:inherit!important;}
+body.amoled-mode .notifications-entry{background:#000!important;background-image:none!important;color:#f5f1ff!important;border-color:#29242f!important;box-shadow:none!important;}
+body.amoled-mode .notifications-entry .notification-bell{background:transparent!important;color:inherit!important;}
+@media(max-width:520px){.notifications-entry{min-width:108px!important;height:40px!important;min-height:40px!important;padding:0 11px!important;font-size:12px!important;}}
+
+/* A clear, consistent button layout throughout the developer console. */
+body.dev-mode .dev-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important;align-items:stretch;}
+body.dev-mode .dev-actions button{width:100%;min-width:0;min-height:44px;box-sizing:border-box;white-space:normal;line-height:1.4;padding:10px 12px;}
+body.dev-mode .dev-presets{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important;}
+body.dev-mode .dev-presets button{min-width:0;min-height:40px;padding:8px 6px;white-space:normal;}
+body.dev-mode #devQuestionManagement,body.dev-mode #devBroadcastManagement{width:100%;min-width:0;}
+body.dev-mode .dev-answer-row{min-width:0;flex-wrap:wrap;}
+body.dev-mode .dev-answer-row>div:first-child{min-width:0;flex:1 1 180px;overflow-wrap:anywhere;}
+body.dev-mode .dev-answer-row>button{flex:0 0 auto;}
+body.dev-mode .dev-inbox-card{min-width:0;}
+body.dev-mode .dev-inbox-reply-form{min-width:0;}
+body.dev-mode .dev-inbox-reply-form input{min-width:0;}
+@media(max-width:520px){body.dev-mode .dev-actions{grid-template-columns:1fr;}body.dev-mode .dev-presets{grid-template-columns:repeat(2,minmax(0,1fr));}}

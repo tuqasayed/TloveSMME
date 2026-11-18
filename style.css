@@ -4300,3 +4300,59 @@ body.amoled-mode #messageForm.composer .composer-media-toggle:active{
 
 /* Keep the decoration sheet attached directly to the message composer (no floating gap). */
 .message-decoration-picker{bottom:var(--decoration-picker-bottom,0px)!important;border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;}
+
+/* Message effects: luminous inner artwork with readable message text and natural sizing. */
+.message-row .message-decorated{
+  display:inline-flex;
+  align-items:center;
+  box-sizing:border-box;
+  width:fit-content;
+  max-width:100%;
+  min-width:clamp(150px,34%,250px);
+  margin:8px 0 9px;
+  padding:clamp(13px,1.8vw,18px) clamp(16px,2vw,22px);
+  border-radius:24px;
+  isolation:isolate;
+  overflow:hidden;
+  position:relative;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 5px 18px rgba(0,0,0,.12);
+}
+.message-row .message-decor-content{
+  position:relative;
+  z-index:2;
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  padding:0;
+}
+.message-row .message-decor-content p{
+  display:block;
+  width:auto;
+  max-width:100%;
+  margin:0;
+  white-space:pre-wrap;
+  word-break:normal;
+  overflow-wrap:break-word;
+  line-height:1.55;
+  font-size:clamp(14px,1.65vw,16px);
+  font-weight:750;
+  letter-spacing:0;
+  color:inherit;
+  text-shadow:0 1px 2px rgba(0,0,0,.16);
+}
+.message-row .message-decor-art{z-index:1;opacity:.16;pointer-events:none;}
+.message-row .decor-heart{background:linear-gradient(120deg,#f8c9df 0%,#f58fbd 48%,#f7d8e9 100%);border:1px solid rgba(255,190,220,.65);color:#542038;}
+.message-row .decor-fire{background:linear-gradient(120deg,#ffe0a4 0%,#f7a65e 52%,#d97848 100%);border:1px solid rgba(255,207,145,.65);color:#492416;}
+.message-row .decor-sparkles{background:linear-gradient(120deg,#d8caff 0%,#a99af0 52%,#d8e9ff 100%);border:1px solid rgba(213,202,255,.7);color:#28204e;}
+.message-row .decor-flowers{background:linear-gradient(120deg,#f8d7e9 0%,#d7f1d9 55%,#f8e9c9 100%);border:1px solid rgba(220,244,220,.7);color:#244632;}
+body.dark-mode .message-row .decor-heart,body.amoled-mode .message-row .decor-heart{background:linear-gradient(120deg,#f6c5dc 0%,#ed8fba 52%,#f9d9e9 100%);border-color:#f7b6d4;color:#4a1832;}
+body.dark-mode .message-row .decor-fire,body.amoled-mode .message-row .decor-fire{background:linear-gradient(120deg,#ffe0a2 0%,#f4a45c 52%,#df8050 100%);border-color:#f7c17f;color:#482416;}
+body.dark-mode .message-row .decor-sparkles,body.amoled-mode .message-row .decor-sparkles{background:linear-gradient(120deg,#d9ceff 0%,#a99aee 52%,#dceaff 100%);border-color:#c5b7ff;color:#29204e;}
+body.dark-mode .message-row .decor-flowers,body.amoled-mode .message-row .decor-flowers{background:linear-gradient(120deg,#f8d9e9 0%,#d7f0d9 55%,#f7ebd0 100%);border-color:#c9e8ce;color:#244632;}
+/* Avoid forcing short decorated messages onto two lines; only wrap when the bubble truly runs out of room. */
+.message-row .message-decor-content p{white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;}
+@media(max-width:760px){
+  .message-row .message-decorated{min-width:min(150px,100%);max-width:100%;margin:7px 0 8px;padding:13px 16px;border-radius:22px;}
+  .message-row .message-decor-content p{font-size:14px;line-height:1.55;}
+}

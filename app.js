@@ -1,4 +1,3 @@
-// Remove accidental visible escaped-newline fragments left by malformed markup.
 function removeEscapedNewlineArtifacts(root=document.body){
   if(!root)return;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
@@ -19,7 +18,6 @@ import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/fir
 import { firebaseConfig } from "./firebase-config.js";
 
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
-// Keep the developer session in a separate Firebase Auth app so it never replaces a regular user session.
 const developerApp=initializeApp(firebaseConfig,"bubble-chat-developer"), developerAuth=getAuth(developerApp), developerDb=getFirestore(developerApp);
 let selectedAuthMode=sessionStorage.getItem("bubble-chat-auth-mode")||"user";
 const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
@@ -111,12 +109,9 @@ function watchUnreadThread(thread){
   const key=readKey(thread);
   let lastRead=Number(localStorage.getItem(key));
   if(!Number.isFinite(lastRead)){
-    // First visit: start tracking from now instead of downloading the full chat history.
     lastRead=Date.now();
     localStorage.setItem(key,String(lastRead));
   }
-  // Only listen to messages newer than this user's last-read timestamp.
-  // This avoids a full-history snapshot for every conversation in the sidebar.
   const qUnread=query(
     collection(db,"threads",thread,"messages"),
     where("createdAt",">",Timestamp.fromMillis(lastRead)),
@@ -170,9 +165,6 @@ function nameStyle(p){
  return `font-family:${fonts[p?.nameFont]||fonts.noto};font-weight:700;background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`
 }
 function decorationUrl(value){
-  // Accept the stored decoration as an id ("3"), filename ("3.gif"),
-  // or relative path ("./3.gif" / "decorations/3.gif"). Always serve
-  // the original GIF from the same directory as index.html.
   const raw=String(value??"").trim().replaceAll("\\","/");
   const match=raw.match(/(?:^|\/)0?([1-9]|1[0-4])(?:\.gif)?$/i);
   return match?`./${Number(match[1])}.gif`:"";
@@ -288,7 +280,6 @@ function expandSidebarWhenNoChat(){
   updateCollapsedUnreadIndicator();
 }
 
-// دالة تفعيل الإشعارات الذكية المحدثة (تتعامل مع WebView والويب وتمنع الأخطاء)
 async function enablePushNotifications(){
   if(!currentUser)throw new Error(uiText("سجّلي الدخول أولًا","Please log in first."));
   
@@ -350,14 +341,12 @@ async function notifyRecipients(threadIdValue,messageIdValue){
 }
 
 
-// Avoid an endless "جاري تسجيل الدخول" state when the network/Auth/Firestore stalls.
 function withTimeout(promise,ms,label){
   let timer;
   const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{const error=new Error(label||"انتهت مهلة الاتصال");error.code="app/timeout";reject(error);},ms);});
   return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
 }
 
-// زر تسجيل الدخول المباشر (منع تام للريفرش)
 const loginBtn = $("loginBtn");
 if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
@@ -387,9 +376,6 @@ if (loginBtn) {
         18000,
         "تأخر رد خادم تسجيل الدخول"
       );
-      // Complete the developer transition here instead of relying only on the
-      // asynchronous auth observer; this prevents the login label from being
-      // left on "جاري تسجيل الدخول" after Firebase Auth succeeds.
       if(name.toLowerCase()==="dev"){
         const profileSnap=await withTimeout(
           getDoc(doc(developerDb,"users",credential.user.uid)),
@@ -427,7 +413,6 @@ if (loginBtn) {
   });
 }
 
-// دعم الضغط على زر Enter لتسجيل الدخول من الحقول مباشرة من غير ريفرش
 ["username", "password"].forEach(id => {
   $(id)?.addEventListener("keydown", e => {
     if (e.key === "Enter") {
@@ -438,8 +423,6 @@ if (loginBtn) {
 });
 
 
-// Developer console: intentionally aggregate-only; it never queries user profiles,
-// conversations, message contents, or notification tokens.
 let stopMaintenanceWatch=null,maintenanceGuardStop=null,maintenanceNoticeDismissed=false;
 function ensureDeveloperView(){
   let view=$("developerView");if(view)return view;
@@ -450,7 +433,7 @@ function ensureDeveloperView(){
   <section class="dev-panel dev-panel-wide"><h2>سجل الأخطاء</h2><pre id="devErrorLog" class="dev-log">لا توجد أخطاء مسجلة.</pre><div class="dev-actions"><button id="devClearErrors" type="button" class="secondary">مسح السجل المحلي</button></div></section>
   <section class="dev-panel"><h2>معلومات البيئة</h2><div class="dev-info-grid"><span>المتصفح</span><b id="devBrowserInfo">—</b><span>الشاشة</span><b id="devScreenInfo">—</b><span>اللغة</span><b id="devLanguageInfo">—</b><span>الذاكرة التقريبية</span><b id="devMemoryInfo">غير متاحة</b></div></section>
   <section class="dev-panel"><h2>أدوات سريعة</h2><p class="dev-note">أدوات محلية لا تغيّر بيانات المستخدمين.</p><div class="dev-actions dev-tools"><button id="devClearLocalErrors" type="button" class="secondary">تنظيف سجل الأخطاء</button><button id="devScrollTop" type="button" class="secondary">العودة للأعلى</button></div></section></div><button id="devLogout" class="dev-logout" type="button">تسجيل الخروج</button></div>`;
-  const questionPanel=document.createElement("section");questionPanel.className="dev-panel dev-panel-wide dev-question-panel";questionPanel.innerHTML=`<h2>سؤال اليوم 🔔</h2><p class="dev-note">اكتب السؤال الذي سيظهر لكل الأعضاء. الإجابات تظهر هنا للمراجعة.</p><label>السؤال<textarea id="devDailyQuestionInput" maxlength="300" rows="2" placeholder="اكتب سؤال اليوم..."></textarea></label><div class="dev-actions"><button id="devPublishDailyQuestion" type="button">نشر السؤال للجميع</button><button id="devCloseDailyQuestion" type="button" class="secondary">إيقاف السؤال الحالي</button><button id="devLoadDailyAnswers" type="button" class="secondary">عرض الإجابات</button></div><p id="devDailyQuestionState" class="dev-state" aria-live="polite">لا يوجد سؤال محمّل.</p><div id="devDailyAnswersList" class="dev-daily-answers"></div>`;
+  const questionPanel=document.createElement("section");questionPanel.className="dev-panel dev-panel-wide dev-question-panel";questionPanel.innerHTML=`<h2>سؤال اليوم 🔔</h2><label>السؤال<textarea id="devDailyQuestionInput" maxlength="300" rows="2" placeholder="اكتب سؤال اليوم..."></textarea></label><label>بريد يظهر للأعضاء (للعرض فقط)<input id="devPublicContactEmailInput" type="email" maxlength="160" placeholder="name@example.com" dir="ltr"></label><div class="dev-actions"><button id="devPublishDailyQuestion" type="button">نشر السؤال للجميع</button><button id="devSavePublicContactEmail" type="button" class="secondary">حفظ البريد</button><button id="devCloseDailyQuestion" type="button" class="secondary">إيقاف السؤال الحالي</button><button id="devLoadDailyAnswers" type="button" class="secondary">عرض الإجابات</button></div><p id="devDailyQuestionState" class="dev-state" aria-live="polite"></p><div id="devDailyAnswersList" class="dev-daily-answers"></div>`;
   view.querySelector(".dev-grid")?.append(questionPanel);
   document.querySelector(".app-shell")?.prepend(view);
   const errors=[];window.__bubbleDevErrors=errors;
@@ -465,6 +448,7 @@ function ensureDeveloperView(){
   $("devPublishDailyQuestion").onclick=async()=>{const question=$("devDailyQuestionInput").value.trim();if(!question)return $("devDailyQuestionState").textContent="اكتب السؤال أولًا.";try{const id=`q_${Date.now()}`;await setDoc(doc(developerDb,"system","dailyQuestion"),{active:true,question,questionId:id,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});$("devDailyQuestionState").textContent="تم نشر السؤال للجميع ♡";$("devDailyAnswersList").innerHTML="";}catch(e){$("devDailyQuestionState").textContent="تعذر نشر السؤال: "+(e.message||e);recordDevError("Publish daily question",e);}};
   $("devCloseDailyQuestion").onclick=async()=>{try{await setDoc(doc(developerDb,"system","dailyQuestion"),{active:false,updatedAt:serverTimestamp()},{merge:true});$("devDailyQuestionState").textContent="تم إيقاف السؤال الحالي.";}catch(e){$("devDailyQuestionState").textContent="تعذر إيقاف السؤال: "+e.message;}};
   $("devLoadDailyAnswers").onclick=loadDeveloperDailyAnswers;
+  $("devSavePublicContactEmail").onclick=async()=>{const email=$("devPublicContactEmailInput").value.trim();if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $("devDailyQuestionState").textContent="اكتب بريدًا صحيحًا.";return;}try{await setDoc(doc(developerDb,"system","dailyQuestion"),{contactEmail:email,updatedAt:serverTimestamp()},{merge:true});$("devDailyQuestionState").textContent="تم حفظ البريد.";}catch(e){$("devDailyQuestionState").textContent="تعذر حفظ البريد.";recordDevError("Save contact email",e);}};
   document.querySelectorAll("[data-dev-minutes]").forEach(button=>button.onclick=()=>{maintenanceOpenEnded=false;$("devMaintenanceMinutes").value=button.dataset.devMinutes;$("devOpenEnded").classList.remove("active");});
   $("devCheckFirebase").onclick=async()=>{const out=$("devHealthState");out.textContent="جاري فحص الاتصال...";try{await getDoc(doc(developerDb,"system","maintenance"));$("devFirebaseState").textContent="متصل";out.textContent="اتصال Firebase يعمل بنجاح.";}catch(error){$("devFirebaseState").textContent="فشل";out.textContent="فشل اتصال Firebase: "+(error.code||error.message||"خطأ غير معروف");recordDevError("Firebase health check",error);}};
   $("devCopyReport").onclick=async()=>{const report=buildDevReport();try{await navigator.clipboard.writeText(report);$("devHealthState").textContent="تم نسخ التقرير التقني. لا يتضمن بيانات شخصية أو محادثات.";}catch{$("devHealthState").textContent="تعذر النسخ التلقائي؛ استخدم تنزيل سجل الأخطاء.";}};
@@ -483,7 +467,7 @@ function showDeveloperDashboard(){
   const view=ensureDeveloperView();view.classList.remove("hidden");paintDevErrors();
   if(stopMaintenanceWatch)stopMaintenanceWatch();
   stopMaintenanceWatch=onSnapshot(doc(developerDb,"system","maintenance"),snap=>{const d=snap.data()||{};const active=d.enabled&&(!d.endsAt?.toMillis||d.endsAt.toMillis()>Date.now());$("devMaintenanceState").textContent=active?`الصيانة مفعّلة حتى ${d.endsAt?.toDate?.().toLocaleString("ar-EG")||"وقت غير محدد"}`:"التطبيق يعمل دون فاصل صيانة.";},e=>{$("devMaintenanceState").textContent="تعذر قراءة حالة الصيانة: "+e.message;});
-  getDoc(doc(developerDb,"system","dailyQuestion")).then(s=>{const d=s.data()||{};$("devDailyQuestionInput").value=d.question||"";$("devDailyQuestionState").textContent=d.active?"يوجد سؤال منشور حاليًا.":"لا يوجد سؤال نشط حاليًا.";}).catch(()=>{});
+  getDoc(doc(developerDb,"system","dailyQuestion")).then(s=>{const d=s.data()||{};$("devDailyQuestionInput").value=d.question||"";$("devPublicContactEmailInput").value=d.contactEmail||"";$("devDailyQuestionState").textContent=d.active?"يوجد سؤال منشور حاليًا.":"";}).catch(()=>{});
 }
 function showMaintenanceNotice(data){
   if(maintenanceNoticeDismissed)return;
@@ -509,11 +493,9 @@ function startMaintenanceGuard(){
 }
 
 
-// Developer authentication is observed independently from regular chat authentication.
 onAuthStateChanged(developerAuth,async user=>{
   if(!user){
     if(stopMaintenanceWatch){stopMaintenanceWatch();stopMaintenanceWatch=null;}
-    // Developer sign-out must never alter the independent regular-user session or UI.
     if(selectedAuthMode==="developer") showLogin();
     return;
   }
@@ -554,7 +536,6 @@ onAuthStateChanged(auth,async user=>{
     currentProfile={id:user.uid,...s.data()};
     currentProfile.displayName ||= currentProfile.username;
     if(selectedAuthMode!=="user") return;
-    // A missing/inaccessible maintenance document must not prevent normal sign-in.
     const maintenanceSnap=await withTimeout(getDoc(doc(db,"system","maintenance")),8000,"تأخر فحص الصيانة").catch(error=>{console.warn("Maintenance status unavailable:",error.code||error.message);return null;});
     const maintenanceData=maintenanceSnap?.data()||{};
     if(maintenanceData.enabled&&(!maintenanceData.endsAt?.toMillis||maintenanceData.endsAt.toMillis()>Date.now())){
@@ -793,7 +774,6 @@ async function openChat(target){
       const groupNameNode=$("contacts").querySelector(".contact strong");if(groupNameNode)groupNameNode.textContent=activeGroupMeta.name;
     }
 
-    // Pinned messages are lightweight references in the bar, not eagerly rendered chat rows.
     const pinnedQuery=query(collection(db,"threads",id,"messages"),where("pinned","==",true),limit(100));
     const pinnedUnsubscribe=onSnapshot(pinnedQuery,snapshot=>{
       if(openVersion!==chatOpenVersion)return;
@@ -801,7 +781,6 @@ async function openChat(target){
     },error=>console.warn("Pinned messages listener failed:",error));
     if(openVersion===chatOpenVersion)stopPinnedMessages=pinnedUnsubscribe;else pinnedUnsubscribe();
 
-    // Keep a live listener only for the newest 40 messages; older history is fetched in chunks on demand.
     const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),limit(MESSAGE_PAGE_SIZE));
     let firstMessagesSnapshot=true;
     const unsubscribe=onSnapshot(q,s=>{
@@ -819,7 +798,6 @@ async function openChat(target){
       hasOlderMessages=s.size===MESSAGE_PAGE_SIZE;
       renderMessages(ordered,{forceBottom:ownMessageAdded});
       if(firstMessagesSnapshot===false && initialChatPositioning){
-        // Wait for layout/media sizing, then anchor the conversation at its newest message.
         requestAnimationFrame(()=>requestAnimationFrame(()=>{
           if(openVersion!==chatOpenVersion)return;
           const messageBox=$("messages");
@@ -896,8 +874,6 @@ function renderMessages(docs,options={}){
   const messages=docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
   activeMessagesCache=messages;
 
-  // Reuse unchanged message DOM nodes. Rebuilding the whole list on every Firestore
-  // snapshot restarts image/GIF decoding and avatar decorations, causing prolonged flicker.
   const existing=new Map([...box.children].map(node=>[node.dataset.messageId,node]));
   const wanted=new Set(messages.map(m=>m.id));
   existing.forEach((node,id)=>{if(!wanted.has(id)){node.remove();existing.delete(id);}});
@@ -910,9 +886,6 @@ function renderMessages(docs,options={}){
       fresh.dataset.messageId=m.id;
       fresh.dataset.renderSignature=signature;
       if(row){
-        // Keep already-loaded media DOM nodes when only message metadata changes.
-        // Moving the existing <img> node (rather than cloning/reloading it) keeps
-        // animated GIFs at their current frame and prevents image decode flicker.
         const persistentMediaSelectors=[
           ".message-photo", ".sticker-image", ".chat-avatar-decoration img",
           ".message-avatar > img", ".reply-sticker-thumb"
@@ -940,8 +913,6 @@ function renderMessages(docs,options={}){
     position++;
   });
   if(options.forceBottom||wasEmpty||wasAtBottom){
-    // A newly-sent message must keep the conversation pinned to the latest message.
-    // Run after layout so text wrapping/media sizing cannot pull the viewport upward.
     const stickToBottom=()=>{box.scrollTop=box.scrollHeight;};
     stickToBottom();
     requestAnimationFrame(()=>{if(options.forceBottom||wasEmpty||wasAtBottom)stickToBottom();});
@@ -980,9 +951,6 @@ async function loadOlderMessages(){
   }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
   finally{loadingOlderMessages=false;}
 }
-// Load the next history page whenever the user reaches the top edge.
-// Do not depend on wheel/touch gesture timing: on Android those events can be
-// delivered separately from the scroll event, which previously blocked paging.
 let previousMessagesScrollTop=0;
 const messagesScroller=$("messages");
 messagesScroller.addEventListener("scroll",()=>{
@@ -1137,7 +1105,6 @@ async function reactTo(m,emoji){
   await updateDoc(r,{reactions});
 }
 
-// @mentions in group chat.
 function mentionCandidates(kind){
   if(kind==="group")return (GROUP.participants||[]).map(id=>userProfiles.get(id)).filter(Boolean);
   return [];
@@ -1164,15 +1131,12 @@ function attachMentionPicker(input,menu,getKind){
 attachMentionPicker($("messageInput"),$("chatMentionMenu"),()=>isGroup()?"group":"none");
 
 const sendButton=$("messageForm")?.querySelector(".send-btn");let sendHoldTimer=null,sendHoldTriggered=false;
-function openSurpriseModal(){if(!$("surpriseModal"))return;$("surpriseModal").classList.remove("hidden");$("surpriseDecorPanel").classList.add("hidden");$("surpriseSchedulePanel").classList.add("hidden");}
+function openSurpriseModal(){if(!$("surpriseModal"))return;$("surpriseModal").classList.remove("hidden");$("surpriseDecorPanel").classList.add("hidden");}
 if(sendButton){sendButton.addEventListener("click",event=>{if(sendHoldTriggered){event.preventDefault();event.stopPropagation();sendHoldTriggered=false;skipNextSubmit=false;} });sendButton.addEventListener("pointerdown",()=>{sendHoldTriggered=false;clearTimeout(sendHoldTimer);sendHoldTimer=setTimeout(()=>{sendHoldTriggered=true;skipNextSubmit=true;openSurpriseModal();},560);});["pointerup","pointercancel","pointerleave"].forEach(ev=>sendButton.addEventListener(ev,()=>clearTimeout(sendHoldTimer)));}
 $("closeSurpriseModal")?.addEventListener("click",()=>$("surpriseModal").classList.add("hidden"));
-$("surpriseNowBtn")?.addEventListener("click",()=>{$("surpriseDecorPanel").classList.remove("hidden");$("surpriseSchedulePanel").classList.add("hidden")});
-$("surpriseScheduleBtn")?.addEventListener("click",()=>{$("surpriseSchedulePanel").classList.remove("hidden");$("surpriseDecorPanel").classList.add("hidden")});
+$("surpriseNowBtn")?.addEventListener("click",()=>{$("surpriseDecorPanel").classList.remove("hidden")});
 document.querySelectorAll("[data-surprise-decor]").forEach(btn=>btn.addEventListener("click",()=>{selectedSurpriseDecor=btn.dataset.surpriseDecor;document.querySelectorAll("[data-surprise-decor]").forEach(x=>x.classList.toggle("selected",x===btn));}));
 $("sendSurpriseNow")?.addEventListener("click",async()=>{const text=$("messageInput").value.trim();if(!text||!activeChat)return toast("اكتب الرسالة أولًا");try{const tid=activeThreadId(),payload={text,surprise:true,decoration:selectedSurpriseDecor,senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};if(replyTarget)payload.replyTo={id:replyTarget.id,text:replyTarget.text||"",senderName:replyTarget.senderName||"صديق"};const sent=await addDoc(collection(db,"threads",tid,"messages"),payload);notifyRecipients(tid,sent.id);await updateDoc(doc(db,"threads",tid),{updatedAt:serverTimestamp()});$("messageInput").value="";$("messageInput").style.height="auto";replyTarget=null;$("replyPreview").classList.add("hidden");$("surpriseModal").classList.add("hidden");toast(selectedSurpriseDecor==="envelope"?"اترسلت رسالتك في ظرف مقفول 💌":"اترسلت رسالتك بالديكور اللي اخترته ✨");}catch(e){console.error(e);toast("تعذر إرسال الرسالة المفاجأة");}});
-$("saveScheduledSurprise")?.addEventListener("click",async()=>{const text=$("messageInput").value.trim(),value=$("surpriseScheduleAt").value,date=new Date(value);if(!text||!activeChat)return toast("اكتب الرسالة أولًا");if(!value||!Number.isFinite(date.getTime())||date.getTime()<Date.now()+60000)return toast("اختار موعدًا بعد دقيقة على الأقل");try{const tid=activeThreadId();await addDoc(collection(db,"threads",tid,"scheduledMessages"),{text,surprise:true,decoration:selectedSurpriseDecor,senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",dueAt:Timestamp.fromDate(date),createdAt:serverTimestamp(),status:"scheduled"});$("messageInput").value="";$("messageInput").style.height="auto";$("surpriseModal").classList.add("hidden");toast("تمت جدولة الرسالة. هتتبعت تلقائيًا في موعدها ♡");}catch(e){console.error(e);toast("تعذر جدولة الرسالة. تأكد من نشر قواعد Firestore.");}});
-
 $("messageForm").addEventListener("submit",async e=>{
   e.preventDefault();
   if(skipNextSubmit){skipNextSubmit=false;return;}
@@ -1485,97 +1449,7 @@ $("confirmBannerCrop").addEventListener('click',()=>{if(!cropSource)return;const
 window.addEventListener('resize',()=>{if(cropSource&&!$("bannerCropModal").classList.contains('hidden'))layoutBannerCrop()});
 
 $("addStoryBtn").onclick=()=>$("storyCompose").classList.toggle("hidden");
-document.querySelectorAll("[data-story-type]").forEach(button=>button.addEventListener("click",()=>{const type=button.dataset.storyType;$("storyFile").value="";if(type==="text"){ $("storyFileName").textContent="حالة نصية";$("storyCaptionInput").focus();return;}$("storyFile").accept=type==="image"?"image/*":"video/*";$("storyFile").click();}));
-$("storyFile").onchange=e=>{const f=e.target.files?.[0];$("storyFileName").textContent=f?f.name:"لم يتم اختيار ملف";};
-
-$("publishStoryBtn").onclick=async()=>{
- const file=$("storyFile").files?.[0]||null,caption=$("storyCaptionInput").value.trim();
- if(!file&&!caption)return toast("اكتب نص الحالة أو اختار صورة / فيديو");
- const button=$("publishStoryBtn");button.disabled=true;button.textContent="جاري النشر...";
- try{
-  let mediaUrl="",mediaType="text";
-  if(file){const isVideo=file.type.startsWith("video/");if(!file.type.startsWith("image/")&&!isVideo)throw new Error("اختار صورة أو فيديو صالح");if(file.size>(isVideo?25:8)*1024*1024)throw new Error("حجم الملف أكبر من المسموح");if(isVideo&&await getVideoDuration(file)>30)throw new Error("مدة الفيديو لازم تكون 30 ثانية أو أقل");mediaUrl=await uploadStoryToCloudinary(file,isVideo);mediaType=isVideo?"video":"image";}
-  await addDoc(collection(db,"stories"),{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,mediaUrl,mediaType,caption,createdAt:serverTimestamp(),expiresAt:Date.now()+24*60*60*1000});
-  toast("تم نشر حالتك لمدة 24 ساعة ♡");loadMyStories();$("storyCaptionInput").value="";$("storyFile").value="";$("storyFileName").textContent="لم يتم اختيار ملف";
- }catch(err){console.error(err);toast(err.message||"تعذر نشر الحالة");}finally{button.disabled=false;button.textContent="نشر الحالة";}
-};
-
-function getVideoDuration(file){return new Promise((resolve,reject)=>{const video=document.createElement("video"),url=URL.createObjectURL(file);video.preload="metadata";video.onloadedmetadata=()=>{const duration=video.duration;URL.revokeObjectURL(url);resolve(duration);};video.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("تعذر قراءة مدة الفيديو"));};video.src=url;});}
-async function uploadStoryToCloudinary(file,isVideo){const fd=new FormData();fd.append("file",file);fd.append("upload_preset",CLOUDINARY_UPLOAD_PRESET);fd.append("folder","chat-assets/stories");const endpoint=isVideo?"video":"image";const response=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${endpoint}/upload`,{method:"POST",body:fd});const data=await response.json();if(!response.ok||!data.secure_url)throw new Error(data?.error?.message||"فشل رفع الحالة");return data.secure_url;}
-
-const THEME_KEY = "bubble-chat-theme";
-function applyTheme(mode){
-  document.body.classList.toggle("dark-mode", mode === "dark" || mode === "amoled");
-  document.body.classList.toggle("amoled-mode", mode === "amoled");
-  const toggle = $("themeToggle");
-  const labels={light:"🌙 الوضع الليلي",dark:"⚫ وضع AMOLED",amoled:"☀️ الوضع الفاتح"};
-  if(toggle){toggle.textContent=labels[mode]||labels.light;toggle.title="تغيير المظهر";toggle.setAttribute("aria-label",toggle.title);}
-  const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.content=mode==="amoled"?"#000000":mode==="dark"?"#11121a":"#f7f5ff";
-}
-applyTheme(localStorage.getItem(THEME_KEY)||"light");
-$("themeToggle")?.addEventListener("click",()=>{
-  const current=localStorage.getItem(THEME_KEY)||"light";
-  const next=current==="light"?"dark":current==="dark"?"amoled":"light";
-  localStorage.setItem(THEME_KEY,next);applyTheme(next);
-});
-
-// إعدادات موحدة: الوضع الليلي، الإشعارات، الدعم، وتسجيل الخروج.
-// عارض الصور داخل الموقع بدل فتح تبويب خارجي.
-let lightboxScale=1,lightboxX=0,lightboxY=0,lightboxPointers=new Map(),lightboxGesture=null;
-function paintLightbox(){const image=$("lightboxImage");if(!image)return;image.style.transform=`translate3d(${lightboxX}px,${lightboxY}px,0) scale(${lightboxScale})`;image.classList.toggle("is-zoomed",lightboxScale>1.02);}
-function resetLightboxZoom(){lightboxScale=1;lightboxX=0;lightboxY=0;lightboxPointers.clear();lightboxGesture=null;paintLightbox();}
-function openImageLightbox(url){if(!url)return;resetLightboxZoom();const image=$("lightboxImage"),modal=$("imageLightbox"),card=document.querySelector(".image-lightbox-card");image.onload=()=>{card?.classList.toggle("is-portrait",image.naturalHeight>image.naturalWidth*1.15);};image.src=url;$("downloadLightboxImage").href=url.includes("res.cloudinary.com")?url.replace("/upload/","/upload/fl_attachment/"):url;modal.classList.remove("hidden");}
-function closeImageLightbox(){$("imageLightbox").classList.add("hidden");$("lightboxImage").removeAttribute("src");resetLightboxZoom();}
-$("closeImageLightbox")?.addEventListener("click",closeImageLightbox);
-$("imageLightbox")?.addEventListener("click",e=>{if(e.target===$("imageLightbox"))closeImageLightbox()});
-(()=>{
- const image=$("lightboxImage"),frame=document.querySelector(".image-lightbox-card");if(!image||!frame)return;
- const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
- const clampPan=()=>{const maxX=Math.max(0,(image.clientWidth*lightboxScale-frame.clientWidth)/2),maxY=Math.max(0,(image.clientHeight*lightboxScale-frame.clientHeight)/2);lightboxX=clamp(lightboxX,-maxX,maxX);lightboxY=clamp(lightboxY,-maxY,maxY);};
- const zoomAt=(nextScale)=>{lightboxScale=clamp(nextScale,1,4);if(lightboxScale===1){lightboxX=0;lightboxY=0;}clampPan();paintLightbox();};
- image.addEventListener("dblclick",e=>{e.preventDefault();zoomAt(lightboxScale>1.05?1:2);});
- image.addEventListener("wheel",e=>{e.preventDefault();zoomAt(lightboxScale*(e.deltaY<0?1.12:.89));},{passive:false});
- const distance=points=>Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y);
- const midpoint=points=>({x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2});
- image.addEventListener("pointerdown",e=>{
-  if(e.pointerType==="mouse"&&e.button!==0)return;
-  image.setPointerCapture?.(e.pointerId);lightboxPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(lightboxPointers.size===2){const pts=[...lightboxPointers.values()];lightboxGesture={kind:"pinch",distance:distance(pts),scale:lightboxScale,mid:midpoint(pts),x:lightboxX,y:lightboxY};}
-  else lightboxGesture={kind:"pan",x:e.clientX,y:e.clientY,tx:lightboxX,ty:lightboxY};
- });
- image.addEventListener("pointermove",e=>{
-  if(!lightboxPointers.has(e.pointerId))return;lightboxPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(lightboxPointers.size===2){const pts=[...lightboxPointers.values()],mid=midpoint(pts);if(!lightboxGesture||lightboxGesture.kind!=="pinch")lightboxGesture={kind:"pinch",distance:distance(pts),scale:lightboxScale,mid,x:lightboxX,y:lightboxY};
-   lightboxScale=clamp(lightboxGesture.scale*(distance(pts)/Math.max(1,lightboxGesture.distance)),1,4);lightboxX=lightboxGesture.x+(mid.x-lightboxGesture.mid.x);lightboxY=lightboxGesture.y+(mid.y-lightboxGesture.mid.y);if(lightboxScale===1){lightboxX=0;lightboxY=0;}clampPan();paintLightbox();
-  }else if(lightboxScale>1.02&&lightboxGesture?.kind==="pan"){
-   lightboxX=lightboxGesture.tx+(e.clientX-lightboxGesture.x);lightboxY=lightboxGesture.ty+(e.clientY-lightboxGesture.y);clampPan();paintLightbox();
-  }
- });
- const end=e=>{lightboxPointers.delete(e.pointerId);if(lightboxPointers.size===1){const [point]=lightboxPointers.values();lightboxGesture={kind:"pan",x:point.x,y:point.y,tx:lightboxX,ty:lightboxY};}else if(!lightboxPointers.size)lightboxGesture=null;};
- image.addEventListener("pointerup",end);image.addEventListener("pointercancel",end);image.addEventListener("lostpointercapture",end);
-})();
-
-// تبديل نصوص الواجهة فقط؛ يظل اتجاه التطبيق RTL كما هو حتى في الإنجليزية.
-const uiTranslations={
- 'settingsTitle':['الإعدادات ⚙','Settings ⚙'],'night':['🌙 الوضع الليلي','🌙 Dark mode'],'notifications':['🔔 تفعيل الإشعارات','🔔 Enable notifications'],'logout':['↪ تسجيل الخروج','↪ Log out'],'language':['🌐 English','🌐 العربية'],
- 'conversations':['المحادثات','Chats'],'usernameLabel':['اسم المستخدم','Username'],'passwordLabel':['كلمة المرور','Password'],'login':['تسجيل الدخول','Log in'],'install':['تثبيت التطبيق','Install app'],'sidebarHide':['إخفاء الشريط الجانبي','Hide sidebar'],'sidebarShow':['إظهار الشريط الجانبي','Show sidebar'],'newMessages':['رسائل جديدة','New messages'],'chatSearch':['بحث في المحادثة','Search chat'],'pinnedMessages':['الرسائل المثبتة','Pinned messages'],'profileEdit':['تعديل الملف الشخصي ✎','Edit profile ✎'],'welcome':['أهلًا بيكم في بابل شات ♡','Welcome to Bubble Chat ♡'],'sendImage':['إرسال صورة','Send image'],'sticker':['الملصقات','Stickers'],'messagePlaceholder':['اكتب رسالة...','Write a message...'],'settingsAria':['الإعدادات','Settings']
-};
-function setUiLanguage(lang){const en=lang==='en';document.documentElement.lang=en?'en':'ar';document.documentElement.dir='rtl';
- const set=(selector,key,attr)=>{const el=document.querySelector(selector);if(el){const pair=uiTranslations[key];if(pair){if(attr)el.setAttribute(attr,pair[en?1:0]);else el.textContent=pair[en?1:0];}}};
- set('#settingsModal h2','settingsTitle');set('#settingsToggle','settingsTitle');set('#themeToggle','night');set('#enableNotificationsBtn','notifications');set('#logoutBtn','logout');set('#languageToggle','language');const sectionLabel=document.querySelector('.section-label');if(sectionLabel?.firstChild)sectionLabel.firstChild.nodeValue=uiTranslations.conversations[en?1:0]+' '; set('.me-card small','profileEdit');set('.side-header small','welcome');set('label[for=username]','usernameLabel');set('label[for=password]','passwordLabel');set('#installAppBtn span','install');set('#sidebarToggle','sidebarHide','title');set('#sidebarToggle','sidebarHide','aria-label');set('#sidebarDockToggle','sidebarShow','title');set('#sidebarDockToggle','sidebarShow','aria-label');set('#imageMessageBtn','sendImage','title');set('#imageMessageBtn','sendImage','aria-label');set('#stickerBtn','sticker','title');set('#messageInput','messagePlaceholder','placeholder');
- const labels=[['.empty-state h2','أهلًا بيكم في Bubble Chat','Welcome to Bubble Chat'],['#chatSearchInput','بحث في الرسائل','Search messages','placeholder'],['#supportMessage','اكتب رسالتك بالتفصيل...','Describe your message...','placeholder'],['#supportReplyInput','اكتب ردك...','Write a reply...','placeholder'],['#profileBioInput','اكتب نبذة بسيطة عنك...','Write a short bio...','placeholder'],['#displayNameInput','الاسم الظاهر','Display name','aria-label'],['#username','اكتب اسم المستخدم','Enter username','placeholder'],['#password','كلمة المرور','Password','aria-label'],['#messageInput','اكتب رسالة...','Write a message...','placeholder']];
- labels.forEach(([selector,ar,enText,attr])=>{const node=document.querySelector(selector);if(node){const value=en?enText:ar;if(attr)node.setAttribute(attr,value);else if(node.matches('input,textarea'))node.placeholder=value;else node.textContent=value;}});
- const setLeading=(selector,value)=>{const node=document.querySelector(selector);if(!node)return;const textNode=[...node.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.trim());if(textNode)textNode.nodeValue=' '+value+' ';};
- setLeading('#loginBtn',en?'Log in':'تسجيل الدخول');setLeading('#chatSearchToggle',en?'Search chat':'بحث في المحادثة');setLeading('#pinnedToggle',en?'Pinned messages':'الرسائل المثبتة');setLeading('#collapsedUnreadIndicator',en?'New messages':'رسائل جديدة');set('#settingsToggle','settingsTitle','title');
- const leadTranslations=[['#groupSettingsModal h2','تفاصيل الجروب','Group details'],['#groupBannerPreview span','غلاف الجروب','Group cover'],['.group-name-field','اسم الجروب','Group name'],['.group-members-heading','الأعضاء والصلاحيات','Members & permissions'],['#saveGroupSettings','حفظ التعديلات','Save changes'],['#profileModal .profile-editor-banner span','غلاف الملف الشخصي','Profile cover'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal label[for=bannerFile]','تغيير البنر','Change banner'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .dual-color-row label:first-child','اللون الأول','First color'],['#profileModal .dual-color-row label:last-child','اللون الثاني','Second color'],['#profileModal .font-picker-label:first-of-type','خط الاسم','Name font'],['#profileModal .font-picker-label:last-of-type','إطار الصورة الشخصية','Profile frame'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#storyCaptionInput','اكتب كلام الحالة...','Write your story...'],['#publishStoryBtn','نشر الحالة','Publish story'],['#profileForm > button[type=submit]','حفظ التغييرات','Save changes'],['#bannerCropModal h3','ظبّط صورة البنر','Adjust banner image'],['#bannerCropModal p','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل','Move the image and choose the part to show on your profile'],['.crop-zoom-label','تكبير الصورة','Zoom image'],['#cancelBannerCrop2','إلغاء','Cancel'],['#confirmBannerCrop','استخدام الصورة','Use image'],['#publicProfileModal h2','الملف الشخصي','Profile'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
-
- leadTranslations.forEach(([selector,ar,enText])=>setLeading(selector,en?enText:ar));
- const staticTextPairs={
-  'كل':'Every','صبرٍ':'patience','جبر':'healing','اسمك':'Your name','إخفاء الشريط الجانبي':'Hide sidebar','إظهار الشريط الجانبي':'Show sidebar','إرسال':'Send','إرسال صورة':'Send image','الملصقات':'Stickers','المزيد من خيارات المحادثة':'More chat options','المزيد':'More','خيارات المحادثة':'Chat options','بحث في المحادثة':'Search chat','الرسائل المثبتة':'Pinned messages','الانتقال لآخر الشات':'Go to latest message','قائمة الملصقات':'Stickers','تفاصيل الجروب':'Group details','غلاف الجروب':'Group cover','تغيير البنر':'Change banner','تغيير صورة الجروب':'Change group photo','اسم الجروب':'Group name','الأعضاء والصلاحيات':'Members & permissions','حفظ التعديلات':'Save changes','ملفك الشخصي ✨':'Your profile ✨','غلاف الملف الشخصي':'Profile cover','تغيير الصورة':'Change photo','صورتك الشخصية':'Your profile photo','الاسم الظاهر':'Display name','نبذة تعريفية':'Bio','اكتب نبذة بسيطة عنك...':'Write a short bio...','ألوان الاسم':'Name colors','اللون الأول':'First color','اللون الثاني':'Second color','خط الاسم':'Name font','إطار الصورة الشخصية':'Profile frame','بدون إطار':'No frame','الإطار 1':'Frame 1','الإطار 2':'Frame 2','الإطار 3':'Frame 3','الإطار 4':'Frame 4','اختيار ديكوريشن الصورة':'Choose profile decoration','الحالات':'Stories','إضافة حالة':'Add story','حالة نصية':'Text story','صورة':'Photo','فيديو':'Video','اكتب كلام الحالة...':'Write your story...','لم يتم اختيار ملف':'No file selected','نشر الحالة':'Publish story','حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.':'Your active stories will appear here. You can view or delete them.','لا توجد حالة نشطة عندك بعد':'You don’t have any active stories yet.','لا توجد حالات نشطة حاليًا.':'No active stories yet.','مفيش حالات نشطة عندك حاليًا.':'You don’t have any active stories yet.','الحالة بتختفي بعد 24 ساعة.':'Stories disappear after 24 hours.','حفظ التغييرات':'Save changes','تحديد صورة البنر':'Crop banner image','ظبّط صورة البنر':'Adjust banner image','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل':'Move the image and choose what appears on your profile','تكبير الصورة':'Zoom image','إلغاء':'Cancel','استخدام الصورة':'Use image','الملف الشخصي':'Profile','الحالة':'Story','حذف حالتي':'Delete my story','عرض الصورة':'Image viewer','الصورة بحجم كبير':'Full-size image'
- };
- const staticRoots=['#loginView','.sidebar','.chat-header','.composer','#groupSettingsModal','#profileModal','#bannerCropModal','#publicProfileModal','#storyViewer','#settingsModal',];
- staticRoots.forEach(root=>document.querySelectorAll(root).forEach(scope=>scope.querySelectorAll('*').forEach(node=>node.childNodes.forEach(child=>{if(child.nodeType!==Node.TEXT_NODE)return;const key=child.nodeValue.trim();if(!key)return;const translated=en?staticTextPairs[key]:Object.keys(staticTextPairs).find(ar=>staticTextPairs[ar]===key);if(translated){const leading=child.nodeValue.match(/^\s*/)?.[0]||'';const trailing=child.nodeValue.match(/\s*$/)?.[0]||'';child.nodeValue=leading+(en?staticTextPairs[key]:translated)+trailing;}}))));
+document.querySelectorAll("[data-story-type]").forEach(button=>button.addEventListener("click",()=>{const type=button.dataset.storyType;$("storyFile").value="";if(type==="text"){ $("storyFileName").textContent="حالة نصية";$("storyCaptionInput").focus();return;}$("storyFile").accept=type==="image"?"image)?.[0]||'';const trailing=child.nodeValue.match(/\s*$/)?.[0]||'';child.nodeValue=leading+(en?staticTextPairs[key]:translated)+trailing;}}))));
 
  const staticTranslations=[['#profileModal h2','ملفك الشخصي ✨','Your profile ✨'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#addStoryBtn b','إضافة حالة','Add story'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
  staticTranslations.forEach(([selector,ar,enText])=>{const node=document.querySelector(selector);if(node)node.textContent=en?enText:ar;});
@@ -1597,7 +1471,6 @@ $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});
-// صور المحادثات: الرفع يتم إلى Cloudinary ثم يُحفظ رابط الصورة في الرسالة.
 async function uploadChatImage(file){
  if(!file?.type?.startsWith("image/"))throw new Error("اختار صورة صالحة");
  if(file.size>8*1024*1024)throw new Error("حجم الصورة لازم يكون 8MB أو أقل");
@@ -1617,20 +1490,15 @@ $("imageMessageInput")?.addEventListener("change",async e=>{
  finally{button.disabled=false}
 });
 
-// Daily question: one shared developer-authored prompt, one answer per member.
-function startDailyQuestionListener(){if(stopDailyQuestion)stopDailyQuestion();stopDailyQuestion=onSnapshot(doc(db,"system","dailyQuestion"),async snap=>{currentDailyQuestion=snap.exists()?snap.data():null;const active=!!currentDailyQuestion?.active&&!!currentDailyQuestion?.questionId;$("dailyQuestionDot")?.classList.toggle("hidden",!active);if(active){try{const mine=await getDoc(doc(db,"dailyQuestions",currentDailyQuestion.questionId,"answers",currentUser.uid));$("dailyQuestionDot")?.classList.toggle("has-answered",mine.exists());}catch(e){console.warn("Daily answer status unavailable",e)}}},e=>console.warn("Daily question listener failed",e));}
-function openDailyQuestion(){if(!currentDailyQuestion?.active)return toast("المطوّر لم ينشر سؤال اليوم بعد ♡");$("dailyQuestionModal").classList.remove("hidden");$("dailyQuestionText").textContent=currentDailyQuestion.question||"";$("dailyQuestionAnswers").innerHTML="جاري تحميل الإجابات...";if(stopDailyAnswers)stopDailyAnswers();const answerRef=doc(db,"dailyQuestions",currentDailyQuestion.questionId,"answers",currentUser.uid);getDoc(answerRef).then(mine=>{if(mine.exists()){$("dailyQuestionAnswerArea").classList.add("hidden");$("dailyQuestionAnswers").insertAdjacentHTML("afterbegin",`<p class="feature-hint">إجابتك: ${$safe(mine.data().answer||"")}</p>`)}else{$("dailyQuestionAnswerArea").classList.remove("hidden")}}).catch(()=>{});stopDailyAnswers=onSnapshot(query(collection(db,"dailyQuestions",currentDailyQuestion.questionId,"answers"),orderBy("createdAt","desc"),limit(100)),snap=>{$("dailyQuestionAnswers").innerHTML="<h3>إجابات الأعضاء</h3>"+(snap.empty?"<p class=feature-hint>لسه مفيش إجابات.</p>":snap.docs.map(d=>{const a=d.data();return `<article class="daily-answer-card"><b>${$safe(a.displayName||"عضو")}</b><p>${$safe(a.answer||"")}</p>${a.reaction?`<span class="answer-reaction">${$safe(a.reaction)}</span>`:""}</article>`}).join(""))},e=>{$("dailyQuestionAnswers").textContent="تعذر تحميل الإجابات.";console.warn(e)});}
+function startDailyQuestionListener(){if(stopDailyQuestion)stopDailyQuestion();stopDailyQuestion=onSnapshot(doc(db,"system","dailyQuestion"),async snap=>{currentDailyQuestion=snap.exists()?snap.data():null;const active=!!currentDailyQuestion?.active&&!!currentDailyQuestion?.questionId;const contact=$("publicContactEmail");if(contact){const email=String(currentDailyQuestion?.contactEmail||"").trim();contact.textContent=email?`✉ ${email}`:"";contact.classList.toggle("hidden",!email);}$("dailyQuestionDot")?.classList.toggle("hidden",!active);if(active){try{const mine=await getDoc(doc(db,"dailyQuestions",currentDailyQuestion.questionId,"answers",currentUser.uid));$("dailyQuestionDot")?.classList.toggle("has-answered",mine.exists());}catch(e){console.warn("Daily answer status unavailable",e)}}},e=>console.warn("Daily question listener failed",e));}
+function openDailyQuestion(){if(!currentDailyQuestion?.active)return toast("لا يوجد سؤال متاح حاليًا ♡");$("dailyQuestionModal").classList.remove("hidden");$("dailyQuestionText").textContent=currentDailyQuestion.question||"";$("dailyQuestionAnswers").innerHTML="جاري تحميل الإجابات...";if(stopDailyAnswers)stopDailyAnswers();const answerRef=doc(db,"dailyQuestions",currentDailyQuestion.questionId,"answers",currentUser.uid);getDoc(answerRef).then(mine=>{if(mine.exists()){$("dailyQuestionAnswerArea").classList.add("hidden");$("dailyQuestionAnswers").insertAdjacentHTML("afterbegin",`<p class="feature-hint">إجابتك: ${$safe(mine.data().answer||"")}</p>`)}else{$("dailyQuestionAnswerArea").classList.remove("hidden")}}).catch(()=>{});stopDailyAnswers=onSnapshot(query(collection(db,"dailyQuestions",currentDailyQuestion.questionId,"answers"),orderBy("createdAt","desc"),limit(100)),snap=>{$("dailyQuestionAnswers").innerHTML="<h3>إجابات الأعضاء</h3>"+(snap.empty?"<p class=feature-hint>لسه مفيش إجابات.</p>":snap.docs.map(d=>{const a=d.data();return `<article class="daily-answer-card"><b>${$safe(a.displayName||"عضو")}</b><p>${$safe(a.answer||"")}</p>${a.reaction?`<span class="answer-reaction">${$safe(a.reaction)}</span>`:""}</article>`}).join(""))},e=>{$("dailyQuestionAnswers").textContent="تعذر تحميل الإجابات.";console.warn(e)});}
 $("dailyQuestionBell")?.addEventListener("click",openDailyQuestion);$("closeDailyQuestion")?.addEventListener("click",()=>{$("dailyQuestionModal").classList.add("hidden");if(stopDailyAnswers){stopDailyAnswers();stopDailyAnswers=null}});
 $("submitDailyAnswer")?.addEventListener("click",async()=>{const answer=$("dailyQuestionAnswer").value.trim();if(!answer||!currentDailyQuestion?.questionId)return toast("اكتب إجابتك أولًا");try{await setDoc(doc(db,"dailyQuestions",currentDailyQuestion.questionId,"answers",currentUser.uid),{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,answer,createdAt:serverTimestamp()});$("dailyQuestionAnswerArea").classList.add("hidden");$("dailyQuestionAnswer").value="";toast("وصلت إجابتك ♡");}catch(e){console.error(e);toast("تعذر إرسال الإجابة. ربما أجبت بالفعل.")}});
 async function loadDeveloperDailyAnswers(){const state=$("devDailyQuestionState"),root=$("devDailyAnswersList");try{const qSnap=await getDoc(doc(developerDb,"system","dailyQuestion")),q=qSnap.data()||{};if(!q.questionId){state.textContent="لا يوجد سؤال منشور.";return}const snap=await getDocs(query(collection(developerDb,"dailyQuestions",q.questionId,"answers"),orderBy("createdAt","desc"),limit(200)));root.innerHTML=snap.empty?"<p>لا توجد إجابات حتى الآن.</p>":snap.docs.map(d=>{const a=d.data();return `<article class="dev-answer-row"><div><b>${$safe(a.displayName||"عضو")}</b><p>${$safe(a.answer||"")}</p><small>${a.judgement==="correct"?"إجابة صحيحة":a.judgement==="wrong"?"إجابة خاطئة":"لم يتم التقييم"} ${$safe(a.reaction||"")}</small></div><div class="dev-answer-actions"><button type="button" data-judge="correct" data-answer="${$safe(d.id)}">🌟 صح</button><button type="button" data-judge="wrong" data-answer="${$safe(d.id)}">🙈 غلط</button></div></article>`}).join("");root.querySelectorAll("[data-judge]").forEach(b=>b.onclick=async()=>{const correct=b.dataset.judge==="correct",reaction=correct?"🌟👏":"🙈💔";try{await updateDoc(doc(developerDb,"dailyQuestions",q.questionId,"answers",b.dataset.answer),{judgement:b.dataset.judge,reaction,judgedAt:serverTimestamp()});b.closest(".dev-answer-row").querySelector("small").textContent=correct?"إجابة صحيحة 🌟👏":"إجابة خاطئة 🙈💔";}catch(e){state.textContent="تعذر تسجيل التقييم: "+e.message}});state.textContent=`تم تحميل ${snap.size} إجابة.`;}catch(e){state.textContent="تعذر تحميل الإجابات: "+(e.message||e);recordDevError("Load daily answers",e)}}
-// Save a compact reference only; never fetch or duplicate the entire chat history.
 async function saveChatMemory(m){try{const payload={uid:currentUser.uid,messageId:m.id,text:m.text||"",imageUrl:m.imageUrl||"",sticker:m.sticker||"",senderName:m.senderName||"عضو",savedByName:currentProfile.displayName||currentProfile.username,createdAt:serverTimestamp(),originalCreatedAt:m.createdAt||null};await addDoc(collection(db,"threads",activeThreadId(),"memories"),payload);toast("اتحفظت في صندوق الذكريات 📸");}catch(e){console.error(e);toast("تعذر حفظ الذكرى. راجع قواعد Firestore.")}}
 async function openChatMemories(){if(!activeThreadId())return;$("chatMemoriesModal").classList.remove("hidden");$("chatMemoriesList").textContent="جاري تحميل الذكريات...";try{const snap=await getDocs(query(collection(db,"threads",activeThreadId(),"memories"),orderBy("createdAt","desc"),limit(50)));$("chatMemoriesList").innerHTML=snap.empty?"<p class=feature-hint>لسه مفيش ذكريات محفوظة.</p>":snap.docs.map(d=>{const m=d.data();return `<article class="memory-card">${m.imageUrl?`<img src="${$safe(m.imageUrl)}" alt="ذكرى">`:""}<div><b>${$safe(m.senderName||"عضو")}</b><p>${$safe(m.text|| (m.sticker?"ملصق محفوظ":"صورة محفوظة"))}</p><small>حُفظت بواسطة ${$safe(m.savedByName||"عضو")} · ${m.originalCreatedAt?.toDate?m.originalCreatedAt.toDate().toLocaleString("ar-EG"):m.createdAt?.toDate?m.createdAt.toDate().toLocaleString("ar-EG"):""}</small></div></article>`}).join("");}catch(e){$("chatMemoriesList").textContent="تعذر تحميل الذكريات.";console.warn(e)}}
 $("chatMemoriesOpen")?.addEventListener("click",()=>{closeChatToolsMenu();openChatMemories()});$("closeChatMemories")?.addEventListener("click",()=>$("chatMemoriesModal").classList.add("hidden"));
 $("addCustomMemory")?.addEventListener("click",async()=>{const note=prompt("اكتب الموقف أو الذكرى اللي تحب تحتفظ بيها:");if(!note?.trim())return;try{await addDoc(collection(db,"threads",activeThreadId(),"memories"),{uid:currentUser.uid,messageId:"",text:note.trim().slice(0,1000),imageUrl:"",sticker:"",senderName:currentProfile.displayName||currentProfile.username,savedByName:currentProfile.displayName||currentProfile.username,createdAt:serverTimestamp(),originalCreatedAt:serverTimestamp()});await openChatMemories();toast("اتحفظت الذكرى ♡")}catch(e){toast("تعذر حفظ الذكرى")}});
-async function openChatStats(){if(!activeThreadId())return;$("chatStatsModal").classList.remove("hidden");$("chatStatsGrid").innerHTML="<p>جاري تحميل الإحصائيات...</p>";try{const snap=await getDoc(doc(db,"threads",activeThreadId(),"stats","summary"));const d=snap.data()||{};const rows=[[d.totalMessages||0,"إجمالي الرسائل"],[d.topEmoji||"—","أكثر إيموجي"],[d.busiestDay||"—","أكثر يوم نشاطًا"],[d.longestConversation||"—","أطول محادثة"]];$("chatStatsGrid").innerHTML=rows.map(([v,l])=>`<div><b>${$safe(String(v))}</b><small>${$safe(l)}</small></div>`).join("");$("chatStatsPeriod").textContent=d.startedAt?`منذ ${d.startedAt.toDate?.().toLocaleDateString("ar-EG")||"تفعيل الإحصائيات"}`:"الإحصائيات تبدأ من تفعيل التجميع؛ الرسائل القديمة لا تُقرأ تلقائيًا لتوفير قراءات Firebase.";}catch(e){$("chatStatsGrid").textContent="تعذر تحميل الإحصائيات.";console.warn(e)}}
-$("chatStatsOpen")?.addEventListener("click",()=>{closeChatToolsMenu();openChatStats()});$("closeChatStats")?.addEventListener("click",()=>$("chatStatsModal").classList.add("hidden"));
-
 const sidebarToggle = document.getElementById("sidebarToggle");
 const chatLayout = document.querySelector(".chat-view");
 if (sidebarToggle && chatLayout) {

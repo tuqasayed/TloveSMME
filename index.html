@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=bubble-chat-features-20261118" rel="stylesheet"/>
+  <link href="style.css?v=bubble-chat-clean-20261118" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -98,7 +98,7 @@
        </small>
       </div>
       <div class="side-actions">
-       <button class="daily-question-bell" id="dailyQuestionBell" type="button" aria-label="سؤال اليوم" title="سؤال اليوم">🔔<i class="daily-question-dot hidden" id="dailyQuestionDot"></i></button>
+       <button class="daily-question-bell" id="dailyQuestionBell" type="button" aria-label="سؤال اليوم" title="سؤال اليوم">🔔 سؤال اليوم<i class="daily-question-dot hidden" id="dailyQuestionDot"></i></button><span class="public-contact-email hidden" id="publicContactEmail" aria-label="بريد التواصل"></span>
        
        <button class="icon-btn settings-toggle" id="settingsToggle" type="button" aria-label="الإعدادات" aria-haspopup="dialog" aria-expanded="false" title="الإعدادات">الإعدادات ⚙</button>
       </div>
@@ -169,7 +169,6 @@
         <div class="chat-tools-menu hidden" id="chatToolsMenu" role="menu" aria-label="خيارات المحادثة">
          <button class="chat-tools-item" id="chatSearchToggle" type="button" role="menuitem"><span>⌕</span> بحث في المحادثة</button>
          <button class="chat-tools-item" id="pinnedToggle" type="button" role="menuitem"><span>📌</span> الرسائل المثبتة</button>
-         <button class="chat-tools-item" id="chatStatsOpen" type="button" role="menuitem"><span>📊</span> إحصائيات المحادثة</button>
          <button class="chat-tools-item" id="chatMemoriesOpen" type="button" role="menuitem"><span>📸</span> صندوق الذكريات</button>
         </div>
        </div>
@@ -285,9 +284,8 @@
   <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
   <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
 
-  <div class="modal hidden" id="surpriseModal"><section class="modal-card feature-modal-card" role="dialog" aria-modal="true" aria-label="إعداد الرسالة المفاجأة"><button class="modal-close" id="closeSurpriseModal" type="button">×</button><div class="feature-modal-icon">💌</div><h2>رسالتك المفاجأة</h2><p class="feature-modal-sub">اختار طريقة وصول الرسالة والديكور اللي تحبه.</p><div class="surprise-mode-grid"><button type="button" class="surprise-mode-card" id="surpriseNowBtn"><span>🎀</span><b>إرسال بديكور</b><small>اختار شكل الرسالة وديكورها</small></button><button type="button" class="surprise-mode-card" id="surpriseScheduleBtn"><span>🕰️</span><b>إرسال بموعد</b><small>تتبعت تلقائيًا في وقتها</small></button></div><div id="surpriseDecorPanel" class="hidden"><h3>اختار الديكور</h3><div class="surprise-decor-grid"><button type="button" data-surprise-decor="envelope">💌<small>ظرف مقفول</small></button><button type="button" data-surprise-decor="love">💗<small>قلوب</small></button><button type="button" data-surprise-decor="fire">🔥<small>نار</small></button><button type="button" data-surprise-decor="gift">🎁<small>هدية</small></button><button type="button" data-surprise-decor="stars">✨<small>نجوم</small></button><button type="button" data-surprise-decor="flowers">🌸<small>ورود</small></button><button type="button" data-surprise-decor="moon">🌙<small>قمر</small></button></div><button type="button" class="primary-btn" id="sendSurpriseNow">إرسال الرسالة المفاجأة</button></div><div id="surpriseSchedulePanel" class="hidden"><h3>اختار الديكور</h3><div class="surprise-decor-grid"><button type="button" data-surprise-decor="envelope">💌<small>ظرف مقفول</small></button><button type="button" data-surprise-decor="love">💗<small>قلوب</small></button><button type="button" data-surprise-decor="fire">🔥<small>نار</small></button><button type="button" data-surprise-decor="gift">🎁<small>هدية</small></button><button type="button" data-surprise-decor="stars">✨<small>نجوم</small></button><button type="button" data-surprise-decor="flowers">🌸<small>ورود</small></button><button type="button" data-surprise-decor="moon">🌙<small>قمر</small></button></div><label>موعد الإرسال<input type="datetime-local" id="surpriseScheduleAt"></label><p class="feature-hint">لازم تفعيل Cloud Functions مرة واحدة عشان الإرسال يتم حتى لو التطبيق مقفول.</p><button type="button" class="primary-btn" id="saveScheduledSurprise">جدولة الرسالة</button></div></section></div>
+  <div class="modal hidden" id="surpriseModal"><section class="modal-card feature-modal-card" role="dialog" aria-modal="true" aria-label="إعداد الرسالة المفاجأة"><button class="modal-close" id="closeSurpriseModal" type="button">×</button><div class="feature-modal-icon">💌</div><h2>رسالتك المفاجأة</h2><p class="feature-modal-sub">اختار طريقة وصول الرسالة والديكور اللي تحبه.</p><div class="surprise-mode-grid"><button type="button" class="surprise-mode-card" id="surpriseNowBtn"><span>🎀</span><b>إرسال بديكور</b><small>اختار شكل الرسالة وديكورها</small></button></div><div id="surpriseDecorPanel" class="hidden"><h3>اختار الديكور</h3><div class="surprise-decor-grid"><button type="button" data-surprise-decor="envelope">💌<small>ظرف مقفول</small></button><button type="button" data-surprise-decor="love">💗<small>قلوب</small></button><button type="button" data-surprise-decor="fire">🔥<small>نار</small></button><button type="button" data-surprise-decor="gift">🎁<small>هدية</small></button><button type="button" data-surprise-decor="stars">✨<small>نجوم</small></button><button type="button" data-surprise-decor="flowers">🌸<small>ورود</small></button><button type="button" data-surprise-decor="moon">🌙<small>قمر</small></button></div><button type="button" class="primary-btn" id="sendSurpriseNow">إرسال الرسالة المفاجأة</button></div></section></div>
   <div class="modal hidden" id="dailyQuestionModal"><section class="modal-card feature-modal-card daily-question-card" role="dialog" aria-modal="true" aria-label="سؤال اليوم"><button class="modal-close" id="closeDailyQuestion" type="button">×</button><div class="feature-modal-icon">🔔</div><h2>سؤال اليوم</h2><p id="dailyQuestionText" class="daily-question-text">لا يوجد سؤال حاليًا.</p><div id="dailyQuestionAnswerArea"><textarea id="dailyQuestionAnswer" maxlength="500" rows="3" placeholder="اكتب إجابتك..."></textarea><button id="submitDailyAnswer" class="primary-btn" type="button">إرسال الإجابة</button></div><div id="dailyQuestionAnswers" class="daily-question-answers"></div></section></div>
-  <div class="modal hidden" id="chatStatsModal"><section class="modal-card feature-modal-card" role="dialog" aria-modal="true" aria-label="إحصائيات المحادثة"><button class="modal-close" id="closeChatStats" type="button">×</button><div class="feature-modal-icon">📊</div><h2>إحصائيات المحادثة</h2><p class="feature-hint" id="chatStatsPeriod">الإحصائيات من وقت تفعيل النظام.</p><div class="chat-stats-grid" id="chatStatsGrid"><div><b>—</b><small>الرسائل</small></div></div></section></div>
   <div class="modal hidden" id="chatMemoriesModal"><section class="modal-card feature-modal-card memories-modal-card" role="dialog" aria-modal="true" aria-label="صندوق الذكريات"><button class="modal-close" id="closeChatMemories" type="button">×</button><div class="feature-modal-icon">📸</div><h2>صندوق الذكريات</h2><p class="feature-modal-sub">اللحظات اللي حبيتوا تحتفظوا بيها.</p><button type="button" class="secondary-btn" id="addCustomMemory">＋ إضافة موقف للذكريات</button><div id="chatMemoriesList" class="chat-memories-list"></div></section></div>
   <div class="modal hidden" id="settingsModal"><section class="modal-card app-settings-card" role="dialog" aria-modal="true" aria-label="الإعدادات">
    <button class="modal-close" id="closeSettings" type="button">&times;</button><h2>الإعدادات ⚙</h2>
@@ -299,7 +297,7 @@
   <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><a id="downloadLightboxImage" class="lightbox-download" download target="_blank" rel="noopener" aria-label="تحميل الصورة" title="تحميل الصورة">⬇</a><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=bubble-chat-features-20261118" type="module">
+  <script src="app.js?v=bubble-chat-clean-20261118" type="module">
   </script>
  </body>
 </html>

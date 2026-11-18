@@ -456,7 +456,7 @@ function setupMessageDecorationHold(){
   const btn=document.querySelector(".send-btn");if(!btn)return;
   btn.id="sendBtn";
   let holdTimer=null,held=false;
-  const placePicker=()=>{const picker=$("messageDecorationPicker"),chat=$("activeChat");if(!picker||!chat)return;const rect=chat.getBoundingClientRect();picker.style.left=`${Math.max(0,rect.left)}px`;picker.style.width=`${Math.max(240,window.innerWidth-Math.max(0,rect.left))}px`;};
+  const placePicker=()=>{const picker=$("messageDecorationPicker"),chat=$("activeChat");if(!picker||!chat)return;const rect=chat.getBoundingClientRect();const left=Math.max(0,Math.min(window.innerWidth-240,rect.left));const width=Math.max(240,Math.min(rect.width,window.innerWidth-left));const composer=document.querySelector("#messageForm.composer")||document.querySelector(".composer");const composerRect=composer?.getBoundingClientRect();picker.style.left=`${left}px`;picker.style.right="auto";picker.style.width=`${width}px`;if(composerRect&&composerRect.top>0)picker.style.bottom=`${Math.max(8,window.innerHeight-composerRect.top+10)}px`;};
   window.addEventListener("resize",placePicker);window.addEventListener("orientationchange",placePicker);
   const start=()=>{held=false;clearTimeout(holdTimer);holdTimer=setTimeout(()=>{held=true;const picker=ensureDecorationPicker();placePicker();picker.classList.remove("hidden");},550)};
   const cancel=()=>clearTimeout(holdTimer);

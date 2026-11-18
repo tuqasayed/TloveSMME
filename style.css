@@ -4093,8 +4093,8 @@ body.dark-mode .message-envelope,body.amoled-mode .message-envelope{background:l
 body.dark-mode .envelope-art,body.amoled-mode .envelope-art{background:linear-gradient(145deg,#e9c58d,#a77b58);border-color:#8c6446;}
 
 /* The four-dot attachment launcher uses theme-aware contrast, including pure AMOLED. */
-body.amoled-mode #messageForm.composer .composer-media-toggle{background:#000!important;background-image:none!important;border-color:#29242f!important;color:#f1eafa!important;box-shadow:none!important;}
-body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#e6d9f5!important;opacity:1!important;}
+body.amoled-mode #messageForm.composer .composer-media-toggle{background:#111!important;border-color:#38333f!important;color:#e9e2f4!important;box-shadow:0 0 0 1px #ffffff08!important;}
+body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#d8cbea!important;opacity:.95!important;}
 body.dark-mode #messageForm.composer .composer-media-toggle{background:#292635!important;border-color:#494253!important;color:#f0eafa!important;}
 body.dark-mode #messageForm.composer .composer-media-toggle span{background:#e2d9f0!important;}
 

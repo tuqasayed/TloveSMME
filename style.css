@@ -4093,8 +4093,8 @@ body.dark-mode .message-envelope,body.amoled-mode .message-envelope{background:l
 body.dark-mode .envelope-art,body.amoled-mode .envelope-art{background:linear-gradient(145deg,#e9c58d,#a77b58);border-color:#8c6446;}
 
 /* The four-dot attachment launcher uses theme-aware contrast, including pure AMOLED. */
-body.amoled-mode #messageForm.composer .composer-media-toggle{background:#111!important;border-color:#38333f!important;color:#e9e2f4!important;box-shadow:0 0 0 1px #ffffff08!important;}
-body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#d8cbea!important;opacity:.95!important;}
+body.amoled-mode #messageForm.composer .composer-media-toggle{background:#000!important;background-image:none!important;border-color:#29242f!important;color:#f1eafa!important;box-shadow:none!important;}
+body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#e6d9f5!important;opacity:1!important;}
 body.dark-mode #messageForm.composer .composer-media-toggle{background:#292635!important;border-color:#494253!important;color:#f0eafa!important;}
 body.dark-mode #messageForm.composer .composer-media-toggle span{background:#e2d9f0!important;}
 
@@ -4118,3 +4118,31 @@ body.dark-mode .elegant-confirm-card{background:#1d1b27;color:#f4f0fb;border-col
 body.amoled-mode .elegant-confirm-card{background:#08080b;color:#f5f1ff;border-color:#302a38;}
 body.dark-mode .elegant-confirm-cancel,body.amoled-mode .elegant-confirm-cancel{background:#2b2836;border-color:#494253;color:#f2edf9;}
 body.amoled-mode .elegant-confirm-cancel{background:#151319;border-color:#393340;}
+
+/* Message decoration chooser: full chat-width floating sheet, never clipped by the sidebar. */
+.message-decoration-picker{position:fixed!important;z-index:10050!important;left:0;right:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 88px)!important;width:100%;box-sizing:border-box;padding:18px 16px 16px!important;border:1px solid rgba(160,145,190,.2)!important;border-radius:24px 24px 0 0!important;background:#f8f7fb!important;color:#24212d!important;box-shadow:0 -14px 45px rgba(0,0,0,.22)!important;backdrop-filter:blur(22px);}
+.message-decoration-picker.hidden{display:none!important}
+.message-decoration-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:0 2px}
+.message-decoration-heading strong{font-size:17px;font-weight:900;color:inherit}
+.message-decoration-heading span{font-size:12px;color:#85818e}
+.message-decoration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.message-decoration-picker .message-decoration-grid button{min-width:0;min-height:112px!important;padding:13px 8px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:10px!important;border:1px solid rgba(30,25,45,.045)!important;border-radius:22px!important;background:#eeedf2!important;color:#282532!important;box-shadow:0 5px 14px rgba(30,20,45,.055);}
+.message-decoration-picker .message-decoration-grid button>span{font-size:15px!important;font-weight:850!important;color:inherit!important}
+.message-decoration-picker .deco-preview{width:64px;height:64px;display:grid;place-items:center;border-radius:19px;font-style:normal;font-size:31px;box-shadow:inset 0 1px 0 #ffffffaa,0 5px 14px rgba(0,0,0,.08)}
+.deco-heart-choice .deco-preview{background:linear-gradient(145deg,#ffd8e8,#f6a9cb);color:#e64b91;text-shadow:0 2px 4px #a52c6b44}
+.deco-fire-choice .deco-preview{background:linear-gradient(145deg,#ffe4b6,#ffb96d);color:#ed713c;text-shadow:0 2px 4px #a94a2444}
+.deco-sparkles-choice .deco-preview{background:linear-gradient(145deg,#e3dcff,#bcb1ff);color:#7255d6;text-shadow:0 2px 4px #5540a944}
+.deco-flowers-choice .deco-preview{background:linear-gradient(145deg,#fce1ed,#d5f1d9);color:#d45c9b;text-shadow:0 2px 4px #8a3f7144}
+.deco-envelope .deco-preview{background:linear-gradient(145deg,#ffe9bd,#e9bd78);color:#98632b}
+.deco-none-choice .deco-preview{background:linear-gradient(145deg,#e5e5eb,#c9cbd5);color:#555969}
+.message-decoration-picker .message-decoration-grid button:active{transform:scale(.97)}
+body.dark-mode .message-decoration-picker{background:#171720!important;color:#f7f4fb!important;border-color:#393344!important}
+body.dark-mode .message-decoration-picker .message-decoration-grid button{background:#24232d!important;color:#f5f1fa!important;border-color:#ffffff0d!important}
+body.amoled-mode .message-decoration-picker{background:#08080b!important;color:#f8f7fb!important;border-color:#292832!important;box-shadow:0 -16px 48px #000!important}
+body.amoled-mode .message-decoration-picker .message-decoration-grid button{background:#17171d!important;color:#f8f7fb!important;border-color:#ffffff12!important}
+body.amoled-mode .message-decoration-heading span,body.dark-mode .message-decoration-heading span{color:#aaa5b5}
+.dev-quickbar{order:99;display:flex;align-items:center;justify-content:flex-start;gap:9px;flex-wrap:wrap;margin:18px 0 0;padding:12px;border:1px solid #ffffff16;border-radius:16px;background:#ffffff08}
+.dev-quickbar .dev-top-button{order:0}.dev-quickbar #devClearLocalErrors{order:1}
+@media(max-width:600px){.message-decoration-picker{bottom:calc(env(safe-area-inset-bottom,0px) + 78px)!important;padding:15px 12px 13px!important}.message-decoration-picker .message-decoration-grid{gap:9px}.message-decoration-picker .message-decoration-grid button{min-height:98px!important;border-radius:18px!important}.message-decoration-picker .deco-preview{width:56px;height:56px;border-radius:17px}}
+.message-decoration-picker{display:block!important;bottom:calc(env(safe-area-inset-bottom,0px) + 176px)!important}
+@media(max-width:600px){.message-decoration-picker{bottom:calc(env(safe-area-inset-bottom,0px) + 164px)!important}}

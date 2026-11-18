@@ -4038,3 +4038,83 @@ body.amoled-mode .daily-question-card form button:hover{background:#302542!impor
 .dev-quickbar #devClearLocalErrors{order:1;}
 .dev-quickbar button:active{transform:scale(.97);}
 @media(max-width:760px){.dev-quickbar{position:sticky;top:0;z-index:20;margin:0 0 10px;padding:8px;background:#111019ed;backdrop-filter:blur(12px);}.dev-quickbar button{min-height:38px;}}
+
+/* Modern message-decoration picker and richly designed message treatments. */
+.message-decoration-picker{width:min(360px,90vw)!important;padding:13px!important;gap:9px!important;border-radius:20px!important;background:var(--panel,#fff)!important;border:1px solid rgba(145,125,190,.2)!important;box-shadow:0 18px 48px rgba(18,15,35,.2)!important;backdrop-filter:blur(18px);}
+.message-decoration-picker button{flex:1 1 92px;min-height:78px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:7px!important;padding:9px 7px!important;border:1px solid rgba(145,125,190,.13)!important;border-radius:15px!important;background:rgba(145,125,190,.055)!important;color:var(--text,#282438)!important;transition:transform .2s ease,border-color .2s ease,background .2s ease!important;}
+.message-decoration-picker button:hover{transform:translateY(-3px);border-color:#a78bda!important;background:rgba(167,139,218,.13)!important;}
+.message-decoration-picker button span{font-size:11px!important;font-weight:800;}
+.deco-preview{position:relative;width:38px;height:34px;display:block;filter:drop-shadow(0 4px 5px #0002);}
+.deco-preview-envelope:before{content:"";position:absolute;inset:5px 2px 1px;border-radius:6px;background:linear-gradient(145deg,#f8d995,#d99554);border:1px solid #b9783f;}
+.deco-preview-envelope:after{content:"";position:absolute;left:8px;right:8px;top:7px;height:19px;border-bottom:2px solid #9d623c;border-left:2px solid #9d623c;border-right:2px solid #9d623c;transform:rotate(45deg) scale(.72);border-radius:2px;}
+.deco-preview-heart:before{content:"♥";position:absolute;inset:-7px 0 0;text-align:center;font-size:39px;line-height:40px;color:#ee6f9d;text-shadow:0 3px 0 #b94373;}
+.deco-preview-fire:before{content:"";position:absolute;left:8px;bottom:0;width:23px;height:31px;border-radius:70% 30% 55% 45%;transform:rotate(45deg);background:linear-gradient(135deg,#ffe27a 8%,#ff9b42 48%,#e84d69 90%);box-shadow:0 0 13px #ff934c88;}
+.deco-preview-sparkles:before{content:"✦";position:absolute;left:3px;top:-7px;font-size:34px;color:#8b75db;text-shadow:13px 12px 0 #e9b85f,-3px 23px 0 #78b8cf;}
+.deco-preview-flowers:before{content:"✿";position:absolute;inset:-7px 0 0;text-align:center;font-size:38px;color:#e78db7;text-shadow:0 2px 0 #a65b9a;}
+.deco-preview-none{border:1px dashed currentColor;border-radius:50%;display:grid;place-items:center;font-size:24px;opacity:.65;}
+.message-decorated{position:relative;isolation:isolate;overflow:hidden;padding:14px 15px 13px;border-radius:18px;border:1px solid transparent;box-shadow:0 8px 22px rgba(30,20,55,.09);}
+.message-decor-content{position:relative;z-index:2;min-width:0;overflow-wrap:anywhere;}
+.message-decor-content p{margin:0;line-height:1.7;font-weight:600;}
+.message-decor-art{position:absolute;z-index:1;pointer-events:none;inset:0;opacity:.8;}
+.decor-heart{background:linear-gradient(130deg,#fff1f5,#ffe0eb 52%,#f9d5e9);border-color:#efb4cc;color:#54263d;}
+.decor-heart:before,.decor-heart:after{content:"";position:absolute;width:115px;height:115px;border:1px solid #d85d8b55;border-radius:35% 65% 50% 50%;transform:rotate(35deg);right:-36px;top:-54px;}
+.decor-heart:after{width:70px;height:70px;right:12px;top:auto;bottom:-45px;border-color:#d85d8b66;}
+.decor-heart .message-decor-art:before{content:"♥";position:absolute;right:12px;top:3px;font-size:25px;color:#d65e91;opacity:.5;}
+.decor-fire{background:linear-gradient(125deg,#fff1df,#ffdfc1 55%,#ffd4b7);border-color:#e9a36c;color:#592d20;}
+.decor-fire .message-decor-art:before{content:"";position:absolute;right:-15px;bottom:-44px;width:120px;height:120px;border-radius:70% 25% 65% 35%;transform:rotate(42deg);background:linear-gradient(140deg,#ffe08a,#ff9858 58%,#ed6470);opacity:.45;filter:blur(1px);}
+.decor-fire .message-decor-art:after{content:"";position:absolute;right:20px;top:9px;width:38px;height:38px;border:2px solid #e57a4c66;border-radius:50%;box-shadow:0 0 0 8px #e57a4c12,0 0 0 16px #e57a4c0d;}
+.decor-sparkles{background:linear-gradient(125deg,#f0edff,#e6e3ff 55%,#e5efff);border-color:#b9b1eb;color:#302b57;}
+.decor-sparkles .message-decor-art:before{content:"✦   ·   ✧";position:absolute;right:10px;top:3px;font-size:24px;letter-spacing:7px;color:#7968bd;opacity:.55;}
+.decor-sparkles .message-decor-art:after{content:"";position:absolute;right:-25px;bottom:-65px;width:145px;height:145px;border-radius:50%;border:1px solid #8878d755;box-shadow:0 0 0 12px #8878d711,0 0 0 25px #8878d70b;}
+.decor-flowers{background:linear-gradient(125deg,#effaf3,#e2f5e9 55%,#f8eaf3);border-color:#acd9bd;color:#244c39;}
+.decor-flowers .message-decor-art:before{content:"✿";position:absolute;right:12px;top:-9px;font-size:54px;color:#75b88c;opacity:.42;transform:rotate(-16deg);}
+.decor-flowers .message-decor-art:after{content:"";position:absolute;right:40px;bottom:-22px;width:62px;height:62px;border:1px solid #72ad8b66;border-radius:50%;box-shadow:0 0 0 8px #72ad8b12;}
+body.dark-mode .decor-heart,body.amoled-mode .decor-heart{background:linear-gradient(130deg,#392332,#2c1d2b);border-color:#75445d;color:#ffeaf2;}
+body.dark-mode .decor-fire,body.amoled-mode .decor-fire{background:linear-gradient(125deg,#38271f,#2d211e);border-color:#80543c;color:#fff0df;}
+body.dark-mode .decor-sparkles,body.amoled-mode .decor-sparkles{background:linear-gradient(125deg,#29253e,#211f34);border-color:#514879;color:#f1edff;}
+body.dark-mode .decor-flowers,body.amoled-mode .decor-flowers{background:linear-gradient(125deg,#20352b,#1d2b27);border-color:#426b52;color:#e8fff0;}
+body.amoled-mode .message-decorated{box-shadow:0 0 0 1px #ffffff08,0 8px 22px #000;}
+
+/* Envelope opens smoothly, then gives the message the whole stage. */
+.envelope-wrap{position:relative;min-width:160px;}
+.message-envelope{position:relative;isolation:isolate;overflow:hidden;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:5px;width:100%;min-width:170px;min-height:112px;padding:14px 18px!important;border:1px solid #c18b52!important;border-radius:17px!important;background:radial-gradient(circle at 50% 0%,#fff1c8,#f4cf8f 45%,#dca76d)!important;color:#573719!important;box-shadow:inset 0 1px 0 #fff9,0 9px 22px #8d5b3028!important;cursor:pointer;transition:opacity .28s ease,transform .38s cubic-bezier(.2,.8,.2,1),filter .28s ease!important;}
+.envelope-art{position:relative;width:48px;height:34px;border-radius:6px;background:linear-gradient(145deg,#fff0c4,#d99b57);border:1px solid #a96d37;box-shadow:0 5px 10px #77441f33;}
+.envelope-art:before{content:"";position:absolute;left:0;right:0;top:-1px;margin:auto;width:32px;height:32px;background:linear-gradient(135deg,#ffe6ae,#d99551);border-left:1px solid #a96d37;border-top:1px solid #a96d37;transform:translateY(-1px) rotate(45deg) scale(.72);border-radius:3px;}
+.envelope-art:after{content:"";position:absolute;left:0;right:0;bottom:0;height:20px;background:linear-gradient(145deg,#e8b777,#c98545);clip-path:polygon(0 0,50% 70%,100% 0,100% 100%,0 100%);border-radius:0 0 5px 5px;}
+.envelope-art i{position:absolute;z-index:2;left:19px;top:12px;width:9px;height:9px;border-radius:50%;background:#fff0c4;box-shadow:0 0 0 3px #b67a42;}
+.message-envelope b{font-size:12px;font-weight:900;}
+.message-envelope small{font-size:10px;opacity:.72;}
+.message-envelope.opening{transform:translateY(-8px) scale(1.04);filter:brightness(1.12);}
+.message-envelope.is-gone{opacity:0;transform:translateY(-16px) scale(.82);pointer-events:none;}
+.envelope-hidden-content{transform:translateY(8px) scale(.98);opacity:0;}
+.envelope-hidden-content.revealed{animation:envelopeReveal .38s cubic-bezier(.2,.8,.2,1) forwards;}
+@keyframes envelopeReveal{to{transform:translateY(0) scale(1);opacity:1;}}
+body.dark-mode .message-envelope,body.amoled-mode .message-envelope{background:linear-gradient(145deg,#40334a,#2a2537)!important;border-color:#75618f!important;color:#fff3df!important;box-shadow:inset 0 1px 0 #ffffff20,0 8px 20px #0005!important;}
+body.dark-mode .envelope-art,body.amoled-mode .envelope-art{background:linear-gradient(145deg,#e9c58d,#a77b58);border-color:#8c6446;}
+
+/* The four-dot attachment launcher uses theme-aware contrast, including pure AMOLED. */
+body.amoled-mode #messageForm.composer .composer-media-toggle{background:#111!important;border-color:#38333f!important;color:#e9e2f4!important;box-shadow:0 0 0 1px #ffffff08!important;}
+body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#d8cbea!important;opacity:.95!important;}
+body.dark-mode #messageForm.composer .composer-media-toggle{background:#292635!important;border-color:#494253!important;color:#f0eafa!important;}
+body.dark-mode #messageForm.composer .composer-media-toggle span{background:#e2d9f0!important;}
+
+/* Give the inbox control breathing room from adjacent sidebar actions. */
+#notificationsEntry{margin-top:13px!important;margin-bottom:18px!important;}
+
+/* Native-browser confirm() replacement for content deletion. */
+.elegant-confirm{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:20px;background:rgba(8,7,15,.48);backdrop-filter:blur(7px);opacity:0;transition:opacity .18s ease;}
+.elegant-confirm.is-visible{opacity:1;}
+.elegant-confirm-card{width:min(360px,calc(100vw - 40px));box-sizing:border-box;padding:23px 21px 18px;border:1px solid rgba(160,140,200,.22);border-radius:23px;background:var(--panel,#fff);color:var(--text,#292536);box-shadow:0 24px 80px #0004;text-align:center;transform:translateY(12px) scale(.97);transition:transform .2s cubic-bezier(.2,.8,.2,1);}
+.elegant-confirm.is-visible .elegant-confirm-card{transform:translateY(0) scale(1);}
+.elegant-confirm-icon{width:48px;height:48px;margin:0 auto 12px;display:grid;place-items:center;border-radius:16px;background:rgba(238,79,112,.12);color:#e65b78;font-size:24px;font-weight:900;}
+.elegant-confirm-card h3{margin:0 0 8px;font-size:17px;font-weight:900;}
+.elegant-confirm-card p{margin:0 auto 20px;max-width:290px;font-size:13px;line-height:1.7;opacity:.72;}
+.elegant-confirm-actions{display:flex;gap:9px;}
+.elegant-confirm-actions button{flex:1;min-height:42px;border-radius:13px;font:inherit;font-size:13px;font-weight:850;cursor:pointer;transition:transform .16s ease,filter .16s ease;}
+.elegant-confirm-actions button:active{transform:scale(.97);}
+.elegant-confirm-cancel{border:1px solid rgba(140,130,165,.25);background:rgba(140,130,165,.09);color:inherit;}
+.elegant-confirm-delete{border:1px solid #e85c7b;background:linear-gradient(135deg,#f16c86,#d94b6d);color:white;box-shadow:0 5px 14px #e45b792e;}
+body.dark-mode .elegant-confirm-card{background:#1d1b27;color:#f4f0fb;border-color:#3d374b;}
+body.amoled-mode .elegant-confirm-card{background:#08080b;color:#f5f1ff;border-color:#302a38;}
+body.dark-mode .elegant-confirm-cancel,body.amoled-mode .elegant-confirm-cancel{background:#2b2836;border-color:#494253;color:#f2edf9;}
+body.amoled-mode .elegant-confirm-cancel{background:#151319;border-color:#393340;}

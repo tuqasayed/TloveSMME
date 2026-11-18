@@ -439,7 +439,7 @@ if (loginBtn) {
 
 
 // Community inbox, Question of the Day, and message decorations.
-let stopInboxMessages=null,stopDailyQuestion=null,stopDailyAnswers=null;
+let stopInboxMessages=null,stopInboxUnread=null,stopDailyQuestion=null,stopDailyAnswers=null;
 let selectedMessageDecoration="";
 function updateDecorationButton(){
   const btn=$("sendBtn");if(btn)btn.dataset.decoration=selectedMessageDecoration||"";
@@ -447,7 +447,7 @@ function updateDecorationButton(){
 function ensureDecorationPicker(){
   let picker=$("messageDecorationPicker");if(picker)return picker;
   picker=document.createElement("div");picker.id="messageDecorationPicker";picker.className="message-decoration-picker hidden";
-  picker.innerHTML=`<button type="button" data-decoration="envelope">✉️ <span>ظرف</span></button><button type="button" data-decoration="heart">💗 <span>قلوب</span></button><button type="button" data-decoration="fire">🔥 <span>نار</span></button><button type="button" data-decoration="sparkles">✨ <span>لمعة</span></button><button type="button" data-decoration="flowers">🌷 <span>زهور</span></button><button type="button" data-decoration="">✕ <span>بدون</span></button>`;
+  picker.innerHTML=`<button type="button" data-decoration="envelope"><i class="deco-preview deco-preview-envelope"></i><span>الظرف</span></button><button type="button" data-decoration="heart"><i class="deco-preview deco-preview-heart"></i><span>القلوب</span></button><button type="button" data-decoration="fire"><i class="deco-preview deco-preview-fire"></i><span>اللهب</span></button><button type="button" data-decoration="sparkles"><i class="deco-preview deco-preview-sparkles"></i><span>النجوم</span></button><button type="button" data-decoration="flowers"><i class="deco-preview deco-preview-flowers"></i><span>الزهور</span></button><button type="button" data-decoration=""><i class="deco-preview deco-preview-none">×</i><span>بدون</span></button>`;
   $("messageForm")?.append(picker);
   picker.querySelectorAll("[data-decoration]").forEach(b=>b.addEventListener("click",()=>{selectedMessageDecoration=b.dataset.decoration||"";updateDecorationButton();picker.classList.add("hidden");}));
   return picker;
@@ -465,7 +465,39 @@ function setupMessageDecorationHold(){
 }
 setupMessageDecorationHold();
 
+function inboxSeenStorageKey(){return `bubbleInboxSeenAt:${currentUser?.uid||"guest"}`;}
+function markInboxAsSeen(){
+  try{localStorage.setItem(inboxSeenStorageKey(),String(Date.now()));}catch(e){}
+  $("notificationUnreadDot")?.classList.add("hidden");
+}
+function watchInboxUnread(){
+  if(!currentUser)return;
+  if(stopInboxUnread){stopInboxUnread();stopInboxUnread=null;}
+  const dot=$("notificationUnreadDot");if(!dot)return;
+  const seen=Number(localStorage.getItem(inboxSeenStorageKey())||0);
+  stopInboxUnread=onSnapshot(query(collection(db,"developerBroadcasts"),orderBy("createdAt","desc"),limit(1)),snap=>{
+    const newest=snap.docs[0]?.data()?.createdAt?.toMillis?.()||0;
+    const hasUnread=!!newest&&newest>seen;
+    dot.classList.toggle("hidden",!hasUnread);
+  },err=>console.warn("Inbox unread indicator:",err));
+}
+function ensureElegantConfirm(){
+  let modal=$("elegantConfirmModal");if(modal)return modal;
+  modal=document.createElement("div");modal.id="elegantConfirmModal";modal.className="elegant-confirm hidden";
+  modal.innerHTML=`<section class="elegant-confirm-card" role="dialog" aria-modal="true" aria-labelledby="elegantConfirmTitle"><span class="elegant-confirm-icon">⌫</span><h3 id="elegantConfirmTitle">تأكيد الحذف</h3><p id="elegantConfirmText"></p><div class="elegant-confirm-actions"><button type="button" class="elegant-confirm-cancel" id="elegantConfirmCancel">إلغاء</button><button type="button" class="elegant-confirm-delete" id="elegantConfirmDelete">حذف</button></div></section>`;
+  document.body.append(modal);return modal;
+}
+function askElegantDelete(message){
+  const modal=ensureElegantConfirm();$("elegantConfirmText").textContent=message;
+  modal.classList.remove("hidden");requestAnimationFrame(()=>modal.classList.add("is-visible"));
+  return new Promise(resolve=>{
+    const finish=value=>{modal.classList.remove("is-visible");setTimeout(()=>modal.classList.add("hidden"),180);$("elegantConfirmCancel").removeEventListener("click",cancel);$("elegantConfirmDelete").removeEventListener("click",yes);modal.removeEventListener("click",outside);document.removeEventListener("keydown",escape);resolve(value);};
+    const cancel=()=>finish(false),yes=()=>finish(true),outside=e=>{if(e.target===modal)finish(false)},escape=e=>{if(e.key==="Escape")finish(false)};
+    $("elegantConfirmCancel").addEventListener("click",cancel);$("elegantConfirmDelete").addEventListener("click",yes);modal.addEventListener("click",outside);document.addEventListener("keydown",escape);
+  });
+}
 function startMemberInbox(){
+  watchInboxUnread();
   if(stopInboxMessages)stopInboxMessages();
   const list=$("notificationsContent");if(!list||!currentUser)return;
   // Keep the question listener independent from the inbox-message listener so a
@@ -542,14 +574,14 @@ function setupDeveloperContentManagement(){
     const ids=new Set(snap.docs.map(d=>d.id));
     for(const [id,stop] of devInboxReplyStops){if(!ids.has(id)){stop();devInboxReplyStops.delete(id);}}
     section.innerHTML=`<h3>${en?"Inbox messages":"رسائل البريد"} (${snap.size})</h3>`+orderedDocs.map(d=>{const m=d.data();return `<article class="dev-inbox-card"><div class="dev-inbox-message"><b>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</b><p>${$safe(m.body||"")}</p></div><button type="button" class="danger dev-delete-mail" data-delete-broadcast="${$safe(d.id)}">${en?"Delete message":"حذف البريد"}</button></article>`;}).join("")||`<small>${en?"No messages.":"لا توجد رسائل."}</small>`;
-    section.querySelectorAll("[data-delete-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteBroadcast;if(!confirm(en?"Delete this inbox message and its replies?":"تحذف رسالة البريد دي وكل ردودها؟"))return;btn.disabled=true;try{const replies=await getDocs(collection(developerDb,"developerBroadcasts",id,"replies"));await Promise.all(replies.docs.map(r=>deleteDoc(r.ref)));await deleteDoc(doc(developerDb,"developerBroadcasts",id));$("devBroadcastState").textContent=en?"Message deleted.":"تم حذف رسالة البريد وردودها.";}catch(err){console.error("Delete inbox message:",err);btn.disabled=false;$("devBroadcastState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
+    section.querySelectorAll("[data-delete-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteBroadcast;if(!await askElegantDelete(en?"Delete this inbox message and all its replies?":"هل تريد حذف رسالة البريد دي وكل الردود المرتبطة بيها؟"))return;btn.disabled=true;try{const replies=await getDocs(collection(developerDb,"developerBroadcasts",id,"replies"));await Promise.all(replies.docs.map(r=>deleteDoc(r.ref)));await deleteDoc(doc(developerDb,"developerBroadcasts",id));$("devBroadcastState").textContent=en?"Message deleted.":"تم حذف رسالة البريد وردودها.";}catch(err){console.error("Delete inbox message:",err);btn.disabled=false;$("devBroadcastState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
 
   },e=>{console.error("Broadcast management listener:",e);recordDevError("Inbox management listener",e);const section=$("devBroadcastManagement");if(section)section.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Could not load inbox management: ":"تعذر تحميل إدارة البريد: "}${$safe(e.code||e.message||"")}</p>`;});
   onSnapshot(collection(developerDb,"dailyQuestions"),snap=>{
     const en=isEnglishUi();const section=$("devQuestionManagement");if(!section)return;
     const orderedQuestions=[...snap.docs].sort((a,b)=>(b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0));
     section.innerHTML=`<h3>${en?"Published questions":"الأسئلة المنشورة"} (${snap.size})</h3>`+orderedQuestions.map(d=>`<article class="dev-answer-row"><div><b>${$safe(d.data().question||"")}</b></div><button type="button" class="danger" data-delete-question="${$safe(d.id)}">${en?"Delete":"حذف السؤال"}</button></article>`).join("");
-    section.querySelectorAll("[data-delete-question]").forEach(btn=>btn.onclick=async()=>{if(!confirm(en?"Delete this question and all its answers?":"تحذف السؤال ده وكل إجاباته؟"))return;btn.disabled=true;try{const qid=btn.dataset.deleteQuestion;const answers=await getDocs(collection(developerDb,"dailyQuestions",qid,"answers"));await Promise.all(answers.docs.map(a=>deleteDoc(a.ref)));await deleteDoc(doc(developerDb,"dailyQuestions",qid));$("devQuestionState").textContent=en?"Question and answers deleted.":"تم حذف السؤال وإجاباته.";}catch(err){console.error(err);btn.disabled=false;$("devQuestionState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
+    section.querySelectorAll("[data-delete-question]").forEach(btn=>btn.onclick=async()=>{if(!await askElegantDelete(en?"Delete this question and all its answers?":"هل تريد حذف سؤال اليوم وكل الإجابات المرتبطة بيه؟"))return;btn.disabled=true;try{const qid=btn.dataset.deleteQuestion;const answers=await getDocs(collection(developerDb,"dailyQuestions",qid,"answers"));await Promise.all(answers.docs.map(a=>deleteDoc(a.ref)));await deleteDoc(doc(developerDb,"dailyQuestions",qid));$("devQuestionState").textContent=en?"Question and answers deleted.":"تم حذف السؤال وإجاباته.";}catch(err){console.error(err);btn.disabled=false;$("devQuestionState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
   },e=>console.warn("Question management:",e));
 }
 let stopDevAnswers=null;
@@ -562,7 +594,7 @@ function watchDeveloperAnswers(questionId){
     host.querySelectorAll("[data-answer]").forEach(btn=>btn.onclick=async()=>{try{await updateDoc(doc(developerDb,"dailyQuestions",questionId,"answers",btn.dataset.answer),{developerReaction:btn.dataset.reaction});}catch(e){console.error(e);$("devQuestionState").textContent="تعذر حفظ التقييم."; }});
   },e=>{console.warn(e);host.textContent="تعذر تحميل الإجابات.";});
 }
-$("notificationsEntry")?.addEventListener("click",()=>{$("notificationsModal").classList.remove("hidden");startMemberInbox();});
+$("notificationsEntry")?.addEventListener("click",()=>{markInboxAsSeen();$("notificationsModal").classList.remove("hidden");startMemberInbox();});
 $("closeNotifications")?.addEventListener("click",()=>{$("notificationsModal").classList.add("hidden");});
 $("notificationsModal")?.addEventListener("click",e=>{if(e.target===$("notificationsModal"))$("notificationsModal").classList.add("hidden");});
 
@@ -1236,12 +1268,12 @@ function messageNode(m){
     return `<button class="reaction-chip ${mine?'reacted-by-me':''}" data-emoji="${$safe(emoji)}" type="button" aria-label="${$safe(emoji)} تفاعل ${uids.length}"><span class="reaction-emoji">${$safe(emoji)}</span><span class="reaction-people">${people}</span><span class="reaction-count">${uids.length}</span></button>`;
   }).join('');
   const storyReply=m.storyReply?`<div class="story-reply-context"><strong>↩ رد على حالتك</strong><span>${$safe(m.storyReply.caption|| (m.storyReply.mediaType==='image'?'📷 صورة حالة':m.storyReply.mediaType==='video'?'🎬 فيديو حالة':'حالة'))}</span></div>`:'';
-  const decorated=m.decoration==="envelope"?`<button class="message-envelope" type="button"><span>✉️</span><b>${isEnglishUi()?"Tap to open":"اضغط لفتح الظرف"}</b></button><div class="envelope-hidden-content hidden">${content}</div>`:m.decoration?`<div class="message-decorated decor-${$safe(m.decoration)}">${content}<span class="message-decor-icon">${({heart:"💗",fire:"🔥",sparkles:"✨",flowers:"🌷"}[m.decoration]||"♡")}</span></div>`:content;
+  const decorated=m.decoration==="envelope"?`<div class="envelope-wrap"><button class="message-envelope" type="button"><span class="envelope-art"><i></i></span><b>${isEnglishUi()?"Open message":"افتح رسالتك"}</b><small>${isEnglishUi()?"A little surprise inside":"مفاجأة صغيرة بداخله"}</small></button><div class="envelope-hidden-content hidden">${content}</div></div>`:m.decoration?`<div class="message-decorated decor-${$safe(m.decoration)}"><span class="message-decor-art" aria-hidden="true"></span><div class="message-decor-content">${content}</div></div>`:content;
   el.innerHTML=`${!mine?`<small class="sender-name" style="${nameStyle(sender.id?sender:{color1:senderColor,color2:senderColor})}">${$safe(m.senderName||'صديق')}</small>`:''}${m.pinned?'<div class="pin-mark">📌 مثبتة</div>':''}${storyReply}${reply}${decorated}<div class="message-meta"><time>${timeOf(m.createdAt)}</time>${m.edited?'<span>تم التعديل</span>':''}</div><div class="reaction-list">${reactions}</div>`;
   const row=document.createElement('div');row.className=`message-row ${mine?'mine':'theirs'}`;row.append(avatar,el);
   if(sender.id||m.senderId){avatar.classList.add("clickable-message-avatar");avatar.setAttribute("role","button");avatar.setAttribute("tabindex","0");const openSender=()=>openPublicProfile(sender.id?sender:(userProfiles.get(m.senderId)||{id:m.senderId,displayName:m.senderName,photoURL:senderPhoto}));avatar.addEventListener("click",openSender);avatar.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSender()}})}
   row.querySelectorAll('.reaction-chip').forEach(btn=>btn.onclick=()=>reactTo(m,btn.dataset.emoji));
-  row.querySelector(".message-envelope")?.addEventListener("click",e=>{e.currentTarget.classList.add("opened");e.currentTarget.querySelector("b").textContent=isEnglishUi()?"Opened":"تم فتح الظرف";row.querySelector(".envelope-hidden-content")?.classList.remove("hidden");});
+  row.querySelector(".message-envelope")?.addEventListener("click",e=>{const button=e.currentTarget,wrap=button.closest(".envelope-wrap"),hidden=wrap?.querySelector(".envelope-hidden-content");button.classList.add("opening");setTimeout(()=>{button.classList.add("is-gone");hidden?.classList.remove("hidden");hidden?.classList.add("revealed");setTimeout(()=>button.remove(),260);},360);});
 
   row.querySelector('.message-image-link')?.addEventListener('click',()=>openImageLightbox(m.imageUrl));
   row.querySelectorAll('[data-jump]').forEach(btn=>btn.addEventListener('click',()=>jumpToMessage(btn.dataset.jump)));

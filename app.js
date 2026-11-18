@@ -481,7 +481,7 @@ function renderInboxMessages(items){
   const en=isEnglishUi();
   let target=$("developerBroadcastList");
   if(!target){list.innerHTML=`<div id="dailyQuestionMember"></div><div id="developerBroadcastList"></div>`;target=$("developerBroadcastList");}
-  target.innerHTML=items.map(m=>`<article class="inbox-message"><small>${en?"FROM DEVELOPER":"رسالة من المطوّر"} · ${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Developer message":"رسالة من المطوّر"))}</h3><p>${$safe(m.body||"")}</p><span class="inbox-lock">${en?"Read-only message":"رسالة للقراءة فقط · لا يمكن الرد"}</span></article>`).join("")||`<p class="inbox-empty">${en?"No developer messages yet.":"لا توجد رسائل من المطوّر حتى الآن."}</p>`;
+  target.innerHTML=items.map(m=>`<article class="inbox-message"><small>${en?"FROM DEVELOPER":"رسالة من المطوّر"} · ${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Developer message":"رسالة من المطوّر"))}</h3><p>${$safe(m.body||"")}</p></article>`).join("")||`<p class="inbox-empty">${en?"No developer messages yet.":"لا توجد رسائل من المطوّر حتى الآن."}</p>`;
 }
 function loadCurrentDailyQuestion(){
   if(stopDailyQuestion)stopDailyQuestion();

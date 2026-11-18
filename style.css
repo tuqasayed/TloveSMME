@@ -3881,32 +3881,101 @@ body.dark-mode .message-decoration-picker,body.amoled-mode .message-decoration-p
 #devQuestionManagement>h3,#devBroadcastManagement>h3{margin:8px 0;color:var(--text-color,#fff)}
 
 
-/* Inbox sidebar button: match the settings control dimensions and keep icon left / label right in RTL. */
+/* Inbox button: match the settings control's footprint and keep the Arabic label fully visible. */
+.notifications-entry{
+  box-sizing:border-box!important;width:calc(100% - 28px)!important;height:42px!important;min-height:42px!important;
+  margin:10px 14px 14px!important;padding:0 14px!important;border-radius:13px!important;
+  display:flex!important;flex-direction:row!important;direction:ltr!important;align-items:center!important;justify-content:flex-start!important;
+  gap:9px!important;overflow:visible!important;font-size:13px!important;font-weight:800!important;line-height:1!important;
+  box-shadow:0 5px 16px #9a79c526;white-space:nowrap;
+}
+.notifications-entry .notification-bell{width:30px!important;height:30px!important;min-width:30px!important;flex:0 0 30px!important;border-radius:10px!important;font-size:19px!important;}
+.notifications-entry .notification-entry-label{flex:1 1 auto!important;min-width:0!important;display:block!important;direction:rtl!important;text-align:right!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25!important;}
+.notifications-entry .notification-unread-dot{position:absolute;top:5px;left:7px;margin:0!important;width:8px;height:8px;}
+body.dark-mode .notifications-entry{background:#171923!important;color:#f5f1ff!important;border-color:#343747!important;box-shadow:none!important;}
+body.amoled-mode .notifications-entry{background:#000!important;background-image:none!important;color:#f5f1ff!important;border-color:#29242f!important;box-shadow:none!important;}
+body.dark-mode .notifications-entry .notification-bell,body.amoled-mode .notifications-entry .notification-bell{background:#20212b!important;}
+body.amoled-mode .notifications-entry:hover{background:#101010!important;}
+
+/* Inbox reply threads and matching member/developer reply controls. */
+.inbox-reply-thread,.dev-inbox-replies{display:grid;gap:8px;margin-top:13px;}
+.inbox-reply{max-width:92%;padding:9px 12px;border:1px solid rgba(130,145,180,.18);border-radius:13px;background:rgba(130,145,180,.075);}
+.inbox-reply.member-reply{margin-inline-start:auto;border-color:rgba(151,119,220,.25);background:rgba(151,119,220,.10);}
+.inbox-reply.developer-reply{margin-inline-end:auto;}
+.inbox-reply b{font-size:11px;opacity:.8;}
+.inbox-reply p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;}
+.inbox-reply time{display:block;font-size:10px;opacity:.55;text-align:end;}
+.inbox-reply-form,.dev-inbox-reply-form{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.inbox-reply-form input,.dev-inbox-reply-form input{flex:1 1 auto;min-width:0;height:42px;box-sizing:border-box;padding:0 13px;border:1px solid rgba(130,145,180,.24);border-radius:13px;background:var(--field,rgba(130,145,180,.08));color:inherit;font:inherit;font-size:13px;outline:none;}
+.inbox-reply-form input:focus,.dev-inbox-reply-form input:focus{border-color:#a98bdc;box-shadow:0 0 0 3px rgba(169,139,220,.12);}
+.inbox-reply-form button,.dev-inbox-reply-form button{flex:0 0 auto;min-width:66px;height:42px;padding:0 17px;border:1px solid rgba(160,130,220,.28);border-radius:13px;background:linear-gradient(135deg,#9275cf,#bd82bd);color:#fff;font:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:transform .16s ease,filter .16s ease;}
+.inbox-reply-form button:hover,.dev-inbox-reply-form button:hover{filter:brightness(1.06);transform:translateY(-1px);}
+.inbox-reply-form button:disabled,.dev-inbox-reply-form button:disabled{opacity:.55;cursor:wait;transform:none;}
+.dev-inbox-card{display:grid;gap:10px;padding:14px;border:1px solid rgba(130,145,180,.2);border-radius:16px;background:rgba(130,145,180,.07);}
+.dev-inbox-message p{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;}
+.dev-delete-mail{justify-self:end;}
+body.dark-mode .inbox-reply,body.amoled-mode .inbox-reply,body.dark-mode .dev-inbox-card,body.amoled-mode .dev-inbox-card{background:#171923;border-color:#343747;}
+body.amoled-mode .inbox-reply,body.amoled-mode .dev-inbox-card{background:#08080b;border-color:#29242f;}
+body.dark-mode .inbox-reply-form input,body.amoled-mode .inbox-reply-form input,body.dark-mode .dev-inbox-reply-form input,body.amoled-mode .dev-inbox-reply-form input{background:#101117;color:#f4f4fb;border-color:#343747;}
+body.amoled-mode .inbox-reply-form input,body.amoled-mode .dev-inbox-reply-form input{background:#000;border-color:#29242f;color:#f5f1ff;}
+@media(max-width:520px){.inbox-reply-form,.dev-inbox-reply-form{gap:6px}.inbox-reply-form button,.dev-inbox-reply-form button{min-width:58px;padding:0 12px}.inbox-reply{max-width:96%;}}
+
+/* Final inbox control redesign: mirror the Settings button's shape, footprint and theme surfaces. */
 .notifications-entry{
   box-sizing:border-box!important;
-  width:calc(100% - 28px)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-direction:row!important;
+  direction:rtl!important;
+  width:100%!important;
   min-width:0!important;
   height:42px!important;
   min-height:42px!important;
-  max-height:42px!important;
-  margin:10px 14px 14px!important;
+  margin:10px 0 14px!important;
   padding:0 14px!important;
+  gap:9px!important;
+  border:1px solid #eee4f7!important;
   border-radius:13px!important;
-  display:flex!important;
-  flex-direction:row!important;
-  direction:ltr!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:7px!important;
-  overflow:hidden!important;
+  background:linear-gradient(135deg,#fff,#f6efff)!important;
+  background-image:linear-gradient(135deg,#fff,#f6efff)!important;
+  color:#9a79c5!important;
+  font-family:inherit!important;
+  font-size:13px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  box-shadow:0 5px 16px #9a79c526!important;
+  overflow:visible!important;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease!important;
 }
+.notifications-entry:hover{transform:translateY(-1px)!important;border-color:#d9c9ed!important;box-shadow:0 5px 16px #9a79c526!important;}
+.notifications-entry:active{transform:scale(.98)!important;}
 .notifications-entry .notification-bell{
-  width:30px!important;height:30px!important;min-width:30px!important;flex:0 0 30px!important;
+  order:0!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;
+  display:grid!important;place-items:center!important;border-radius:10px!important;
+  background:rgba(154,121,197,.13)!important;color:inherit!important;font-size:19px!important;line-height:1!important;
 }
 .notifications-entry .notification-entry-label{
-  direction:rtl!important;text-align:right!important;unicode-bidi:plaintext;
-  flex:1 1 auto!important;min-width:0!important;white-space:nowrap!important;
-  overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.2!important;
+  order:1!important;display:block!important;flex:1 1 auto!important;min-width:0!important;
+  direction:rtl!important;text-align:right!important;white-space:nowrap!important;overflow:visible!important;
+  text-overflow:clip!important;line-height:1.2!important;font-size:13px!important;font-weight:800!important;
 }
-body[dir="ltr"] .notifications-entry .notification-entry-label{direction:ltr!important;text-align:left!important}
-@media(max-width:520px){.notifications-entry{height:40px!important;min-height:40px!important;max-height:40px!important;margin-top:8px!important;padding-inline:11px!important}}
+.notifications-entry .notification-unread-dot{position:absolute!important;top:5px!important;left:7px!important;right:auto!important;margin:0!important;width:8px!important;height:8px!important;}
+body.dark-mode .notifications-entry{
+  background:#242330!important;background-image:none!important;color:var(--ink,#eeeaf8)!important;
+  border-color:#3a3547!important;box-shadow:none!important;
+}
+body.dark-mode .notifications-entry .notification-bell{background:#343044!important;color:inherit!important;}
+body.amoled-mode .notifications-entry{
+  background:#000!important;background-image:none!important;color:#f5f1ff!important;
+  border-color:#29242f!important;box-shadow:none!important;
+}
+body.amoled-mode .notifications-entry .notification-bell{background:#17141c!important;color:#f5f1ff!important;}
+body.dark-mode .notifications-entry:hover{background:#2c2939!important;border-color:#514365!important;}
+body.amoled-mode .notifications-entry:hover{background:#0b0b0b!important;border-color:#514365!important;}
+@media(max-width:600px){
+  .notifications-entry{width:100%!important;margin:8px 0 12px!important;height:40px!important;min-height:40px!important;padding-inline:11px!important;}
+  .notifications-entry .notification-bell{width:28px!important;height:28px!important;min-width:28px!important;flex-basis:28px!important;}
+  .notifications-entry .notification-entry-label{font-size:12px!important;}
+}

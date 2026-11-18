@@ -63,7 +63,8 @@ service cloud.firestore {
 
 
     match /developerBroadcasts/{messageId} {
-      allow read: if signedIn() && !isDeveloper();
+      // The developer must be able to read the inbox collection to manage and delete messages.
+      allow read: if signedIn();
       allow create: if isDeveloper()
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.body is string
@@ -72,6 +73,20 @@ service cloud.firestore {
         && request.resource.data.title is string;
       allow update: if false;
       allow delete: if isDeveloper();
+      match /replies/{replyId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['uid','displayName','body','senderRole','createdAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.displayName is string
+          && request.resource.data.body is string
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 1000
+          && ((isDeveloper() && request.resource.data.senderRole == 'developer')
+            || (!isDeveloper() && request.resource.data.senderRole == 'member'));
+        allow update: if false;
+        allow delete: if isDeveloper();
+      }
     }
 
     match /dailyQuestions/{questionId} {

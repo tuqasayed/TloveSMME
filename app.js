@@ -25,7 +25,7 @@ let selectedAuthMode=sessionStorage.getItem("bubble-chat-auth-mode")||"user";
 const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
 const NOTIFICATION_WORKER_URL="https://bubble-chat-notifications.mainmohammedy.workers.dev";
 const VAPID_PUBLIC_KEY="BNntJ7Pft1mjX9eAemavXWmOmjrZj9I-VDyV-zsqFm-otZV0WKadTAcgjUKJOrexkCzmhC2Lmy7tB2tqcQ5PXuI";
-const $=id=>document.getElementById(id); let currentUser=null,currentProfile=null,activeChat=null,stopMessages=null,chatOpenVersion=0,replyTarget=null,editingId=null,selectedAvatarFile=null,selectedBannerFile=null;
+const $=id=>document.getElementById(id); let currentUser=null,currentProfile=null,activeChat=null,stopMessages=null,stopPinnedMessages=null,chatOpenVersion=0,replyTarget=null,editingId=null,selectedAvatarFile=null,selectedBannerFile=null;
 const unreadStops=new Map(), unreadCounts=new Map();
 let sharedStickers=[],stopSharedStickers=null;
 let activeMessagesCache=[],activeGroupMeta={name:"S.T.M 🌷",photoURL:"",bannerURL:"",admins:[]};
@@ -33,6 +33,7 @@ let stopContacts=null,presenceHeartbeat=null,presenceUiTimer=null,contactsInitia
 const PRESENCE_STALE_MS=65000;
 const READ_KEY_PREFIX="bubble-chat-read-";
 let lastIncomingSoundAt=0;
+const MESSAGE_PAGE_SIZE=20; // Smaller pages reduce Firestore reads while keeping history lazy-loaded.
 let loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true,initialChatPositioning=false;
 let audioUnlocked=false;
 
@@ -528,6 +529,7 @@ onAuthStateChanged(developerAuth,async user=>{
 onAuthStateChanged(auth,async user=>{
   chatOpenVersion++;
   if(stopMessages){stopMessages();stopMessages=null}
+  if(stopPinnedMessages){stopPinnedMessages();stopPinnedMessages=null}
   stopUnreadListeners();
   if(stopContacts){stopContacts();stopContacts=null}
   if(stopSharedStickers){stopSharedStickers();stopSharedStickers=null}
@@ -746,6 +748,7 @@ async function openChat(target){
   updateActiveChatPresence();
   $("pinnedBar").classList.add("hidden");
   if(stopMessages){stopMessages();stopMessages=null;}
+  if(stopPinnedMessages){stopPinnedMessages();stopPinnedMessages=null;}
 
   const id=target.kind==="group"?GROUP_ID:threadId(currentUser.uid,target.id);
   loadedMessageDocs=new Map();oldestMessageCursor=null;loadingOlderMessages=false;hasOlderMessages=true;initialChatPositioning=true;
@@ -780,8 +783,16 @@ async function openChat(target){
       const groupNameNode=$("contacts").querySelector(".contact strong");if(groupNameNode)groupNameNode.textContent=activeGroupMeta.name;
     }
 
+    // Pinned messages are lightweight references in the bar, not eagerly rendered chat rows.
+    const pinnedQuery=query(collection(db,"threads",id,"messages"),where("pinned","==",true),limit(100));
+    const pinnedUnsubscribe=onSnapshot(pinnedQuery,snapshot=>{
+      if(openVersion!==chatOpenVersion)return;
+      renderPinnedBar(snapshot.docs.map(d=>({id:d.id,...d.data()})));
+    },error=>console.warn("Pinned messages listener failed:",error));
+    if(openVersion===chatOpenVersion)stopPinnedMessages=pinnedUnsubscribe;else pinnedUnsubscribe();
+
     // Keep a live listener only for the newest 40 messages; older history is fetched in chunks on demand.
-    const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),limit(40));
+    const q=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),limit(MESSAGE_PAGE_SIZE));
     let firstMessagesSnapshot=true;
     const unsubscribe=onSnapshot(q,s=>{
       if(openVersion!==chatOpenVersion)return;
@@ -795,7 +806,7 @@ async function openChat(target){
       s.docs.forEach(d=>loadedMessageDocs.set(d.id,d));
       const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
       oldestMessageCursor=ordered.length?ordered[0]:null;
-      hasOlderMessages=s.size===40;
+      hasOlderMessages=s.size===MESSAGE_PAGE_SIZE;
       renderMessages(ordered,{forceBottom:ownMessageAdded});
       if(firstMessagesSnapshot===false && initialChatPositioning){
         // Wait for layout/media sizing, then anchor the conversation at its newest message.
@@ -852,11 +863,26 @@ $("messageInput").addEventListener("blur",stopTypingNow);
 
 function activeThreadId(){return isGroup()?GROUP_ID:threadId(currentUser.uid,activeChat.id)}
 
+function renderPinnedBar(pinned){
+  const bar=$("pinnedBar");if(!bar)return;
+  bar.innerHTML="";
+  if(!pinned.length){bar.classList.add("hidden");return;}
+  bar.classList.remove("hidden");
+  const heading=document.createElement("span");heading.className="pinned-heading";heading.textContent="📌 المثبتة";bar.appendChild(heading);
+  const list=document.createElement("div");list.className="pinned-items";
+  pinned.sort((a,b)=>(timestampMs(b.pinnedAt)||timestampMs(b.createdAt))-(timestampMs(a.pinnedAt)||timestampMs(a.createdAt))).forEach(m=>{
+    const button=document.createElement("button");button.type="button";button.className="pinned-item";button.dataset.jump=m.id;
+    const who=document.createElement("b");who.textContent=m.senderName||"رسالة";
+    const preview=document.createElement("span");preview.textContent=(m.text||(m.imageUrl?"📷 صورة":m.sticker?"ملصق":"رسالة مثبتة")).slice(0,55);
+    button.append(who,preview);list.appendChild(button);
+  });
+  bar.appendChild(list);
+}
+
 function renderMessages(docs,options={}){
   const box=$("messages");
   const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<120;
   const wasEmpty=box.childElementCount===0;
-  const pinned=[];
   const messages=docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
   activeMessagesCache=messages;
 
@@ -867,7 +893,6 @@ function renderMessages(docs,options={}){
   existing.forEach((node,id)=>{if(!wanted.has(id)){node.remove();existing.delete(id);}});
   let position=0;
   messages.forEach(m=>{
-    if(m.pinned)pinned.push(m);
     const signature=JSON.stringify(m);
     let row=existing.get(m.id);
     if(!row||row.dataset.renderSignature!==signature){
@@ -904,20 +929,6 @@ function renderMessages(docs,options={}){
     if(atPosition!==row)box.insertBefore(row,atPosition);
     position++;
   });
-  const pinnedBar=$("pinnedBar");
-  pinnedBar.innerHTML="";
-  if(pinned.length){
-    pinnedBar.classList.remove("hidden");
-    const heading=document.createElement("span");heading.className="pinned-heading";heading.textContent="📌 المثبتة";pinnedBar.appendChild(heading);
-    const list=document.createElement("div");list.className="pinned-items";
-    pinned.sort((a,b)=>(timestampMs(b.pinnedAt)||timestampMs(b.createdAt))-(timestampMs(a.pinnedAt)||timestampMs(a.createdAt))).forEach(m=>{
-      const button=document.createElement("button");button.type="button";button.className="pinned-item";button.dataset.jump=m.id;
-      const who=document.createElement("b");who.textContent=m.senderName||"رسالة";
-      const preview=document.createElement("span");preview.textContent=(m.text|| (m.imageUrl?"📷 صورة":m.sticker?"ملصق":"رسالة مثبتة")).slice(0,55);
-      button.append(who,preview);list.appendChild(button);
-    });
-    pinnedBar.appendChild(list);
-  }else pinnedBar.classList.add("hidden");
   if(options.forceBottom||wasEmpty||wasAtBottom){
     // A newly-sent message must keep the conversation pinned to the latest message.
     // Run after layout so text wrapping/media sizing cannot pull the viewport upward.
@@ -933,17 +944,24 @@ async function loadOlderMessages(){
   if(loadingOlderMessages||!hasOlderMessages||!oldestMessageCursor||!activeChat||!currentUser)return;
   const box=$("messages"),id=activeThreadId(),openVersion=chatOpenVersion;
   loadingOlderMessages=true;
-  const previousHeight=box.scrollHeight,previousTop=box.scrollTop;
+  const anchor=[...box.querySelectorAll("[data-message-id]")].find(node=>node.getBoundingClientRect().bottom>box.getBoundingClientRect().top+2);
+  const anchorTop=anchor?.getBoundingClientRect().top??null;
   try{
-    const olderQuery=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),startAfter(oldestMessageCursor),limit(40));
+    const olderQuery=query(collection(db,"threads",id,"messages"),orderBy("createdAt","desc"),startAfter(oldestMessageCursor),limit(MESSAGE_PAGE_SIZE));
     const snapshot=await getDocs(olderQuery);
     if(openVersion!==chatOpenVersion)return;
     snapshot.docs.forEach(d=>loadedMessageDocs.set(d.id,d));
-    hasOlderMessages=snapshot.size===40;
+    hasOlderMessages=snapshot.size===MESSAGE_PAGE_SIZE;
     const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
     oldestMessageCursor=ordered.length?ordered[0]:null;
     renderMessages(ordered);
-    box.scrollTop=previousTop+(box.scrollHeight-previousHeight);
+    const restoreAnchor=()=>{
+      if(anchor&&anchor.isConnected&&anchorTop!==null){
+        const delta=anchor.getBoundingClientRect().top-anchorTop;
+        if(Math.abs(delta)>0.5)box.scrollTop+=delta;
+      }
+    };
+    restoreAnchor();requestAnimationFrame(restoreAnchor);
   }catch(error){console.error("Could not load older messages:",error);toast("تعذر تحميل الرسائل الأقدم");}
   finally{loadingOlderMessages=false;}
 }
@@ -980,16 +998,27 @@ function updateScrollBottomButton(){const box=$("messages");if(!box||!scrollBott
 $("messages").addEventListener("scroll",updateScrollBottomButton,{passive:true});
 scrollBottomButton?.addEventListener("click",()=>$("messages").scrollTo({top:$("messages").scrollHeight,behavior:"smooth"}));
 
-function jumpToMessage(messageId){
-  if(!messageId)return;
-  const target=document.getElementById(`message-${messageId}`);
-  if(!target){toast("الرسالة دي مش موجودة في المحادثة الحالية");return;}
-  target.scrollIntoView({behavior:"smooth",block:"center"});
-  target.classList.remove("message-jump-highlight");
-  void target.offsetWidth;
-  target.classList.add("message-jump-highlight");
-  clearTimeout(target._jumpHighlightTimer);
-  target._jumpHighlightTimer=setTimeout(()=>target.classList.remove("message-jump-highlight"),2000);
+async function jumpToMessage(messageId){
+  if(!messageId||!activeChat||!currentUser)return;
+  let target=document.getElementById(`message-${messageId}`);
+  if(!target){
+    try{
+      const openVersion=chatOpenVersion,id=activeThreadId();
+      const snap=await getDoc(doc(db,"threads",id,"messages",messageId));
+      if(openVersion!==chatOpenVersion)return;
+      if(!snap.exists()||snap.data().deletedForAll||(snap.data().deletedFor||[]).includes(currentUser.uid)){toast("الرسالة دي مش موجودة في المحادثة الحالية");return;}
+      loadedMessageDocs.set(snap.id,snap);
+      const ordered=[...loadedMessageDocs.values()].sort((a,b)=>(a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0));
+      renderMessages(ordered);
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      target=document.getElementById(`message-${messageId}`);
+    }catch(error){console.error("Could not open pinned message:",error);toast("تعذر فتح الرسالة المثبتة");return;}
+  }
+  if(!target)return;
+  const box=$("messages"),boxRect=box.getBoundingClientRect(),targetRect=target.getBoundingClientRect();
+  box.scrollTo({top:box.scrollTop+targetRect.top-boxRect.top-(box.clientHeight-target.offsetHeight)/2,behavior:"smooth"});
+  target.classList.remove("message-jump-highlight");void target.offsetWidth;target.classList.add("message-jump-highlight");
+  clearTimeout(target._jumpHighlightTimer);target._jumpHighlightTimer=setTimeout(()=>target.classList.remove("message-jump-highlight"),2000);
 }
 
 let contextMessage=null;

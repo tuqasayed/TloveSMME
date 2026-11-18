@@ -3686,9 +3686,9 @@ body.amoled-mode .composer textarea{background:#090909!important;}
 body.amoled-mode .modal{background:#000b!important;}
 
 /* Keep long chats and media smooth without removing existing animations. */
-.message-row{content-visibility:auto;contain-intrinsic-size:auto 88px;}
+.message-row{content-visibility:visible;contain-intrinsic-size:auto;}
 .message-photo{will-change:auto;backface-visibility:hidden;}
-.messages{overscroll-behavior:contain;scroll-behavior:smooth;}
+.messages{overscroll-behavior:contain;scroll-behavior:auto;}
 .image-lightbox-card.is-portrait{width:min(92vw,560px);height:min(90dvh,900px);}
 .image-lightbox-card.is-portrait #lightboxImage{max-width:100%;max-height:100%;object-fit:contain;}
 .lightbox-download{position:absolute;top:9px;inset-inline-end:56px;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#ffffff18;color:#fff;text-decoration:none;font-size:21px;z-index:2;transition:background .18s ease,transform .18s ease;}

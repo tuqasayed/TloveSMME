@@ -61,6 +61,51 @@ service cloud.firestore {
       }
     }
 
+
+    match /developerBroadcasts/{messageId} {
+      allow read: if signedIn() && !isDeveloper();
+      allow create: if isDeveloper()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 2000
+        && request.resource.data.title is string;
+      allow update, delete: if false;
+    }
+
+    match /dailyQuestions/{questionId} {
+      allow read: if signedIn();
+      allow create: if isDeveloper()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.question is string
+        && request.resource.data.question.size() > 0
+        && request.resource.data.question.size() <= 500;
+      allow update, delete: if false;
+      match /answers/{userId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && !isDeveloper()
+          && request.auth.uid == userId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['uid','displayName','answer','createdAt','updatedAt'])
+          && request.resource.data.answer is string
+          && request.resource.data.answer.size() > 0
+          && request.resource.data.answer.size() <= 1000;
+        allow update: if (
+          isDeveloper()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['developerReaction'])
+          && request.resource.data.developerReaction in ['star','wrong']
+        ) || (
+          signedIn() && !isDeveloper()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer','updatedAt'])
+          && request.resource.data.answer is string
+          && request.resource.data.answer.size() > 0
+          && request.resource.data.answer.size() <= 1000
+        );
+        allow delete: if false;
+      }
+    }
+
     match /system/maintenance {
       allow read: if signedIn();
       allow create, update: if signedIn()

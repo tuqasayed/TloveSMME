@@ -70,7 +70,8 @@ service cloud.firestore {
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 2000
         && request.resource.data.title is string;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isDeveloper();
     }
 
     match /dailyQuestions/{questionId} {
@@ -80,7 +81,8 @@ service cloud.firestore {
         && request.resource.data.question is string
         && request.resource.data.question.size() > 0
         && request.resource.data.question.size() <= 500;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isDeveloper();
       match /answers/{userId} {
         allow read: if signedIn();
         allow create: if signedIn() && !isDeveloper()
@@ -102,7 +104,7 @@ service cloud.firestore {
           && request.resource.data.answer.size() > 0
           && request.resource.data.answer.size() <= 1000
         );
-        allow delete: if false;
+        allow delete: if isDeveloper();
       }
     }
 

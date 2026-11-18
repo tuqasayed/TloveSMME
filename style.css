@@ -3916,3 +3916,49 @@ body.amoled-mode .notifications-entry .notification-unread-dot{border-color:#090
 .dev-manage-row button.danger{flex:0 0 auto;border:1px solid rgba(235,75,100,.25);border-radius:10px;padding:7px 12px;background:rgba(235,75,100,.1);color:#d94360;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
 body.dark-mode .dev-manage-row,body.amoled-mode .dev-manage-row{background:rgba(255,255,255,.035);border-color:rgba(180,190,230,.13)}
 @media(max-width:600px){.notifications-card{max-height:88dvh}.inbox-message{padding:14px}.dev-manage-row{align-items:flex-start}}
+
+/* Final AMOLED + decoration picker layering and readable decorated messages */
+body.amoled-mode #messageForm.composer .composer-media-toggle,
+body.amoled-mode #messageForm.composer .composer-media-toggle[aria-expanded="true"]{
+  background:#080808!important;color:#f0eafa!important;border:1px solid #303039!important;
+  box-shadow:0 2px 10px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.025)!important;
+}
+body.amoled-mode #messageForm.composer .composer-media-toggle span{background:#d9c9f4!important;opacity:.9!important;}
+body.amoled-mode #messageForm.composer .composer-media-menu,
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn{
+  background:#080808!important;color:#f2edf9!important;border-color:#303039!important;
+}
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn:hover{background:#17131d!important;border-color:#76558e!important;}
+.message-decoration-picker{
+  position:fixed!important;z-index:10050!important;bottom:88px!important;inset-inline-end:auto!important;
+  max-width:calc(100vw - 24px)!important;max-height:min(52dvh,430px);overflow:auto;
+  box-sizing:border-box;overscroll-behavior:contain;
+}
+.message-decoration-picker.hidden{display:none!important;}
+.message-decorated{color:#493342!important;text-shadow:none!important;}
+.message-decorated,.message-decorated *:not(.message-decor-icon){text-shadow:none!important;}
+.message-decorated .message-text,.message-decorated .message-content,
+.message-decorated .message-body,.message-decorated p,
+.message-decorated span:not(.message-decor-icon),.message-decorated b{
+  color:inherit!important;-webkit-text-fill-color:currentColor!important;font-weight:600;
+}
+.decor-heart{background:linear-gradient(120deg,#f7d5e2,#efb7ce 58%,#f8e0e9)!important;color:#633047!important;}
+.decor-fire{background:linear-gradient(120deg,#f5d5b9,#edb17f 58%,#f4dfb7)!important;color:#60351f!important;}
+.decor-sparkles{background:linear-gradient(120deg,#ded6f4,#c8d9ef 58%,#e9d9ef)!important;color:#3e365f!important;}
+.decor-flowers{background:linear-gradient(120deg,#f3d6e3,#d4e8d2 58%,#f3e6c9)!important;color:#533b4b!important;}
+@media(max-width:760px){.message-decoration-picker{bottom:82px!important;padding:12px!important;gap:8px!important;}}
+/* Notifications entry: compact, fully-contained sidebar control across themes */
+.sidebar .notifications-entry{
+  width:100%!important;max-width:100%!important;min-width:0!important;height:54px!important;min-height:54px!important;
+  margin:9px 0 13px!important;padding:0 10px!important;box-sizing:border-box!important;
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;
+  overflow:hidden!important;border-radius:16px!important;
+}
+.sidebar .notifications-entry>span:not(.notification-bell){
+  min-width:0!important;flex:1 1 auto!important;white-space:nowrap!important;overflow:hidden!important;
+  text-overflow:ellipsis!important;font-size:14px!important;line-height:1.2!important;
+}
+.sidebar .notifications-entry .notification-bell{flex:0 0 36px!important;width:36px!important;height:36px!important;}
+.sidebar .notifications-entry .notification-unread-dot{left:38px!important;top:5px!important;}
+body.amoled-mode .sidebar .notifications-entry{background:#080808!important;border:1px solid #303039!important;color:#f3eef9!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)!important;}
+body.amoled-mode .sidebar .notifications-entry .notification-bell{background:#17131d!important;color:#eadcf9!important;}

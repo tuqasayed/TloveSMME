@@ -452,15 +452,25 @@ function ensureDecorationPicker(){
   let picker=$("messageDecorationPicker");if(picker)return picker;
   picker=document.createElement("div");picker.id="messageDecorationPicker";picker.className="message-decoration-picker hidden";
   picker.innerHTML=`<div class="decor-picker-head"><b>${isEnglishUi()?"Message effects":"ديكورات الرسالة"}</b><small>${isEnglishUi()?"Choose a style":"اختار شكل الرسالة"}</small></div><button type="button" data-decoration="envelope"><i class="decor-preview preview-envelope"><span></span></i><span>ظرف</span></button><button type="button" data-decoration="heart"><i class="decor-preview preview-heart">♥</i><span>قلوب</span></button><button type="button" data-decoration="fire"><i class="decor-preview preview-fire">✦</i><span>نار</span></button><button type="button" data-decoration="sparkles"><i class="decor-preview preview-sparkles">✧</i><span>لمعة</span></button><button type="button" data-decoration="flowers"><i class="decor-preview preview-flowers">✿</i><span>زهور</span></button><button type="button" class="decor-clear" data-decoration=""><i class="decor-preview">×</i><span>بدون</span></button>`;
-  $("messageForm")?.append(picker);
+  document.body.append(picker);
   picker.querySelectorAll("[data-decoration]").forEach(b=>b.addEventListener("click",()=>{selectedMessageDecoration=b.dataset.decoration||"";updateDecorationButton();picker.classList.add("hidden");}));
   return picker;
+}
+function openDecorationPicker(){
+  const picker=ensureDecorationPicker();
+  const sidebar=document.querySelector(".chat-view > .sidebar");
+  const collapsed=document.querySelector(".chat-view.sidebar-collapsed");
+  const left=(!collapsed&&sidebar&&getComputedStyle(sidebar).display!=="none")?Math.max(12,sidebar.getBoundingClientRect().right+12):12;
+  picker.style.left=`${left}px`;
+  picker.style.right="12px";
+  picker.style.width=`min(350px, calc(100vw - ${left+24}px))`;
+  picker.classList.remove("hidden");
 }
 function setupMessageDecorationHold(){
   const btn=document.querySelector(".send-btn");if(!btn)return;
   btn.id="sendBtn";
   let holdTimer=null,held=false;
-  const start=()=>{held=false;clearTimeout(holdTimer);holdTimer=setTimeout(()=>{held=true;ensureDecorationPicker().classList.remove("hidden");},550)};
+  const start=()=>{held=false;clearTimeout(holdTimer);holdTimer=setTimeout(()=>{held=true;openDecorationPicker();},550)};
   const cancel=()=>clearTimeout(holdTimer);
   btn.addEventListener("pointerdown",start);
   ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev,cancel));

@@ -4356,3 +4356,35 @@ body.dark-mode .message-row .decor-flowers,body.amoled-mode .message-row .decor-
   .message-row .message-decorated{min-width:min(150px,100%);max-width:100%;margin:7px 0 8px;padding:13px 16px;border-radius:22px;}
   .message-row .message-decor-content p{font-size:14px;line-height:1.55;}
 }
+
+/* Final polish: vivid message effects with a subtle signature emoji. */
+.message-row .message-decorated{position:relative;isolation:isolate;}
+.message-row .message-decor-emoji{position:absolute;z-index:3;inset-inline-end:12px;top:8px;font-size:17px;line-height:1;opacity:.23;filter:saturate(1.25);pointer-events:none;}
+.message-row .decor-heart .message-decor-emoji{content:none;}
+.message-row .decor-heart .message-decor-emoji::before{content:"💗";}
+.message-row .decor-fire .message-decor-emoji::before{content:"🔥";}
+.message-row .decor-sparkles .message-decor-emoji::before{content:"✨";}
+.message-row .decor-flowers .message-decor-emoji::before{content:"🌸";}
+.message-row .message-decor-content{width:max-content;max-width:100%;}
+.message-row .message-decor-content p{width:max-content;max-width:100%;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;}
+
+/* A clean white envelope with a removable red ribbon and opening flap. */
+.message-row .envelope-wrap{display:block;width:max-content;max-width:100%;min-width:0;}
+.message-row .message-envelope{width:clamp(150px, min(220px, 48vw), 220px);min-width:0;min-height:124px;padding:14px 18px!important;gap:9px!important;border:1px solid #e5e5eb!important;border-radius:17px!important;background:linear-gradient(150deg,#fff 0%,#f4f4f8 100%)!important;color:#4b4050!important;box-shadow:0 8px 22px #0002,inset 0 1px 0 #fff!important;}
+.message-row .envelope-art{display:block;position:relative;width:76px;height:48px;border:1px solid #d9d9e1;border-radius:6px;background:linear-gradient(145deg,#fff 0%,#f0f0f5 100%);box-shadow:0 5px 12px #00000018;overflow:visible;}
+.message-row .envelope-art:before{content:"";position:absolute;z-index:2;left:0;right:0;top:-1px;margin:auto;width:52px;height:52px;background:linear-gradient(145deg,#fff,#e9e9f0);border-left:1px solid #d5d5df;border-top:1px solid #d5d5df;transform:translateY(-1px) rotate(45deg) scale(.69);border-radius:3px;transform-origin:center;transition:transform .42s ease,opacity .3s ease;}
+.message-row .envelope-art:after{content:"";position:absolute;z-index:3;inset:0;background:linear-gradient(145deg,#fff 0%,#f0f0f5 100%);clip-path:polygon(0 0,50% 58%,100% 0,100% 100%,0 100%);border-radius:5px;}
+.message-row .envelope-art i{position:absolute;z-index:4;left:0;right:0;bottom:0;height:30px;background:linear-gradient(145deg,#fafaff,#e7e7ef);clip-path:polygon(0 100%,50% 25%,100% 100%);border-radius:0 0 5px 5px;}
+.message-row .envelope-ribbon{position:absolute;z-index:5;left:calc(50% - 4px);top:-2px;width:8px;height:50px;border-radius:4px;background:linear-gradient(90deg,#c91e45,#ff5574 48%,#bd173e);box-shadow:0 0 0 1px #a91435aa;transition:opacity .22s ease,transform .3s ease;}
+.message-row .envelope-bow{position:absolute;z-index:6;left:50%;top:7px;width:27px;height:13px;transform:translateX(-50%);}
+.message-row .envelope-bow:before,.message-row .envelope-bow:after{content:"";position:absolute;top:0;width:13px;height:10px;border:3px solid #d52b50;border-radius:80% 80% 35% 80%;background:#ff7890;}
+.message-row .envelope-bow:before{right:12px;transform:rotate(25deg);}.message-row .envelope-bow:after{left:12px;transform:scaleX(-1) rotate(25deg);}
+.message-row .message-envelope b{font-size:12px;font-weight:850;color:#5d4b5b;}
+.message-row .message-envelope.opening .envelope-art:before{transform:translateY(-17px) rotate(45deg) scale(.69);opacity:.4;}
+.message-row .message-envelope.opening .envelope-ribbon,.message-row .message-envelope.opening .envelope-bow{opacity:0;transform:translateY(-10px) scale(.65);}
+.message-row .message-envelope.opening{transform:translateY(-3px) scale(1.025);filter:brightness(1.04);}
+.message-row .message-envelope.is-gone{opacity:0;transform:scale(.88) translateY(-10px);}
+.message-row .envelope-hidden-content{display:block;width:max-content;max-width:100%;padding:13px 16px 12px;border:1px solid rgba(255,255,255,.16);border-radius:19px;background:var(--message-bg, #17151b);color:var(--text,#fff);box-shadow:0 7px 22px #0003;}
+.message-row .envelope-hidden-content p{width:max-content;max-width:100%;margin:0;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;line-height:1.6;}
+.message-row .envelope-hidden-content.revealed{animation:envelopeReveal .42s cubic-bezier(.2,.8,.2,1) forwards;}
+body.amoled-mode .message-row .envelope-hidden-content{background:#101014;color:#fff;border-color:#302a35;}

@@ -5054,3 +5054,86 @@ body.dark-mode.amoled-mode .login-card .input-wrap:focus-within {
 @media(max-width:600px) {
   .chat-view.sidebar-collapsed .sidebar-dock-toggle { left:8px !important; }
 }
+
+
+/* Reliability fixes: visible avatar shortcuts in the collapsed sidebar,
+   explicit banner image rendering, visible live name preview, and topmost story viewer. */
+.chat-view.sidebar-collapsed .sidebar-mini-items {
+  display:flex !important; visibility:visible !important; opacity:1 !important;
+  position:relative !important; z-index:5 !important; pointer-events:auto !important;
+  align-items:center !important; min-height:48px !important;
+}
+.chat-view.sidebar-collapsed .sidebar-mini-contact {
+  display:grid !important; place-items:center !important; overflow:visible !important;
+  visibility:visible !important; opacity:1 !important; pointer-events:auto !important;
+}
+.mini-avatar-wrap { width:100%; height:100%; display:grid; place-items:center; overflow:hidden; border-radius:inherit; }
+.mini-avatar-wrap > .avatar, .mini-avatar-wrap > .contact-avatar-wrap,
+.mini-avatar-wrap > .group-avatar, .mini-avatar-wrap > img {
+  width:100% !important; height:100% !important; min-width:0 !important;
+  display:grid !important; place-items:center !important; object-fit:cover !important;
+}
+.profile-editor-banner { position:relative !important; }
+.profile-banner-preview-image { position:absolute; inset:0; width:100%; height:100%;
+  display:block; object-fit:cover; object-position:center; z-index:0; }
+.profile-editor-banner > span { position:relative; z-index:1; }
+#profileNamePreview { display:grid !important; place-items:center !important;
+  min-height:48px !important; visibility:visible !important; opacity:1 !important;
+  font-size:27px !important; font-weight:900 !important; }
+#storyViewer { z-index:2147483000 !important; position:fixed !important; inset:0 !important;
+  isolation:isolate !important; }
+#storyViewer .story-viewer-card { position:relative !important; z-index:1 !important; }
+
+/* Profile name preview: keep the actual sample text visible with its selected gradient. */
+#profileModal .profile-name-preview{background:rgba(130,110,160,.09)!important;color:var(--ink,#f5f1fa)!important;-webkit-text-fill-color:initial!important;overflow:visible!important;}
+#profileModal .profile-name-preview>span{white-space:normal;max-width:100%;text-align:center;line-height:1.35;}
+/* The preset swatches are painted from their own data-pair values in app.js. */
+#profileModal .preset-colors button{background-color:transparent;}
+
+/* Final placement: keep the three collapsed-sidebar profile shortcuts on the far right. */
+.chat-view.sidebar-collapsed .sidebar-mini-dock {
+  position:absolute !important;
+  top:0 !important;
+  left:0 !important;
+  right:0 !important;
+  width:100% !important;
+  height:62px !important;
+  min-height:62px !important;
+  pointer-events:none !important;
+  overflow:visible !important;
+}
+.chat-view.sidebar-collapsed .sidebar-mini-items {
+  position:absolute !important;
+  top:5px !important;
+  right:12px !important;
+  left:auto !important;
+  width:max-content !important;
+  max-width:calc(100% - 82px) !important;
+  min-height:48px !important;
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  margin:0 !important;
+  pointer-events:auto !important;
+  z-index:110 !important;
+}
+@media(max-width:600px) {
+  .chat-view.sidebar-collapsed .sidebar-mini-items { right:8px !important; }
+}
+
+/* Keep the group at the far right/end of the contacts strip. */
+#contacts > .contact[data-thread-id="bubble-chat-three-friends"] { order: 0 !important; }
+
+/* The four-dot control must not sit inside a second outlined wrapper. */
+body #messageForm.composer .composer-media-wrap{
+  border:0!important;outline:0!important;background:transparent!important;
+  box-shadow:none!important;border-radius:0!important;padding:0!important;
+}
+body #messageForm.composer .composer-media-wrap::before,
+body #messageForm.composer .composer-media-wrap::after{
+  content:none!important;display:none!important;border:0!important;box-shadow:none!important;
+}
+body.amoled-mode #messageForm.composer .composer-media-wrap{
+  background:transparent!important;border:0!important;outline:0!important;box-shadow:none!important;
+}

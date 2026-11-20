@@ -513,7 +513,7 @@ function startMemberInbox(){
   const list=$("notificationsContent");if(!list||!currentUser)return;
   // Keep the question listener independent from the inbox-message listener so a
   // missing/empty broadcast collection can never hide Question of the Day.
-  if(!$("developerBroadcastList"))list.innerHTML=`<div id="dailyQuestionMember"></div><div id="developerBroadcastList"></div>`;
+  if(!$("developerBroadcastList"))list.innerHTML=`<div id="developerBroadcastList"></div><div id="dailyQuestionMember"></div>`;
   stopInboxMessages=onSnapshot(query(collection(db,"developerBroadcasts"),orderBy("createdAt","desc"),limit(30)),snap=>{
     renderInboxMessages(snap.docs.map(d=>({id:d.id,...d.data()})));
   },err=>{console.warn("Inbox listener:",err);const target=$("developerBroadcastList");if(target)target.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Unable to load inbox.":"تعذر تحميل البريد."}</p>`;});
@@ -524,21 +524,32 @@ function renderInboxMessages(items){
   const list=$("notificationsContent");if(!list)return;
   const en=isEnglishUi();
   let target=$("developerBroadcastList");
-  if(!target){list.innerHTML=`<div id="dailyQuestionMember"></div><div id="developerBroadcastList"></div>`;target=$("developerBroadcastList");}
-  target.innerHTML=items.map(m=>`<article class="inbox-message" data-inbox-message="${$safe(m.id)}"><small>${en?"FROM DEVELOPER":"من المطوّر"} · ${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة من المطوّر"))}</h3><p>${$safe(m.body||"")}</p></article>`).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  if(!target){list.innerHTML=`<div id="developerBroadcastList"></div><div id="dailyQuestionMember"></div>`;target=$("developerBroadcastList");}
+  const newest=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0))[0];
+  target.dataset.sortTime=String(newest?.createdAt?.toMillis?.()||0);
+  target.innerHTML=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).map(m=>`<article class="inbox-message" data-inbox-message="${$safe(m.id)}"><small>${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</h3><p>${$safe(m.body||"")}</p></article>`).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  sortInboxSections();
+}
+function sortInboxSections(){
+  const list=$("notificationsContent");if(!list)return;
+  const sections=[$("developerBroadcastList"),$("dailyQuestionMember")].filter(Boolean);
+  sections.sort((a,b)=>(Number(b.dataset.sortTime)||0)-(Number(a.dataset.sortTime)||0));
+  sections.forEach(section=>list.appendChild(section));
 }
 function loadCurrentDailyQuestion(){
   if(stopDailyQuestion)stopDailyQuestion();
   stopDailyQuestion=onSnapshot(query(collection(db,"dailyQuestions"),orderBy("createdAt","desc"),limit(1)),snap=>{
     const list=$("notificationsContent");if(!list)return;
     let host=$("dailyQuestionMember");
-    if(!host){host=document.createElement("div");host.id="dailyQuestionMember";list.prepend(host);}
-    const q=snap.docs[0];if(!q){host.innerHTML="";return;}
+    if(!host){host=document.createElement("div");host.id="dailyQuestionMember";list.append(host);}
+    const q=snap.docs[0];if(!q){host.innerHTML="";host.dataset.sortTime="0";sortInboxSections();return;}
+    host.dataset.sortTime=String(q.data().createdAt?.toMillis?.()||0);
+    sortInboxSections();
     renderMemberQuestion({id:q.id,...q.data()});
-  },e=>{console.warn("Question listener:",e);const list=$("notificationsContent");if(list){let host=$("dailyQuestionMember");if(!host){host=document.createElement("div");host.id="dailyQuestionMember";list.prepend(host);}host.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Could not load today's question.":"تعذر تحميل سؤال اليوم."}</p>`;}});
+  },e=>{console.warn("Question listener:",e);const list=$("notificationsContent");if(list){let host=$("dailyQuestionMember");if(!host){host=document.createElement("div");host.id="dailyQuestionMember";list.append(host);}host.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Could not load today's question.":"تعذر تحميل سؤال اليوم."}</p>`;}});
 }
 async function renderMemberQuestion(q){
-  let host=$("dailyQuestionMember");if(!host){host=document.createElement("section");host.id="dailyQuestionMember";host.className="daily-question-card";$("notificationsContent")?.prepend(host);}
+  let host=$("dailyQuestionMember");if(!host){host=document.createElement("section");host.id="dailyQuestionMember";host.className="daily-question-card";$("notificationsContent")?.append(host);}
   host.className="daily-question-card";
   const en=isEnglishUi();
   let existing="";
@@ -861,8 +872,10 @@ async function loadContacts(){
     if(!contactsInitialized||ids!==oldIds){
       const groupBtn=contactButton(GROUP,true);
       contactsElReplace(groupBtn);
-      users.filter(u=>u.id!==currentUser.uid).forEach(p=>$("contacts").appendChild(contactButton(p,false)));
-      $("contacts").appendChild(contactButton(selfContact,false));
+      // Expanded sidebar: keep the group pinned at the very top.
+      $('contacts').appendChild(groupBtn);
+      users.filter(u=>u.id!==currentUser.uid).forEach(p=>$('contacts').appendChild(contactButton(p,false)));
+      $('contacts').appendChild(contactButton(selfContact,false));
       if(!contactsInitialized){
         watchUnreadThread(GROUP_ID);
         users.filter(u=>u.id!==currentUser.uid).forEach(p=>watchUnreadThread(threadId(currentUser.uid,p.id)));
@@ -886,7 +899,7 @@ async function loadContacts(){
   },error=>{console.error("Contacts listener failed:",error);toast("تعذر تحديث حالة الأصدقاء");});
 }
 
-function contactsElReplace(groupBtn){$("contacts").innerHTML="";$("contacts").appendChild(groupBtn);}
+function contactsElReplace(groupBtn){$("contacts").innerHTML="";groupBtn.style.order="0";}
 
 function contactButton(p,group){
   const b=document.createElement("button");b.className="contact";
@@ -902,6 +915,7 @@ function contactButton(p,group){
 function refreshGroupSidebar(){
   const button=[...$("contacts").querySelectorAll(".contact")].find(item=>item.dataset.threadId===GROUP_ID);
   if(!button)return;
+  button.style.order="-1";
   const title=button.querySelector("strong");if(title)title.textContent=activeGroupMeta.name||"S.T.M 🌷";
   const avatar=button.querySelector(".group-avatar");
   if(avatar)avatar.innerHTML=activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡<small>3</small>';
@@ -1480,7 +1494,16 @@ renderDecorationGallery();
 
 function updateProfileCustomizationPreview(){
   const name=$("displayNameInput"),c1=$("profileColor").value,c2=$("profileColor2").value;
-  if(name){const p={color1:c1,color2:c2,nameFont:$("nameFontSelect").value};$("profileNamePreview").style.cssText=nameStyle(p);$("profileNamePreview").textContent=name.value||"Cute";}
+  if(name){
+    const p={color1:c1,color2:c2,nameFont:$("nameFontSelect").value};
+    const preview=$("profileNamePreview");
+    preview.replaceChildren();
+    const sample=document.createElement("span");
+    sample.textContent=name.value.trim()||"Cute";
+    sample.style.cssText=`font-family:${({noto:"Noto Sans",arabic:"Noto Sans Arabic",serif:"Noto Serif","arabic-serif":"Noto Naskh Arabic",mono:"Noto Sans Mono",kufi:"Noto Kufi Arabic"})[$("nameFontSelect").value]||"sans-serif"};font-weight:900;display:inline-block;background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent;`;
+    preview.appendChild(sample);
+    preview.style.cssText="display:grid;place-items:center;min-height:48px;opacity:1;visibility:visible;";
+  }
   const deco=$("decorationSelect").value;
   $("profileAvatarPreview").style.backgroundImage=avatarGradient();
   const preview=$("editorDecoration"),src=deco?decorationUrl(deco):"";
@@ -1498,7 +1521,11 @@ function updateProfileCustomizationPreview(){
 
 function applyColorPair(c1,c2){$("profileColor").value=c1;$("profileColor2").value=c2;updateProfileCustomizationPreview();}
 ["profileColor","profileColor2","nameFontSelect","decorationSelect","displayNameInput"].forEach(id=>$(id)?.addEventListener("input",updateProfileCustomizationPreview));
-document.querySelectorAll(".preset-colors [data-pair]").forEach(btn=>btn.addEventListener("click",()=>{const [a,b]=btn.dataset.pair.split(",");applyColorPair(a,b)}));
+document.querySelectorAll(".preset-colors [data-pair]").forEach(btn=>{
+  const [a,b]=btn.dataset.pair.split(",");
+  btn.style.setProperty("background",`linear-gradient(135deg,${a} 50%,${b} 50%)`,"important");
+  btn.addEventListener("click",()=>applyColorPair(a,b));
+});
 
 (()=>{
   const select=$("nameFontSelect");if(!select||select.dataset.customized)return;
@@ -1579,7 +1606,15 @@ async function uploadAvatarToCloudinary(file){
   if(!result.secure_url)throw new Error("Cloudinary لم يرجع رابط الصورة");return result.secure_url;
 }
 
-function renderProfileBannerPreview(url){const preview=$("profileBannerStage");if(!preview)return;preview.style.backgroundImage=url?`url("${String(url).replaceAll('"','').replaceAll("\\",'')}")`:"none";preview.innerHTML=url?"":"<span>غلاف ملفك الشخصي</span>";}
+function renderProfileBannerPreview(url){
+  const preview=$("profileBannerStage");if(!preview)return;
+  preview.style.backgroundImage="none";preview.innerHTML="";
+  if(!url){preview.innerHTML="<span>غلاف ملفك الشخصي</span>";return;}
+  const img=document.createElement("img");img.className="profile-banner-preview-image";img.alt="";img.loading="eager";img.decoding="async";
+  img.onerror=()=>{img.remove();if(!preview.querySelector("span")){const fallback=document.createElement("span");fallback.textContent="تعذر تحميل البنر — جرّب اختيار الصورة مرة أخرى";preview.appendChild(fallback);}};
+  img.onload=()=>preview.classList.add("banner-loaded");
+  preview.classList.remove("banner-loaded");img.src=String(url);preview.appendChild(img);
+}
 
 $("profileForm").onsubmit=async e=>{
   e.preventDefault();const displayName=$("displayNameInput").value.trim();if(!displayName)return;
@@ -1649,7 +1684,10 @@ function showStory(story){
     $("storyViewer").querySelector(".story-viewer-card").appendChild(reply);
     reply.addEventListener("submit",sendStoryPrivateReply);
   }
-  reply.classList.toggle("hidden",story.uid===currentUser.uid);$("storyReplyInput").value="";$("storyViewer").classList.remove("hidden");
+  reply.classList.toggle("hidden",story.uid===currentUser.uid);$("storyReplyInput").value="";
+  const viewer=$("storyViewer");
+  if(viewer.parentElement!==document.body)document.body.appendChild(viewer);
+  viewer.classList.remove("hidden");viewer.style.zIndex="2147483000";viewer.style.position="fixed";viewer.style.inset="0";
 }
 
 async function sendStoryPrivateReply(event){
@@ -1830,7 +1868,12 @@ if (sidebarToggle && chatLayout) {
     if (!dockItems) return;
     const contactsRoot = $("contacts");
     if (!contactsRoot) return;
-    const contacts = [...contactsRoot.querySelectorAll(".contact")].slice(0, 3);
+    // Collapsed dock: show friends plus the group (never the personal "You!" chat).
+    // Put the group last in DOM order so it stays at the far right of the horizontal dock.
+    const contacts = [...contactsRoot.querySelectorAll(".contact")]
+      .filter(contact => contact.dataset.threadId === GROUP_ID || contact.dataset.userId !== currentUser?.uid)
+      .sort((a,b) => (a.dataset.threadId === GROUP_ID ? 1 : 0) - (b.dataset.threadId === GROUP_ID ? 1 : 0))
+      .slice(0, 3);
     dockItems.innerHTML = "";
     contacts.forEach(contact => {
       const shortcut = document.createElement("button");
@@ -1843,7 +1886,27 @@ if (sidebarToggle && chatLayout) {
       const presenceText = presence?.title || contact.querySelector(".contact-status")?.textContent?.trim() || "جروب";
       shortcut.title = unread ? `${name} · ${unread} رسالة جديدة · ${presenceText}` : `${name} · ${presenceText}`;
       shortcut.setAttribute("aria-label", shortcut.title);
-      shortcut.innerHTML = contact.innerHTML;
+      // Build a compact, reliable avatar-only shortcut. Cloning the whole contact
+      // copied hidden/layout-dependent markup and sometimes left the collapsed dock empty.
+      const avatarSource = contact.querySelector(".avatar, .contact-avatar-wrap, .group-avatar, img");
+      const avatarWrap = document.createElement("span");
+      avatarWrap.className = "mini-avatar-wrap";
+      if (avatarSource) {
+        const cloned = avatarSource.cloneNode(true);
+        cloned.removeAttribute?.("id");
+        cloned.classList?.remove("hidden");
+        cloned.style.display = "grid";
+        avatarWrap.appendChild(cloned);
+        const originalImg = avatarSource.matches?.("img") ? avatarSource : avatarSource.querySelector?.("img");
+        const clonedImg = cloned.matches?.("img") ? cloned : cloned.querySelector?.("img");
+        if (originalImg?.currentSrc || originalImg?.src) {
+          const src = originalImg.currentSrc || originalImg.src;
+          if (clonedImg) { clonedImg.loading = "eager"; clonedImg.src = src; }
+        }
+      } else {
+        avatarWrap.textContent = (name || "♡").slice(0,1);
+      }
+      shortcut.appendChild(avatarWrap);
       if (contact.classList.contains("selected")) shortcut.classList.add("is-selected");
       if (unread > 0) {
         const unreadDot = document.createElement("span");

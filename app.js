@@ -25,7 +25,15 @@ let selectedAuthMode=sessionStorage.getItem("bubble-chat-auth-mode")||"user";
 const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
 const NOTIFICATION_WORKER_URL="https://bubble-chat-notifications.mainmohammedy.workers.dev";
 const VAPID_PUBLIC_KEY="BNntJ7Pft1mjX9eAemavXWmOmjrZj9I-VDyV-zsqFm-otZV0WKadTAcgjUKJOrexkCzmhC2Lmy7tB2tqcQ5PXuI";
-const $=id=>document.getElementById(id); let currentUser=null,currentProfile=null,activeChat=null,stopMessages=null,stopPinnedMessages=null,chatOpenVersion=0,replyTarget=null,editingId=null,selectedAvatarFile=null,selectedBannerFile=null;
+const $=id=>document.getElementById(id);
+// Broken remote avatar/decorative URLs should fall back cleanly instead of showing a broken-image icon.
+document.addEventListener("error",event=>{
+  const img=event.target;
+  if(!(img instanceof HTMLImageElement))return;
+  if(img.closest(".avatar,.contact-avatar-wrap,.sidebar-mini-contact,.stories-friend-avatar,.stories-self-avatar,.chat-avatar-decoration,.group-avatar,.message-avatar,.public-profile-avatar")){
+    img.remove();
+  }
+},true); let currentUser=null,currentProfile=null,activeChat=null,stopMessages=null,stopPinnedMessages=null,chatOpenVersion=0,replyTarget=null,editingId=null,selectedAvatarFile=null,selectedBannerFile=null;
 const unreadStops=new Map(), unreadCounts=new Map();
 let sharedStickers=[],stopSharedStickers=null;
 let activeMessagesCache=[],activeGroupMeta={name:"S.T.M 🌷",photoURL:"",bannerURL:"",admins:[]};
@@ -180,7 +188,7 @@ function applyMyTheme(){if(currentProfile)document.documentElement.style.setProp
 
 function avatarMarkup(p,size=""){
   const color=colorOf(p),photo=p?.photoURL,initial=(p?.displayName||p?.username||"♡").slice(0,1);
-  return `<div class="avatar ${size}" style="--user-color:${color};background-image:${avatarGradient(p)}">${photo?`<span class="avatar-fallback">${$safe(initial)}</span><img src="${$safe(photo)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:$safe(initial)}${p?.decoration?`<span class="chat-avatar-decoration"><img src="${decorationUrl(p.decoration)}" alt=""></span>`:""}</div>`;
+  return `<div class="avatar ${size}" style="--user-color:${color};background-image:${avatarGradient(p)}">${photo?`<span class="avatar-fallback">${$safe(initial)}</span><img src="${$safe(photo)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:$safe(initial)}${p?.decoration?`<span class="chat-avatar-decoration"><img src="${decorationUrl(p.decoration)}" alt="" onerror="this.remove()"></span>`:""}</div>`;
 }
 
 function paintAvatar(element,profile){
@@ -193,14 +201,14 @@ function paintAvatar(element,profile){
   if(photo){
     const fallback=document.createElement("span");fallback.className="avatar-fallback";fallback.textContent=initial;element.appendChild(fallback);
     const img=document.createElement("img");img.alt="";img.loading="eager";img.decoding="async";
-    img.onerror=()=>{img.remove();};
+    img.onerror=()=>{img.remove();element.classList.add("avatar-photo-failed");};
     img.src=photo;element.appendChild(img);
   }else{
     element.appendChild(document.createTextNode(initial));
   }
   if(profile?.decoration){
     const overlay=document.createElement("span");overlay.className="chat-avatar-decoration";
-    const deco=document.createElement("img");deco.alt="";deco.src=decorationUrl(profile.decoration);
+    const deco=document.createElement("img");deco.alt="";deco.onerror=()=>deco.remove();deco.src=decorationUrl(profile.decoration);
     overlay.appendChild(deco);element.appendChild(overlay);
   }
 }
@@ -447,7 +455,7 @@ function updateDecorationButton(){
 function ensureDecorationPicker(){
   let picker=$("messageDecorationPicker");if(picker)return picker;
   picker=document.createElement("section");picker.id="messageDecorationPicker";picker.className="message-decoration-picker hidden";picker.setAttribute("aria-label","ديكورات الرسائل");
-  picker.innerHTML=`<header class="message-decoration-heading"><strong>ديكورات الرسائل</strong><span>اختار شكل الرسالة</span></header><div class="message-decoration-grid"><button type="button" data-decoration="envelope" class="deco-envelope"><i class="deco-preview deco-preview-envelope">💌</i><span>الظرف</span></button><button type="button" data-decoration="heart" class="deco-heart-choice"><i class="deco-preview deco-preview-heart">💗</i><span>قلوب</span></button><button type="button" data-decoration="fire" class="deco-fire-choice"><i class="deco-preview deco-preview-fire">🔥</i><span>نار</span></button><button type="button" data-decoration="sparkles" class="deco-sparkles-choice"><i class="deco-preview deco-preview-sparkles">✨</i><span>نجوم</span></button><button type="button" data-decoration="flowers" class="deco-flowers-choice"><i class="deco-preview deco-preview-flowers">🌸</i><span>زهور</span></button><button type="button" data-decoration="" class="deco-none-choice"><i class="deco-preview deco-preview-none">✕</i><span>بدون</span></button></div>`;
+  picker.innerHTML=`<header class="message-decoration-heading"><strong>ديكورات الرسائل</strong><span>اختار شكل الرسالة</span></header><div class="message-decoration-grid"><button type="button" data-decoration="envelope" class="deco-envelope"><i class="deco-preview deco-preview-envelope">🎁</i><span>هدية</span></button><button type="button" data-decoration="heart" class="deco-heart-choice"><i class="deco-preview deco-preview-heart">💗</i><span>قلوب</span></button><button type="button" data-decoration="fire" class="deco-fire-choice"><i class="deco-preview deco-preview-fire">🔥</i><span>نار</span></button><button type="button" data-decoration="sparkles" class="deco-sparkles-choice"><i class="deco-preview deco-preview-sparkles">✨</i><span>نجوم</span></button><button type="button" data-decoration="" class="deco-none-choice"><i class="deco-preview deco-preview-none">✕</i><span>بدون</span></button></div>`;
   document.body.append(picker);
   picker.querySelectorAll("[data-decoration]").forEach(b=>b.addEventListener("click",()=>{selectedMessageDecoration=b.dataset.decoration||"";updateDecorationButton();picker.classList.add("hidden");}));
   return picker;
@@ -500,6 +508,7 @@ function askElegantDelete(message){
 }
 function startMemberInbox(){
   watchInboxUnread();
+  watchStoriesUnread();
   if(stopInboxMessages)stopInboxMessages();
   const list=$("notificationsContent");if(!list||!currentUser)return;
   // Keep the question listener independent from the inbox-message listener so a
@@ -1258,7 +1267,7 @@ function messageNode(m){
   const avatar=document.createElement('div');avatar.className='avatar message-avatar';avatar.style.setProperty('--user-color',senderColor);avatar.style.backgroundImage=avatarGradient(sender);
   avatar.innerHTML=(senderPhoto?`<img src="${$safe(senderPhoto)}" alt="">`:$safe(senderInitial))+(sender.decoration?`<span class="chat-avatar-decoration"><img src="${decorationUrl(sender.decoration)}" alt=""></span>`:"");
   const reply=m.replyTo?`<button class="reply-quote" type="button" data-jump="${$safe(m.replyTo.id||'')}" ${m.replyTo.id?'':'disabled'}><b>${$safe(m.replyTo.senderName)}</b><span>${(m.replyTo.imageUrl||m.replyTo.mediaType==="image")?'<span class="reply-media-label">📷 صورة</span>':m.replyTo.sticker?'<img class="reply-sticker-thumb" src="'+$safe(m.replyTo.sticker)+'" alt="ملصق">':$safe(m.replyTo.text||"رسالة")}</span></button>`:'';
-  const content=m.imageUrl?`<button class="message-image-link" type="button" aria-label="فتح الصورة"><img class="message-photo" src="${$safe(m.imageUrl)}" alt="صورة مرسلة" loading="lazy" decoding="async"></button>`:m.sticker?`<img class="sticker-image" src="${$safe(m.sticker)}" alt="ملصق">`:`<p>${$safe(m.text||'').replace(/(^|\s)(https?:\/\/[^\s<]+)/gi,(all,space,url)=>`${space}<a class="message-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,'$1<span class="mention-tag">$2</span>')}</p>`;
+  const content=(m.mediaType==="video"&&m.mediaUrl)?`<video class="message-video" src="${$safe(m.mediaUrl)}" controls playsinline preload="metadata"></video>`:(m.imageUrl||m.mediaUrl)?`<button class="message-image-link" type="button" aria-label="فتح الصورة"><img class="message-photo" src="${$safe(m.imageUrl||m.mediaUrl)}" alt="وسائط مرسلة" loading="lazy" decoding="async"></button>`:m.sticker?`<img class="sticker-image" src="${$safe(m.sticker)}" alt="ملصق">`:`<p>${$safe(m.text||'').replace(/(^|\s)(https?:\/\/[^\s<]+)/gi,(all,space,url)=>`${space}<a class="message-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,'$1<span class="mention-tag">$2</span>')}</p>`;
   const reactions=Object.entries(m.reactions||{}).filter(([k,v])=>Array.isArray(v)&&v.length).map(([emoji,uids])=>{
     const people=uids.map(uid=>{
       const person=uid===currentUser.uid?currentProfile:(userProfiles.get(uid)||{});
@@ -1277,7 +1286,7 @@ function messageNode(m){
   row.querySelectorAll('.reaction-chip').forEach(btn=>btn.onclick=()=>reactTo(m,btn.dataset.emoji));
   row.querySelector(".message-envelope")?.addEventListener("click",e=>{const button=e.currentTarget,wrap=button.closest(".envelope-wrap"),hidden=wrap?.querySelector(".envelope-hidden-content");if(button.classList.contains("opening")||button.classList.contains("is-gone"))return;button.classList.add("opening");setTimeout(()=>{button.classList.add("is-gone");hidden?.classList.remove("hidden");hidden?.classList.add("revealed");setTimeout(()=>button.remove(),420);},520);});
 
-  row.querySelector('.message-image-link')?.addEventListener('click',()=>openImageLightbox(m.imageUrl));
+  row.querySelector('.message-image-link')?.addEventListener('click',()=>openImageLightbox(m.imageUrl||m.mediaUrl));
   row.querySelectorAll('[data-jump]').forEach(btn=>btn.addEventListener('click',()=>jumpToMessage(btn.dataset.jump)));
   beginMessageGestures(row,m,el);
   return row;
@@ -1508,6 +1517,47 @@ document.querySelectorAll(".preset-colors [data-pair]").forEach(btn=>btn.addEven
   wrap.append(trigger,panel);select.insertAdjacentElement("afterend",wrap);refresh();
 })();
 
+function storiesSeenStorageKey(){return `bubbleStoriesSeenAt:${currentUser?.uid||"guest"}`;}
+function markStoriesAsSeen(){
+  try{localStorage.setItem(storiesSeenStorageKey(),String(Date.now()));}catch(e){}
+  $("storiesUnreadDot")?.classList.add("hidden");
+}
+let stopStoriesUnread=null;
+function watchStoriesUnread(){
+  if(!currentUser)return;
+  if(stopStoriesUnread){stopStoriesUnread();stopStoriesUnread=null;}
+  const dot=$("storiesUnreadDot");if(!dot)return;
+  const seen=Number(localStorage.getItem(storiesSeenStorageKey())||0);
+  stopStoriesUnread=onSnapshot(query(collection(db,"stories"),orderBy("createdAt","desc"),limit(50)),snap=>{
+    const newest=snap.docs.map(d=>d.data()).filter(x=>x.uid!==currentUser.uid).reduce((max,x)=>Math.max(max,x.createdAt?.toMillis?.()||0),0);
+    dot.classList.toggle("hidden",!(newest&&newest>seen));
+  },err=>console.warn("Stories unread indicator:",err));
+}
+function openStoriesPage(){
+  markStoriesAsSeen();
+  const page=$("storiesHubModal");page.classList.remove("hidden");document.body.classList.add("stories-page-open");
+  loadMyStories();loadFriendsStories();
+}
+function closeStoriesPage(){$("storiesHubModal").classList.add("hidden");document.body.classList.remove("stories-page-open")}
+$("sidebarStoriesBtn")?.addEventListener("click",openStoriesPage);
+$("closeStoriesHub")?.addEventListener("click",closeStoriesPage);
+async function loadFriendsStories(){
+ const host=$("storiesFriendsList");if(!host||!currentUser)return;const en=isEnglishUi();host.innerHTML=`<span class="profile-hint">${en?"Loading people...":"جاري تحميل الأشخاص..."}</span>`;
+ try{
+  const snap=await getDocs(collection(db,"stories"));
+  const active=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.uid!==currentUser.uid&&Number(x.expiresAt||0)>Date.now()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
+  const grouped=new Map();active.forEach(x=>{if(!grouped.has(x.uid))grouped.set(x.uid,[]);grouped.get(x.uid).push(x)});
+  const people=new Map();if(userProfiles instanceof Map)userProfiles.forEach((v,k)=>{if(k!==currentUser.uid)people.set(k,v)});
+  grouped.forEach((items,uid)=>{if(!people.has(uid))people.set(uid,{id:uid,displayName:items[0].displayName||(en?"Friend":"صديق")})});
+  host.innerHTML="";if(!people.size){host.innerHTML=`<div class="stories-empty-state"><span>♡</span><b>${en?"No people to show yet":"لا يوجد أشخاص لعرضهم حاليًا"}</b></div>`;return;}
+  people.forEach((person,uid)=>{const items=grouped.get(uid)||[];const has=items.length>0;const card=document.createElement("button");card.type="button";card.className=`stories-friend-card ${has?"has-story":"no-story"}`;card.disabled=!has;card.setAttribute("aria-label",`${person.displayName||person.username||""}${has?(en?", has a story":", لديه حالة"):(en?", no story":", بدون حالة")}`);
+   const avatar=document.createElement("span");avatar.className="stories-friend-avatar";if(person.photoURL){const img=document.createElement("img");img.src=person.photoURL;img.alt="";avatar.append(img)}else avatar.textContent=(person.displayName||person.username||"♡").slice(0,1);
+   const info=document.createElement("span");info.className="stories-friend-info";const name=document.createElement("b");name.textContent=person.displayName||person.username||(en?"Friend":"صديق");const count=document.createElement("small");count.textContent=has?(en?`${items.length} ${items.length===1?"story":"stories"}`:`${items.length} حالة`):(en?"No story":"لا توجد حالة");info.append(name,count);card.append(avatar,info);
+   if(has)card.onclick=()=>{let i=0;const play=()=>{if(i<items.length)showStory(items[i++]);};play()};host.append(card);
+  });
+ }catch(e){console.error(e);host.innerHTML=`<span class="profile-hint">${en?"Could not load people.":"تعذر تحميل الأشخاص."}</span>`}
+}
+
 $("profileBtn").onclick=()=>{
   $("displayNameInput").value=currentProfile.displayName||currentProfile.username;
   $("profileBioInput").value=currentProfile.bio||"";
@@ -1516,7 +1566,7 @@ $("profileBtn").onclick=()=>{
   $("profileColor2").value=currentProfile.color2||currentProfile.color1||currentProfile.color||colorOf(currentProfile);
   $("nameFontSelect").value=currentProfile.nameFont||"default";$("decorationSelect").value=String(currentProfile.decoration||"");
   const avatar=$("profileAvatarPreview");avatar.innerHTML=currentProfile.photoURL?`<img src="${$safe(currentProfile.photoURL)}" alt="">`:(currentProfile.displayName||currentProfile.username||"♡").slice(0,1);
-  updateProfileCustomizationPreview();loadMyStories();selectedBannerFile=null;selectedAvatarFile=null;$("storyCaptionInput").value="";$("storyFileName").textContent="لم يتم اختيار ملف";$("storyFile").value="";$("storyCompose").classList.add("hidden");
+  updateProfileCustomizationPreview();selectedBannerFile=null;selectedAvatarFile=null;
   $("profileModal").classList.remove("hidden");
 };
 $("closeProfile").onclick=()=>$("profileModal").classList.add("hidden");
@@ -1648,7 +1698,7 @@ $("publishStoryBtn").onclick=async()=>{
   let mediaUrl="",mediaType="text";
   if(file){const isVideo=file.type.startsWith("video/");if(!file.type.startsWith("image/")&&!isVideo)throw new Error("اختار صورة أو فيديو صالح");if(file.size>(isVideo?25:8)*1024*1024)throw new Error("حجم الملف أكبر من المسموح");if(isVideo&&await getVideoDuration(file)>30)throw new Error("مدة الفيديو لازم تكون 30 ثانية أو أقل");mediaUrl=await uploadStoryToCloudinary(file,isVideo);mediaType=isVideo?"video":"image";}
   await addDoc(collection(db,"stories"),{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,mediaUrl,mediaType,caption,createdAt:serverTimestamp(),expiresAt:Date.now()+24*60*60*1000});
-  toast("تم نشر حالتك لمدة 24 ساعة ♡");loadMyStories();$("storyCaptionInput").value="";$("storyFile").value="";$("storyFileName").textContent="لم يتم اختيار ملف";
+  toast("تم نشر حالتك بنجاح ♡");loadMyStories();loadFriendsStories();$("storyCaptionInput").value="";$("storyFile").value="";$("storyFileName").textContent="لم يتم اختيار ملف";
  }catch(err){console.error(err);toast(err.message||"تعذر نشر الحالة");}finally{button.disabled=false;button.textContent="نشر الحالة";}
 };
 
@@ -1711,11 +1761,11 @@ $("imageLightbox")?.addEventListener("click",e=>{if(e.target===$("imageLightbox"
 // تبديل نصوص الواجهة فقط؛ يظل اتجاه التطبيق RTL كما هو حتى في الإنجليزية.
 const uiTranslations={
  'settingsTitle':['الإعدادات ⚙','Settings ⚙'],'night':['🌙 الوضع الليلي','🌙 Dark mode'],'notifications':['🔔 تفعيل الإشعارات','🔔 Enable notifications'],'logout':['↪ تسجيل الخروج','↪ Log out'],'language':['🌐 English','🌐 العربية'],
- 'conversations':['المحادثات','Chats'],'usernameLabel':['اسم المستخدم','Username'],'passwordLabel':['كلمة المرور','Password'],'login':['تسجيل الدخول','Log in'],'install':['تثبيت التطبيق','Install app'],'sidebarHide':['إخفاء الشريط الجانبي','Hide sidebar'],'sidebarShow':['إظهار الشريط الجانبي','Show sidebar'],'newMessages':['رسائل جديدة','New messages'],'chatSearch':['بحث في المحادثة','Search chat'],'pinnedMessages':['الرسائل المثبتة','Pinned messages'],'profileEdit':['تعديل الملف الشخصي ✎','Edit profile ✎'],'welcome':['أهلًا بيكم في بابل شات ♡','Welcome to Bubble Chat ♡'],'sendImage':['إرسال صورة','Send image'],'sticker':['الملصقات','Stickers'],'messagePlaceholder':['اكتب رسالة...','Write a message...'],'settingsAria':['الإعدادات','Settings']
+ 'conversations':['المحادثات','Chats'],'usernameLabel':['اسم المستخدم','Username'],'passwordLabel':['كلمة المرور','Password'],'login':['تسجيل الدخول','Log in'],'install':['تثبيت التطبيق','Install app'],'sidebarHide':['إخفاء الشريط الجانبي','Hide sidebar'],'sidebarShow':['إظهار الشريط الجانبي','Show sidebar'],'newMessages':['رسائل جديدة','New messages'],'chatSearch':['بحث في المحادثة','Search chat'],'pinnedMessages':['الرسائل المثبتة','Pinned messages'],'profileEdit':['تعديل الملف الشخصي ✎','Edit profile ✎'],'welcome':['أهلًا بيكم في بابل شات ♡','Welcome to Bubble Chat ♡'],'sendImage':['إرسال وسائط','Send media'],'sticker':['الملصقات','Stickers'],'messagePlaceholder':['اكتب رسالة...','Write a message...'],'settingsAria':['الإعدادات','Settings']
 };
-function setUiLanguage(lang){const en=lang==='en';document.documentElement.lang=en?'en':'ar';document.documentElement.dir='rtl';document.querySelectorAll('[data-ar][data-en]').forEach(node=>node.textContent=node.getAttribute(en?'data-en':'data-ar'));
+function setUiLanguage(lang){const en=lang==='en';document.documentElement.lang=en?'en':'ar';document.documentElement.dir='rtl';document.querySelectorAll('#storiesHubModal [data-ar][data-en]').forEach(n=>n.textContent=n.getAttribute(en?'data-en':'data-ar'));const storyCompose=$('storyCompose');if(storyCompose){const types=[['text','حالة نصية','Text story'],['image','صورة','Photo'],['video','فيديو','Video']];types.forEach(([type,ar,enText])=>{const b=storyCompose.querySelector(`[data-story-type="${type}"]`);if(b)b.textContent=en?enText:ar;});const pub=$('publishStoryBtn');if(pub)pub.textContent=en?'Publish story':'نشر الحالة';const file=$('storyFileName');if(file&&!$('storyFile').files.length)file.textContent=en?'No file selected':'لم يتم اختيار ملف';}document.querySelectorAll('[data-ar][data-en]').forEach(node=>node.textContent=node.getAttribute(en?'data-en':'data-ar'));
  const set=(selector,key,attr)=>{const el=document.querySelector(selector);if(el){const pair=uiTranslations[key];if(pair){if(attr)el.setAttribute(attr,pair[en?1:0]);else el.textContent=pair[en?1:0];}}};
- set('#settingsModal h2','settingsTitle');set('#settingsToggle','settingsTitle');set('#themeToggle','night');set('#enableNotificationsBtn','notifications');set('#logoutBtn','logout');set('#languageToggle','language');const sectionLabel=document.querySelector('.section-label');if(sectionLabel?.firstChild)sectionLabel.firstChild.nodeValue=uiTranslations.conversations[en?1:0]+' '; set('.me-card small','profileEdit');set('.side-header small','welcome');set('label[for=username]','usernameLabel');set('label[for=password]','passwordLabel');set('#installAppBtn span','install');set('#sidebarToggle','sidebarHide','title');set('#sidebarToggle','sidebarHide','aria-label');set('#sidebarDockToggle','sidebarShow','title');set('#sidebarDockToggle','sidebarShow','aria-label');set('#imageMessageBtn','sendImage','title');set('#imageMessageBtn','sendImage','aria-label');set('#stickerBtn','sticker','title');set('#messageInput','messagePlaceholder','placeholder');
+ set('#settingsModal h2','settingsTitle');set('#settingsToggle','settingsTitle');set('#themeToggle','night');set('#enableNotificationsBtn','notifications');set('#logoutBtn','logout');set('#languageToggle','language');const sectionLabel=document.querySelector('.section-label');if(sectionLabel?.firstChild)sectionLabel.firstChild.nodeValue=uiTranslations.conversations[en?1:0]+' '; set('.me-card small','profileEdit');set('.side-header small','welcome');set('label[for=username]','usernameLabel');set('label[for=password]','passwordLabel');set('#installAppBtn span','install');set('#sidebarToggle','sidebarHide','title');set('#sidebarToggle','sidebarHide','aria-label');set('#sidebarDockToggle','sidebarShow','title');set('#sidebarDockToggle','sidebarShow','aria-label');set('#stickerBtn','sticker','title');set('#messageInput','messagePlaceholder','placeholder');
  const labels=[['.empty-state h2','أهلًا بيكم في Bubble Chat','Welcome to Bubble Chat'],['#chatSearchInput','بحث في الرسائل','Search messages','placeholder'],['#supportMessage','اكتب رسالتك بالتفصيل...','Describe your message...','placeholder'],['#supportReplyInput','اكتب ردك...','Write a reply...','placeholder'],['#profileBioInput','اكتب نبذة بسيطة عنك...','Write a short bio...','placeholder'],['#displayNameInput','الاسم الظاهر','Display name','aria-label'],['#username','اكتب اسم المستخدم','Enter username','placeholder'],['#password','كلمة المرور','Password','aria-label'],['#messageInput','اكتب رسالة...','Write a message...','placeholder']];
  labels.forEach(([selector,ar,enText,attr])=>{const node=document.querySelector(selector);if(node){const value=en?enText:ar;if(attr)node.setAttribute(attr,value);else if(node.matches('input,textarea'))node.placeholder=value;else node.textContent=value;}});
  const setLeading=(selector,value)=>{const node=document.querySelector(selector);if(!node)return;const textNode=[...node.childNodes].find(n=>n.nodeType===Node.TEXT_NODE&&n.nodeValue.trim());if(textNode)textNode.nodeValue=' '+value+' ';};
@@ -1724,12 +1774,12 @@ function setUiLanguage(lang){const en=lang==='en';document.documentElement.lang=
 
  leadTranslations.forEach(([selector,ar,enText])=>setLeading(selector,en?enText:ar));
  const staticTextPairs={
-  'كل':'Every','صبرٍ':'patience','جبر':'healing','اسمك':'Your name','إخفاء الشريط الجانبي':'Hide sidebar','إظهار الشريط الجانبي':'Show sidebar','إرسال':'Send','إرسال صورة':'Send image','الملصقات':'Stickers','المزيد من خيارات المحادثة':'More chat options','المزيد':'More','خيارات المحادثة':'Chat options','بحث في المحادثة':'Search chat','الرسائل المثبتة':'Pinned messages','الانتقال لآخر الشات':'Go to latest message','قائمة الملصقات':'Stickers','تفاصيل الجروب':'Group details','غلاف الجروب':'Group cover','تغيير البنر':'Change banner','تغيير صورة الجروب':'Change group photo','اسم الجروب':'Group name','الأعضاء والصلاحيات':'Members & permissions','حفظ التعديلات':'Save changes','ملفك الشخصي ✨':'Your profile ✨','غلاف الملف الشخصي':'Profile cover','تغيير الصورة':'Change photo','صورتك الشخصية':'Your profile photo','الاسم الظاهر':'Display name','نبذة تعريفية':'Bio','اكتب نبذة بسيطة عنك...':'Write a short bio...','ألوان الاسم':'Name colors','اللون الأول':'First color','اللون الثاني':'Second color','خط الاسم':'Name font','إطار الصورة الشخصية':'Profile frame','بدون إطار':'No frame','الإطار 1':'Frame 1','الإطار 2':'Frame 2','الإطار 3':'Frame 3','الإطار 4':'Frame 4','اختيار ديكوريشن الصورة':'Choose profile decoration','الحالات':'Stories','إضافة حالة':'Add story','حالة نصية':'Text story','صورة':'Photo','فيديو':'Video','اكتب كلام الحالة...':'Write your story...','لم يتم اختيار ملف':'No file selected','نشر الحالة':'Publish story','حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.':'Your active stories will appear here. You can view or delete them.','لا توجد حالة نشطة عندك بعد':'You don’t have any active stories yet.','لا توجد حالات نشطة حاليًا.':'No active stories yet.','مفيش حالات نشطة عندك حاليًا.':'You don’t have any active stories yet.','الحالة بتختفي بعد 24 ساعة.':'Stories disappear after 24 hours.','حفظ التغييرات':'Save changes','تحديد صورة البنر':'Crop banner image','ظبّط صورة البنر':'Adjust banner image','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل':'Move the image and choose what appears on your profile','تكبير الصورة':'Zoom image','إلغاء':'Cancel','استخدام الصورة':'Use image','الملف الشخصي':'Profile','الحالة':'Story','حذف حالتي':'Delete my story','عرض الصورة':'Image viewer','الصورة بحجم كبير':'Full-size image'
+  'كل':'Every','صبرٍ':'patience','جبر':'healing','اسمك':'Your name','إخفاء الشريط الجانبي':'Hide sidebar','إظهار الشريط الجانبي':'Show sidebar','إرسال':'Send','إرسال صورة':'Send image','الملصقات':'Stickers','المزيد من خيارات المحادثة':'More chat options','المزيد':'More','خيارات المحادثة':'Chat options','بحث في المحادثة':'Search chat','الرسائل المثبتة':'Pinned messages','الانتقال لآخر الشات':'Go to latest message','قائمة الملصقات':'Stickers','تفاصيل الجروب':'Group details','غلاف الجروب':'Group cover','تغيير البنر':'Change banner','تغيير صورة الجروب':'Change group photo','اسم الجروب':'Group name','الأعضاء والصلاحيات':'Members & permissions','حفظ التعديلات':'Save changes','ملفك الشخصي ✨':'Your profile ✨','غلاف الملف الشخصي':'Profile cover','تغيير الصورة':'Change photo','صورتك الشخصية':'Your profile photo','الاسم الظاهر':'Display name','نبذة تعريفية':'Bio','اكتب نبذة بسيطة عنك...':'Write a short bio...','ألوان الاسم':'Name colors','اللون الأول':'First color','اللون الثاني':'Second color','خط الاسم':'Name font','إطار الصورة الشخصية':'Profile frame','بدون إطار':'No frame','الإطار 1':'Frame 1','الإطار 2':'Frame 2','الإطار 3':'Frame 3','الإطار 4':'Frame 4','اختيار ديكوريشن الصورة':'Choose profile decoration','الحالات':'Stories','إضافة حالة':'Add story','حالة نصية':'Text story','صورة':'Photo','فيديو':'Video','اكتب كلام الحالة...':'Write your story...','لم يتم اختيار ملف':'No file selected','نشر الحالة':'Publish story','حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.':'Your active stories will appear here. You can view or delete them.','لا توجد حالة نشطة عندك بعد':'You don’t have any active stories yet.','لا توجد حالات نشطة حاليًا.':'No active stories yet.','مفيش حالات نشطة عندك حاليًا.':'You don’t have any active stories yet.','حفظ التغييرات':'Save changes','تحديد صورة البنر':'Crop banner image','ظبّط صورة البنر':'Adjust banner image','حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل':'Move the image and choose what appears on your profile','تكبير الصورة':'Zoom image','إلغاء':'Cancel','استخدام الصورة':'Use image','الملف الشخصي':'Profile','الحالة':'Story','حذف حالتي':'Delete my story','عرض الصورة':'Image viewer','الصورة بحجم كبير':'Full-size image'
  };
  const staticRoots=['#loginView','.sidebar','.chat-header','.composer','#groupSettingsModal','#profileModal','#bannerCropModal','#publicProfileModal','#storyViewer','#settingsModal',];
  staticRoots.forEach(root=>document.querySelectorAll(root).forEach(scope=>scope.querySelectorAll('*').forEach(node=>node.childNodes.forEach(child=>{if(child.nodeType!==Node.TEXT_NODE)return;const key=child.nodeValue.trim();if(!key)return;const translated=en?staticTextPairs[key]:Object.keys(staticTextPairs).find(ar=>staticTextPairs[ar]===key);if(translated){const leading=child.nodeValue.match(/^\s*/)?.[0]||'';const trailing=child.nodeValue.match(/\s*$/)?.[0]||'';child.nodeValue=leading+(en?staticTextPairs[key]:translated)+trailing;}}))));
 
- const staticTranslations=[['#profileModal h2','ملفك الشخصي ✨','Your profile ✨'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#addStoryBtn b','إضافة حالة','Add story'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
+ const staticTranslations=[['#profileModal h2','ملفك الشخصي ✨','Your profile ✨'],['#profileModal .profile-editor-caption','صورتك الشخصية','Your profile photo'],['#profileModal .profile-customization h3','ألوان الاسم','Name colors'],['#profileModal .compact-media-settings h3','الحالات','Stories'],['#publicProfileModal .stories-strip h3','الحالة','Story'],];
  staticTranslations.forEach(([selector,ar,enText])=>{const node=document.querySelector(selector);if(node)node.textContent=en?enText:ar;});
  $("settingsToggle")?.setAttribute('aria-label',uiTranslations.settingsAria[en?1:0]);$("settingsToggle")?.setAttribute('title',uiTranslations.settingsAria[en?1:0]);$("imageLightbox")?.setAttribute('aria-label',en?'Image viewer':'عرض الصورة');$("lightboxImage")?.setAttribute('alt',en?'Full-size image':'الصورة بحجم كبير');$("closeImageLightbox")?.setAttribute('aria-label',en?'Close':'إغلاق');
  localStorage.setItem('bubble-chat-language',en?'en':'ar');$("languageToggle")?.setAttribute('aria-pressed',String(en));
@@ -1749,23 +1799,25 @@ $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});
-// صور المحادثات: الرفع يتم إلى Cloudinary ثم يُحفظ رابط الصورة في الرسالة.
-async function uploadChatImage(file){
- if(!file?.type?.startsWith("image/"))throw new Error("اختار صورة صالحة");
- if(file.size>8*1024*1024)throw new Error("حجم الصورة لازم يكون 8MB أو أقل");
+// مرفقات المحادثات: صور وفيديوهات عبر Cloudinary.
+async function uploadChatMedia(file){
+ const isVideo=file?.type?.startsWith("video/");
+ if(!file?.type?.startsWith("image/")&&!isVideo)throw new Error("اختار صورة أو فيديو صالح");
+ if(file.size>(isVideo?25:8)*1024*1024)throw new Error(isVideo?"حجم الفيديو لازم يكون 25MB أو أقل":"حجم الصورة لازم يكون 8MB أو أقل");
+ if(isVideo&&await getVideoDuration(file)>60)throw new Error("مدة الفيديو لازم تكون 60 ثانية أو أقل");
  const fd=new FormData();fd.append("file",file);fd.append("upload_preset",CLOUDINARY_UPLOAD_PRESET);fd.append("folder","chat-assets/messages");
- const response=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,{method:"POST",body:fd});
- const data=await response.json();if(!response.ok||!data.secure_url)throw new Error(data?.error?.message||"فشل رفع الصورة");return data.secure_url;
+ const endpoint=isVideo?"video":"image";const response=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${endpoint}/upload`,{method:"POST",body:fd});
+ const data=await response.json();if(!response.ok||!data.secure_url)throw new Error(data?.error?.message||"فشل رفع الوسائط");return data.secure_url;
 }
 $("imageMessageBtn")?.addEventListener("click",()=>{$("composerMediaMenu")?.classList.add("hidden");$("composerMediaToggle")?.setAttribute("aria-expanded","false");$("imageMessageInput").click()});
 $("imageMessageInput")?.addEventListener("change",async e=>{
  const file=e.target.files?.[0];e.target.value="";if(!file||!activeChat)return;
  const button=$("imageMessageBtn");button.disabled=true;
  try{
-  const imageUrl=await uploadChatImage(file),tid=activeThreadId();
-  const payload={imageUrl,mediaType:"image",senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};
+  const mediaUrl=await uploadChatMedia(file),isVideo=file.type.startsWith("video/"),tid=activeThreadId();
+  const payload={mediaUrl,mediaType:isVideo?"video":"image",senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};
   const sent=await addDoc(collection(db,"threads",tid,"messages"),payload);await updateDoc(doc(db,"threads",tid),{updatedAt:serverTimestamp()});notifyRecipients(tid,sent.id);
- }catch(err){console.error(err);toast(err.message||"تعذر إرسال الصورة")}
+ }catch(err){console.error(err);toast(err.message||"تعذر إرسال الوسائط")}
  finally{button.disabled=false}
 });
 
@@ -1814,7 +1866,7 @@ if (sidebarToggle && chatLayout) {
     updateCollapsedUnreadIndicator();
     syncSidebarMiniDock();
     window.__bubbleSyncMiniDock = syncSidebarMiniDock;
-    sidebarToggle.textContent = isCollapsed ? "⌃" : "‹";
+    sidebarToggle.textContent = isCollapsed ? "›" : "‹";
     sidebarToggle.setAttribute("aria-expanded", String(!isCollapsed));
     sidebarToggle.setAttribute("aria-label", isCollapsed ? "إظهار الشريط الجانبي" : "إخفاء الشريط الجانبي");
     sidebarToggle.title = isCollapsed ? "إظهار الشريط الجانبي" : "إخفاء الشريط الجانبي";

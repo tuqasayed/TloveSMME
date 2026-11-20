@@ -4388,3 +4388,669 @@ body.dark-mode .message-row .decor-flowers,body.amoled-mode .message-row .decor-
 .message-row .envelope-hidden-content p{width:max-content;max-width:100%;margin:0;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;line-height:1.6;}
 .message-row .envelope-hidden-content.revealed{animation:envelopeReveal .42s cubic-bezier(.2,.8,.2,1) forwards;}
 body.amoled-mode .message-row .envelope-hidden-content{background:#101014;color:#fff;border-color:#302a35;}
+
+
+/* Reference-inspired message decorations: vivid, rounded and softly animated. */
+.message-row .message-decorated{
+  position:relative;isolation:isolate;overflow:visible;
+  border:1px solid transparent;
+  animation:decoBubbleIn .48s cubic-bezier(.2,.8,.2,1) both;
+  transition:filter .25s ease,transform .25s ease;
+}
+@keyframes decoBubbleIn{
+  0%{opacity:0;transform:translateY(9px) scale(.965);filter:blur(2px)}
+  70%{opacity:1;transform:translateY(-2px) scale(1.008);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.message-row .decor-heart{
+  background:linear-gradient(135deg,#5368ff 0%,#4057ed 55%,#526bff 100%)!important;
+  border:0!important;border-radius:25px!important;color:#fff!important;
+  box-shadow:0 5px 0 rgba(24,38,145,.20),0 8px 22px rgba(67,88,255,.22)!important;
+  padding:15px 19px!important;
+}
+.message-row .decor-heart .message-decor-art{
+  position:absolute;inset:0;pointer-events:none;z-index:2;
+}
+.message-row .decor-heart .message-decor-art:before,
+.message-row .decor-heart .message-decor-art:after{
+  position:absolute;content:"💗";font-style:normal;line-height:1;
+  filter:drop-shadow(0 3px 4px #7b174b55);
+  animation:decoHeartFloat 3.2s ease-in-out infinite;
+}
+.message-row .decor-heart .message-decor-art:before{
+  font-size:35px;left:-17px;top:-17px;transform:rotate(-18deg);
+  text-shadow:24px -12px 0 #ff80b9,270px 118px 0 #ff7db6;
+}
+.message-row .decor-heart .message-decor-art:after{
+  font-size:23px;right:-12px;bottom:-12px;animation-delay:-1.5s;
+  text-shadow:-235px -125px 0 #ff8cbd;
+}
+@keyframes decoHeartFloat{0%,100%{translate:0 0;rotate:-4deg}50%{translate:0 -5px;rotate:5deg}}
+.message-row .decor-sparkles{
+  background:linear-gradient(135deg,#5368ff 0%,#4057ed 55%,#526bff 100%)!important;
+  border:0!important;border-radius:25px!important;color:#fff!important;
+  box-shadow:0 5px 0 rgba(24,38,145,.2),0 8px 22px rgba(67,88,255,.2)!important;
+  padding:15px 19px!important;
+}
+.message-row .decor-sparkles .message-decor-emoji:before{content:"✦"!important;color:#ffe9a6}
+.message-row .decor-sparkles .message-decor-emoji{
+  opacity:.7!important;font-size:24px!important;top:3px!important;right:16px!important;
+  animation:decoTwinkle 2.4s ease-in-out infinite;
+}
+@keyframes decoTwinkle{0%,100%{opacity:.38;transform:rotate(-12deg) scale(.85)}50%{opacity:.95;transform:rotate(12deg) scale(1.12)}}
+.message-row .decor-fire{
+  background:linear-gradient(115deg,#ffb02e 0%,#ff8b00 48%,#ffae18 100%)!important;
+  border:0!important;border-radius:25px!important;color:#fff!important;
+  box-shadow:0 5px 0 rgba(172,83,0,.2),0 8px 22px rgba(255,139,0,.2)!important;
+  padding:15px 19px!important;
+}
+.message-row .decor-fire:before,.message-row .decor-fire:after{
+  content:"";position:absolute;z-index:0;pointer-events:none;
+  width:34px;height:38px;bottom:-3px;
+  background:radial-gradient(ellipse at 50% 80%,#fff0a0 0 17%,#ffd15a 35%,#ff8a00 62%,transparent 72%);
+  filter:blur(1px);animation:decoFlame 1.8s ease-in-out infinite alternate;
+}
+.message-row .decor-fire:before{left:-7px;transform:rotate(-22deg)}
+.message-row .decor-fire:after{right:-7px;transform:rotate(22deg);animation-delay:-.8s}
+@keyframes decoFlame{from{transform:translateY(1px) scale(.92) rotate(-7deg);opacity:.7}to{transform:translateY(-3px) scale(1.08) rotate(8deg);opacity:1}}
+/* Pink gift-wrap envelope with a white cross-ribbon and a dimensional bow. */
+.message-row .envelope-wrap{width:max-content;max-width:100%;margin:7px 0 8px;perspective:700px}
+.message-row .message-envelope{
+  position:relative;isolation:isolate;overflow:visible;
+  width:clamp(190px,min(220px,58vw),220px)!important;min-height:126px!important;
+  border:0!important;border-radius:25px!important;
+  background:linear-gradient(145deg,#ff5a9d 0%,#f52d79 58%,#ff5a9d 100%)!important;
+  color:#fff!important;box-shadow:0 6px 0 #b51e59,0 12px 24px #f52d7938,inset 0 2px 5px #ffffff50!important;
+  display:flex!important;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px!important;cursor:pointer;transition:transform .35s ease,opacity .35s ease,filter .35s ease;
+}
+.message-row .message-envelope:before,.message-row .message-envelope:after{
+  content:"";position:absolute;z-index:1;pointer-events:none;background:linear-gradient(90deg,#fff 0%,#eaf4ff 48%,#fff 100%);
+  box-shadow:0 1px 4px #9d164b35;
+}
+.message-row .message-envelope:before{width:100%;height:10px;left:0;top:calc(50% - 5px)}
+.message-row .message-envelope:after{height:100%;width:10px;top:0;left:calc(50% - 5px)}
+.message-row .envelope-art{position:absolute!important;z-index:3!important;left:50%;top:50%;transform:translate(-50%,-50%);width:68px!important;height:48px!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+.message-row .envelope-art:before,.message-row .envelope-art:after{display:none!important}
+.message-row .envelope-art i{display:none!important}
+.message-row .envelope-ribbon{display:none!important}
+.message-row .envelope-bow{
+  position:absolute!important;left:50%;top:50%;width:25px;height:17px;
+  transform:translate(-50%,-50%);z-index:5;
+}
+.message-row .envelope-bow:before,.message-row .envelope-bow:after{
+  content:"";position:absolute;top:0;width:25px;height:16px;
+  background:linear-gradient(145deg,#fff,#b9d8f4);border:1px solid #c7d9eb;
+  border-radius:5px 14px 5px 14px;box-shadow:0 3px 5px #681b4650;
+}
+.message-row .envelope-bow:before{right:11px;transform:rotate(25deg)}
+.message-row .envelope-bow:after{left:11px;transform:scaleX(-1) rotate(25deg)}
+.message-row .message-envelope b{position:relative;z-index:6;margin-top:79px;font-size:12px!important;color:#fff!important;text-shadow:0 1px 3px #a5194d70}
+.message-row .message-envelope:hover{transform:translateY(-2px) scale(1.015);filter:brightness(1.04)}
+.message-row .message-envelope.opening .envelope-art{animation:giftBowPop .45s ease forwards}
+@keyframes giftBowPop{to{transform:translate(-50%,-70%) scale(1.28);opacity:0}}
+.message-row .message-envelope.opening:before{animation:giftRibbonOut .42s ease forwards}
+.message-row .message-envelope.opening:after{animation:giftRibbonOut .42s ease forwards}
+@keyframes giftRibbonOut{to{opacity:0;transform:scale(.85)}}
+.message-row .message-envelope.is-gone{opacity:0;transform:translateY(-12px) scale(.86);filter:blur(4px);pointer-events:none}
+.message-row .envelope-hidden-content.revealed{animation:decoBubbleIn .45s ease both}
+@media(prefers-reduced-motion:reduce){
+ .message-row .message-decorated,.message-row .decor-heart .message-decor-art:before,
+ .message-row .decor-heart .message-decor-art:after,.message-row .decor-sparkles .message-decor-emoji,
+ .message-row .decor-fire:before,.message-row .decor-fire:after{animation:none!important}
+}
+
+.message-row .decor-fire .message-decor-content,.message-row .decor-fire .message-decor-emoji{position:relative;z-index:2}
+
+/* Theme-aware blue-style decoration bubbles: follow the active app palette. */
+.message-row .decor-heart,
+.message-row .decor-sparkles{
+  background:linear-gradient(135deg,
+    color-mix(in srgb,var(--theme-color,#8b7ce0) 88%,#ffffff 12%) 0%,
+    var(--theme-color,#8b7ce0) 55%,
+    color-mix(in srgb,var(--theme-color,#8b7ce0) 82%,#000000 18%) 100%)!important;
+  border:1px solid color-mix(in srgb,var(--theme-color,#8b7ce0) 72%,#ffffff 28%)!important;
+  color:#fff!important;
+  box-shadow:0 5px 0 color-mix(in srgb,var(--theme-color,#8b7ce0) 68%,#000 32%),
+             0 8px 22px color-mix(in srgb,var(--theme-color,#8b7ce0) 28%,transparent)!important;
+}
+body.dark-mode .message-row .decor-heart,
+body.dark-mode .message-row .decor-sparkles{
+  background:linear-gradient(135deg,
+    color-mix(in srgb,var(--theme-color,#8b7ce0) 42%,#20202c 58%) 0%,
+    color-mix(in srgb,var(--theme-color,#8b7ce0) 34%,#171720 66%) 58%,
+    color-mix(in srgb,var(--theme-color,#8b7ce0) 38%,#242330 62%) 100%)!important;
+  border-color:color-mix(in srgb,var(--theme-color,#8b7ce0) 42%,#ffffff 58%)!important;
+  box-shadow:0 5px 0 #0006,0 8px 22px color-mix(in srgb,var(--theme-color,#8b7ce0) 14%,transparent)!important;
+}
+body.amoled-mode .message-row .decor-heart,
+body.amoled-mode .message-row .decor-sparkles{
+  background:#000!important;
+  border:1px solid #292929!important;
+  color:#fff!important;
+  box-shadow:0 5px 0 #000,0 8px 22px #000!important;
+}
+
+/* === Decoration system: reference-matched artwork + adaptive message frame === */
+.message-row .message:has(.message-decorated),
+.message-row .message:has(.envelope-wrap){
+  padding:clamp(11px,1.45vw,16px) clamp(11px,1.55vw,17px) clamp(9px,1.1vw,12px)!important;
+  border-radius:25px!important;
+  overflow:visible!important;
+  transition:background .25s ease,border-color .25s ease,box-shadow .25s ease;
+}
+.message-row .message:has(.decor-heart){background:linear-gradient(145deg,#ffe0f0 0%,#ffd0e8 100%)!important;border:1px solid #f6a8d2!important;box-shadow:0 5px 18px #e66ab52b!important;color:#54213d!important;}
+.message-row .message:has(.decor-sparkles){background:linear-gradient(145deg,#eeeaff 0%,#e3eaff 100%)!important;border:1px solid #c8baff!important;box-shadow:0 5px 18px #8c79e52b!important;color:#30254f!important;}
+.message-row .message:has(.decor-fire){background:linear-gradient(145deg,#fff0d4 0%,#ffe1bd 100%)!important;border:1px solid #ffc078!important;box-shadow:0 5px 18px #f28a2928!important;color:#61300e!important;}
+.message-row .message:has(.envelope-wrap){background:linear-gradient(145deg,#ffe0f2 0%,#ffd0ec 100%)!important;border:1px solid #f39bd4!important;box-shadow:0 5px 18px #e96ac02b!important;color:#64284e!important;}
+.message-row .message:has(.message-decorated) .message-meta,
+.message-row .message:has(.envelope-wrap) .message-meta{color:color-mix(in srgb,currentColor 58%,transparent)!important;}
+
+/* The actual decoration remains compact and proportionate on tablets and phones. */
+.message-row .message-decorated{
+  width:fit-content!important;max-width:100%!important;min-width:clamp(116px,19vw,178px)!important;
+  min-height:clamp(58px,7.5vw,76px);margin:3px auto 7px!important;
+  padding:clamp(12px,1.6vw,16px) clamp(15px,2vw,21px)!important;
+  border-radius:25px!important;overflow:visible!important;
+}
+.message-row .message-decor-content{width:auto!important;max-width:100%!important;min-width:0!important;}
+.message-row .message-decor-content p{width:auto!important;max-width:100%!important;font-size:clamp(14px,1.55vw,17px)!important;line-height:1.5!important;}
+
+/* Hearts: blue jewel-like bubble with small floating pink hearts like the reference. */
+.message-row .decor-heart{background:linear-gradient(135deg,#5368ff,#4057ed 58%,#526bff)!important;border:0!important;color:#fff!important;border-radius:24px!important;box-shadow:0 5px 0 #2639a64a,0 8px 19px #5368ff32!important;}
+.message-row .decor-heart .message-decor-art{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:visible;}
+.message-row .decor-heart .message-decor-art:before,.message-row .decor-heart .message-decor-art:after{content:"💗";position:absolute;display:block;line-height:1;filter:drop-shadow(0 3px 3px #8a245b55);animation:referenceHeartFloat 3.4s ease-in-out infinite;}
+.message-row .decor-heart .message-decor-art:before{font-size:clamp(22px,3vw,34px);left:-13px;top:-13px;text-shadow:48px -10px 0 #ff7fb8,215px 100px 0 #ff78b4;}
+.message-row .decor-heart .message-decor-art:after{font-size:clamp(17px,2.3vw,25px);right:-11px;bottom:-10px;text-shadow:-190px -112px 0 #ff91c6;animation-delay:-1.6s;}
+@keyframes referenceHeartFloat{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-5px) rotate(5deg)}}
+
+/* Sparkles: matching blue pill with a tiny translucent glint, not a large emoji. */
+.message-row .decor-sparkles{background:linear-gradient(135deg,#5368ff,#4057ed 58%,#526bff)!important;border:0!important;color:#fff!important;border-radius:24px!important;box-shadow:0 5px 0 #2639a64a,0 8px 19px #5368ff32!important;}
+.message-row .decor-sparkles .message-decor-emoji{top:5px!important;inset-inline-end:13px!important;font-size:19px!important;opacity:.38!important;}
+.message-row .decor-sparkles .message-decor-emoji:before{content:"✦"!important;color:#ffe9a6!important;}
+.message-row .decor-sparkles:after{content:"✧";position:absolute;left:12%;top:10%;font-size:15px;color:#fff4c8;opacity:.5;animation:referenceTwinkle 2.2s ease-in-out infinite;pointer-events:none;}
+@keyframes referenceTwinkle{0%,100%{opacity:.22;transform:scale(.8) rotate(-12deg)}50%{opacity:.8;transform:scale(1.12) rotate(12deg)}}
+
+/* Fire: bright orange capsule with soft yellow flame tongues at both ends. */
+.message-row .decor-fire{background:linear-gradient(110deg,#ffad00 0%,#ff8500 48%,#ff9f00 100%)!important;border:0!important;color:#fff!important;border-radius:24px!important;box-shadow:0 5px 0 #b85b0040,0 8px 20px #ff8b0038!important;}
+.message-row .decor-fire:before,.message-row .decor-fire:after{content:"";position:absolute;z-index:1;bottom:-5px;width:clamp(28px,3.5vw,42px);height:clamp(34px,4.4vw,49px);border-radius:55% 55% 45% 45%;background:radial-gradient(ellipse at 50% 78%,#fff8a6 0 16%,#ffe35a 32%,#ffad16 55%,#ff7600 72%,transparent 74%);filter:blur(1.2px);transform-origin:bottom center;animation:referenceFlame 1.45s ease-in-out infinite alternate;pointer-events:none;}
+.message-row .decor-fire:before{left:-7px;transform:rotate(-12deg);}
+.message-row .decor-fire:after{right:-7px;transform:rotate(12deg);animation-delay:-.72s;}
+.message-row .decor-fire .message-decor-content,.message-row .decor-fire .message-decor-emoji{position:relative;z-index:2;}
+.message-row .decor-fire .message-decor-emoji{opacity:.3!important;}
+@keyframes referenceFlame{0%{filter:blur(1.6px);scale:.92 .9;opacity:.82}100%{filter:blur(.7px);scale:1.06 1.08;opacity:1}}
+
+/* Gift: smaller pink present. The revealed message stays pink instead of inheriting blue theme colors. */
+.message-row .envelope-wrap{display:block!important;width:fit-content!important;max-width:100%!important;margin:2px auto 7px!important;perspective:650px;}
+.message-row .message-envelope{width:clamp(142px,18vw,174px)!important;max-width:100%!important;min-height:clamp(78px,9vw,94px)!important;height:clamp(78px,9vw,94px)!important;padding:7px!important;border-radius:23px!important;background:linear-gradient(145deg,#ff5aa4 0%,#f52d83 58%,#ff6caf 100%)!important;box-shadow:0 4px 0 #b51e59,0 8px 17px #f52d7930,inset 0 2px 5px #ffffff50!important;}
+.message-row .message-envelope:before{height:7px!important;top:calc(50% - 3.5px)!important;}
+.message-row .message-envelope:after{width:7px!important;left:calc(50% - 3.5px)!important;}
+.message-row .envelope-art{width:54px!important;height:38px!important;}
+.message-row .envelope-bow{scale:.82;}
+.message-row .message-envelope b{margin-top:57px!important;font-size:10px!important;}
+.message-row .envelope-hidden-content{box-sizing:border-box;width:fit-content!important;max-width:100%!important;min-width:clamp(142px,18vw,174px);padding:14px 16px!important;border:1px solid #f39bd4!important;border-radius:22px!important;background:linear-gradient(145deg,#ffdef1 0%,#ffcbea 100%)!important;color:#54213f!important;box-shadow:0 5px 17px #e96ac02b!important;}
+.message-row .envelope-hidden-content p{color:#54213f!important;text-shadow:none!important;}
+body.dark-mode .message-row .envelope-hidden-content{background:linear-gradient(145deg,#572642,#3d1d32)!important;color:#fff0f8!important;border-color:#a84b80!important;}
+body.dark-mode .message-row .envelope-hidden-content p{color:#fff0f8!important;}
+body.amoled-mode .message-row .envelope-hidden-content{background:linear-gradient(145deg,#24101e,#160b15)!important;color:#fff0f8!important;border-color:#713454!important;}
+body.amoled-mode .message-row .envelope-hidden-content p{color:#fff0f8!important;}
+
+/* Keep complete decoration frames balanced on tablet widths; avoid stretched ornaments. */
+@media (min-width:761px) and (max-width:1100px){
+ .message-row .message{max-width:min(78%,470px)!important;}
+ .message-row .message:has(.message-decorated),.message-row .message:has(.envelope-wrap){padding:12px 13px 10px!important;border-radius:23px!important;}
+ .message-row .message-decorated{min-width:132px!important;min-height:62px;padding:13px 16px!important;}
+ .message-row .message-envelope{width:158px!important;height:86px!important;min-height:86px!important;}
+ .message-row .envelope-hidden-content{min-width:158px!important;}
+}
+@media (max-width:760px){
+ .message-row .message{max-width:min(82vw,390px)!important;}
+ .message-row .message-decorated{min-width:116px!important;min-height:56px;padding:11px 14px!important;}
+ .message-row .message-envelope{width:150px!important;height:82px!important;min-height:82px!important;}
+ .message-row .envelope-hidden-content{min-width:150px!important;}
+}
+@media(prefers-reduced-motion:reduce){.message-row .decor-heart .message-decor-art:before,.message-row .decor-heart .message-decor-art:after,.message-row .decor-sparkles:after,.message-row .decor-fire:before,.message-row .decor-fire:after{animation:none!important}}
+
+
+/* Sidebar stories shortcut — anchored at the very bottom, theme-aware. */
+.side-footer .sidebar-stories-btn{
+  position:relative; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center; gap:9px;
+  border:1px solid color-mix(in srgb,var(--theme-color,#d86aa8) 36%,var(--line,#e8e3ee));
+  border-radius:15px; padding:7px 12px; color:var(--ink,#292536);
+  background:linear-gradient(110deg,color-mix(in srgb,var(--theme-color,#d86aa8) 12%,var(--panel,#fff)),color-mix(in srgb,var(--theme-color-2,#8d78d8) 13%,var(--panel,#fff)));
+  box-shadow:0 5px 16px #0000000b,inset 0 1px 0 #ffffff80; font:800 13px inherit; cursor:pointer;
+  transition:transform .18s ease,background .2s ease,border-color .2s ease; -webkit-tap-highlight-color:transparent;
+}
+.side-footer .sidebar-stories-btn:active{transform:scale(.98)}
+.side-footer .sidebar-stories-btn:hover{border-color:var(--theme-color,#d86aa8);filter:saturate(1.08)}
+.sidebar-stories-icon{width:25px;height:25px;display:grid;place-items:center;border-radius:50%;font-size:18px;color:#fff;background:linear-gradient(135deg,#ff7b9d,#a56ee8);box-shadow:0 2px 8px #d46eae55}
+.sidebar-stories-spark{position:absolute;right:calc(50% - 46px);top:5px;font-style:normal;font-size:10px;color:#e58ab7}
+body.dark-mode .side-footer .sidebar-stories-btn{color:var(--ink,#f5f1fb);background:linear-gradient(110deg,color-mix(in srgb,var(--theme-color,#d86aa8) 17%,var(--panel,#211f2b)),color-mix(in srgb,var(--theme-color-2,#8d78d8) 17%,var(--panel,#211f2b)));border-color:color-mix(in srgb,var(--theme-color,#d86aa8) 38%,var(--line,#444))}
+body.amoled-mode .side-footer .sidebar-stories-btn{background:#000!important;color:#fff!important;border-color:#303030!important;box-shadow:inset 0 0 0 1px #151515,0 4px 14px #000!important}
+@media(max-width:700px){.side-footer .sidebar-stories-btn{min-height:39px;padding:6px 4px;font-size:11px;gap:7px}.sidebar-stories-icon{width:22px;height:22px;font-size:16px}.sidebar-stories-spark{right:calc(50% - 39px)}}
+
+/* Stories hub, soft geometry and consistent AMOLED surfaces */
+.stories-hub-card{width:min(620px,calc(100vw - 28px));max-height:min(88vh,820px);overflow:auto;border-radius:28px!important;padding:24px!important;scrollbar-width:thin}
+.stories-hub-heading{padding:8px 4px 18px}.stories-hub-kicker{font-size:9px;letter-spacing:2.5px;font-weight:900;color:var(--theme-color,#d86aa8)}.stories-hub-heading h2{font-size:27px;margin:5px 0}.stories-hub-heading h2 span{color:var(--theme-color,#d86aa8)}.stories-hub-heading p{margin:0;color:var(--muted,#888);font-size:13px}
+.stories-hub-self{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line,#e9e4ee);border-radius:20px;background:var(--soft-panel,#faf8fc);margin-bottom:20px}.stories-hub-avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#ff78a7,#a47bea);color:white;font-size:26px;flex:none}.stories-hub-self>div:nth-child(2){display:grid;gap:4px;flex:1;min-width:0}.stories-hub-self small{font-size:11px;color:var(--muted,#888)}.stories-hub-self .story-add-card{width:auto;min-height:38px;padding:7px 12px;border-radius:13px}.stories-hub-section-title{font-size:14px;margin:20px 2px 11px}.stories-hub-friends{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}.stories-friend-card{display:flex;align-items:center;gap:10px;text-align:start;padding:11px;border:1px solid var(--line,#e9e4ee);border-radius:17px;background:var(--panel,#fff);color:var(--ink,inherit);min-width:0;cursor:pointer;transition:transform .18s ease,border-color .18s ease}.stories-friend-card:active{transform:scale(.98)}.stories-friend-avatar{width:43px;height:43px;flex:none;border-radius:50%;padding:3px;background:linear-gradient(135deg,#ff9b54,#ec4c9b,#8b63e8)}.stories-friend-avatar img{width:100%;height:100%;object-fit:cover;border:2px solid var(--panel,#fff);border-radius:50%}.stories-friend-info{display:grid;gap:4px;min-width:0}.stories-friend-info b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stories-friend-info small{font-size:10px;color:var(--muted,#888)}.stories-empty-state{grid-column:1/-1;display:grid;justify-items:center;gap:7px;padding:28px 12px;border:1px dashed var(--line,#ddd);border-radius:18px;color:var(--muted,#888);text-align:center}.stories-empty-state span{font-size:30px;color:var(--theme-color,#d86aa8)}.stories-empty-state b{font-size:13px;color:var(--ink,inherit)}.stories-empty-state small{font-size:11px}.stories-expiry-note{display:block;margin-top:10px}
+body.dark-mode .stories-hub-self,body.dark-mode .stories-friend-card{background:var(--panel,#211f2b);border-color:var(--line,#45404e)}
+body.amoled-mode .stories-hub-card{background:#000!important;color:#f8f5fb!important;border:1px solid #29252f!important;box-shadow:0 18px 60px #000!important}body.amoled-mode .stories-hub-self,body.amoled-mode .stories-friend-card{background:#09090c!important;color:#f8f5fb!important;border-color:#29252f!important}body.amoled-mode .stories-friend-avatar img{border-color:#09090c!important}
+/* Softer, consistent corners across interactive surfaces without changing layout. */
+:where(button,input,textarea,select,.modal-card,.context-menu,.dropdown-menu,.message-decoration-picker,.settings-action,.contact,.me-card,.chat-header,.composer,.dev-panel){border-radius: max(10px, var(--ui-radius, 16px));}
+body.amoled-mode :is(.context-menu,.dropdown-menu,.more-menu,.chat-more-menu,.message-decoration-picker,.message-decoration-picker button,.context-menu button,.settings-action,.sidebar-stories-btn,.side-footer button){background-color:#000!important;color:#f7f4fa!important;border-color:#302c35!important;box-shadow:none!important}
+body.amoled-mode :is(.context-menu,.dropdown-menu,.more-menu,.chat-more-menu,.message-decoration-picker){background:#000!important;border:1px solid #29252f!important}
+@media(max-width:600px){.stories-hub-card{padding:18px!important;border-radius:23px!important}.stories-hub-self{flex-wrap:wrap}.stories-hub-self .story-add-card{margin-inline-start:auto}.stories-hub-friends{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.stories-friend-card{transition:none!important}}
+
+/* Stories is a real full-screen destination, not a floating dialog. */
+.stories-page{position:fixed!important;inset:0!important;z-index:1500!important;display:block!important;overflow:auto!important;background:var(--app-bg,#f6f4f8);padding:clamp(12px,2.5vw,30px)!important;overscroll-behavior:contain;animation:storiesPageIn .24s ease-out;}
+.stories-page.hidden{display:none!important}
+.stories-hub-card{box-sizing:border-box!important;width:min(1120px,100%)!important;max-width:1120px!important;min-height:calc(100dvh - clamp(24px,5vw,60px))!important;max-height:none!important;margin:0 auto!important;overflow:visible!important;border-radius:28px!important;padding:clamp(18px,3vw,38px)!important;background:var(--panel,#fff)!important;color:var(--ink,inherit)!important;box-shadow:0 12px 48px #0000000a!important}
+.stories-hub-heading{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line,#e9e4ee);padding:4px 0 24px!important;margin-bottom:24px}
+.stories-back-btn{width:44px;height:44px;flex:none;border:1px solid var(--line,#ddd);border-radius:15px;background:var(--soft-panel,#f7f5f9);color:var(--ink,inherit);font-size:30px;line-height:1;cursor:pointer}
+.stories-hub-self{max-width:720px;min-height:86px;margin:0 0 30px!important;padding:16px!important}
+.stories-self-avatar{width:58px;height:58px;border-radius:50%;border:3px solid var(--theme-color,#d86aa8);background:var(--soft-panel,#f7f5f9);color:var(--theme-color,#d86aa8);font-size:28px;display:grid;place-items:center;flex:none;cursor:pointer}
+.stories-hub-friends{display:flex!important;flex-wrap:wrap;gap:18px!important;align-items:flex-start}
+.stories-friend-card{width:112px;min-height:140px;flex-direction:column;justify-content:flex-start!important;gap:9px!important;padding:9px!important;border:0!important;background:transparent!important;text-align:center!important}
+.stories-friend-avatar{width:82px!important;height:82px!important;padding:4px!important;display:grid;place-items:center;font-size:26px;color:var(--ink);background:#a5a5a5!important;}
+.stories-friend-card.has-story .stories-friend-avatar{background:conic-gradient(#ffb13b,#ed3c91,#8a55e9,#ffb13b)!important;}
+.stories-friend-card.no-story{cursor:default!important;opacity:.76}
+.stories-friend-card.no-story .stories-friend-avatar{padding:3px!important;background:var(--line,#aaa)!important}
+.stories-friend-avatar img{width:100%;height:100%;object-fit:cover;border:3px solid var(--panel,#fff);border-radius:50%}
+.stories-friend-info{width:100%;gap:4px!important}.stories-friend-info b{font-size:12px!important}.stories-friend-info small{font-size:10px!important}
+.stories-friend-card:disabled{pointer-events:none}
+.stories-hub-section-title{font-size:17px!important;margin:28px 0 15px!important}
+.stories-page-open{overflow:hidden!important}
+@keyframes storiesPageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+body.amoled-mode .stories-page{background:#000!important}
+body.amoled-mode .stories-hub-card{background:#000!important;color:#fff!important;border:1px solid #171717!important;box-shadow:none!important}
+body.amoled-mode .stories-hub-self,body.amoled-mode .stories-friend-card{background:transparent!important;color:#fff!important;border-color:#202020!important}
+body.amoled-mode .stories-self-avatar,body.amoled-mode .stories-back-btn{background:#000!important;color:#fff!important;border-color:#292929!important}
+body.amoled-mode .stories-friend-avatar img{border-color:#000!important}
+body.dark-mode .stories-page{background:#111!important}
+body.dark-mode .stories-hub-card{background:#17151d!important;color:#fff!important}
+@media(max-width:700px){.stories-page{padding:0!important}.stories-hub-card{width:100%!important;min-height:100dvh!important;border-radius:0!important;padding:18px 14px 30px!important}.stories-hub-heading{margin-bottom:18px}.stories-hub-friends{gap:12px!important}.stories-friend-card{width:calc(25% - 9px);min-width:68px;padding:4px!important}.stories-friend-avatar{width:min(18vw,72px)!important;height:min(18vw,72px)!important}.stories-hub-self{gap:10px!important}.stories-hub-self .story-add-card{margin-inline-start:auto}}
+@media(min-width:701px) and (max-width:1050px){.stories-hub-card{width:100%!important;padding:24px!important}.stories-friend-card{width:100px}.stories-friend-avatar{width:72px!important;height:72px!important}}
+@media(prefers-reduced-motion:reduce){.stories-page{animation:none!important}}
+
+/* Gift envelopes remain unmistakably pink in every theme, including AMOLED. */
+.message-row .message-envelope{background:linear-gradient(145deg,#ff83bd 0%,#ff4fa2 52%,#e92c83 100%)!important;border:1px solid #ff9acb!important;color:#fff!important;box-shadow:0 5px 0 #a91b5c,0 9px 20px #ed36854a,inset 0 2px 6px #ffffff70!important}
+body.dark-mode .message-row .message-envelope,body.amoled-mode .message-row .message-envelope{background:linear-gradient(145deg,#ff83bd 0%,#ff4fa2 52%,#e92c83 100%)!important;border-color:#ff9acb!important;color:#fff!important;box-shadow:0 5px 0 #a91b5c,0 9px 20px #ed36854a,inset 0 2px 6px #ffffff70!important}
+
+
+/* Final AMOLED + full-screen settings + media menu refinements */
+body.amoled-mode #composerMediaMenu,
+body.amoled-mode #composerMediaMenu .tool-btn{background:#000!important;background-image:none!important;color:#fff!important;border-color:#252525!important;box-shadow:none!important}
+body.amoled-mode #composerMediaMenu .tool-btn:active,body.amoled-mode #composerMediaMenu .tool-btn:hover{background:#111!important;border-color:#ff78c8!important}
+body.amoled-mode #composerMediaMenu .tool-btn span{color:#fff!important}
+#imageMessageBtn span{font-size:13px!important}
+.message-video{display:block;width:min(360px,68vw);max-height:440px;border-radius:14px;background:#000;object-fit:contain}
+#settingsModal{position:fixed!important;inset:0!important;z-index:1600!important;display:flex!important;align-items:stretch!important;justify-content:stretch!important;padding:0!important;background:var(--app-bg,#f7f5fa)!important;backdrop-filter:none!important}
+#settingsModal.hidden{display:none!important}
+#settingsModal .app-settings-card{position:relative!important;box-sizing:border-box!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:100dvh!important;overflow:auto!important;margin:0!important;padding:clamp(24px,4vw,54px)!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--panel,#fff)!important;display:flex!important;flex-direction:column!important;gap:12px!important}
+#settingsModal .app-settings-card h2{margin:24px 0 22px!important;padding:0 0 20px!important;text-align:center!important;font-size:clamp(24px,3vw,32px)!important}
+#settingsModal .settings-action{min-height:58px!important;border-radius:16px!important;padding:15px 18px!important;font-size:16px!important}
+#settingsModal #closeSettings{position:absolute!important;top:18px!important;inset-inline-start:18px!important}
+body.amoled-mode #settingsModal{background:#000!important}
+body.amoled-mode #settingsModal .app-settings-card{background:#000!important;color:#fff!important;border:0!important}
+body.amoled-mode #settingsModal .settings-action{background:#080808!important;color:#fff!important;border-color:#292929!important}
+body.dark-mode #settingsModal{background:#111!important}
+body.dark-mode #settingsModal .app-settings-card{background:#17151d!important}
+#storiesHubModal .stories-back-btn{cursor:pointer}
+#storiesHubModal .stories-hub-self .stories-self-avatar{cursor:pointer}
+@media(min-width:900px){#settingsModal .app-settings-card{padding-inline:clamp(48px,12vw,180px)!important}#settingsModal .settings-action{max-width:900px;margin-inline:auto;width:100%}}
+
+
+/* FINAL THEME CASCADE FIX: AMOLED must win even though the mode also has dark-mode. */
+body.amoled-mode #storiesHubModal,
+body.amoled-mode #storiesHubModal .stories-hub-card,
+body.amoled-mode #storiesHubModal .stories-hub-self,
+body.amoled-mode #storiesHubModal .stories-friend-card,
+body.amoled-mode #storiesHubModal .stories-empty-state,
+body.amoled-mode #settingsModal,
+body.amoled-mode #settingsModal .app-settings-card,
+body.amoled-mode #composerMediaMenu,
+body.amoled-mode #composerMediaMenu .tool-btn,
+body.amoled-mode .message-decoration-picker,
+body.amoled-mode .message-decoration-picker .message-decoration-grid button {
+  background:#000!important;
+  background-image:none!important;
+  color:#fff!important;
+  border-color:#242129!important;
+  box-shadow:none!important;
+}
+body.amoled-mode #storiesHubModal .stories-hub-heading,
+body.amoled-mode #storiesHubModal .stories-hub-section-title,
+body.amoled-mode #storiesHubModal .stories-hub-heading p,
+body.amoled-mode #storiesHubModal .stories-friend-info,
+body.amoled-mode #storiesHubModal .profile-hint {color:#f5f2f8!important}
+body.amoled-mode #storiesHubModal .stories-back-btn {
+  background:#000!important;color:#f5f2f8!important;border:1px solid #303038!important;
+}
+body.dark-mode:not(.amoled-mode) #storiesHubModal .stories-back-btn {
+  background:#25232d!important;color:#c9b9e8!important;border:1px solid #494452!important;
+}
+/* A modern, compact media/story-type chooser rather than plain rectangular buttons. */
+.story-compose{padding:16px!important;border-radius:22px!important;background:linear-gradient(145deg,rgba(139,112,190,.12),rgba(218,105,169,.07))!important;border:1px solid rgba(177,145,220,.2)!important;box-shadow:0 12px 34px rgba(0,0,0,.08)!important;gap:13px!important}
+.story-choice-row{display:flex!important;flex-wrap:wrap!important;gap:10px!important}
+.story-choice-row button{position:relative!important;flex:1 1 105px!important;min-height:76px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:7px!important;padding:12px!important;border:1px solid rgba(160,130,205,.22)!important;border-radius:18px!important;background:linear-gradient(145deg,#fff,#f5f0fa)!important;color:#30283b!important;font:700 12px Tahoma,Arial,sans-serif!important;box-shadow:0 5px 14px rgba(40,20,60,.07)!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important}
+.story-choice-row button::before{font-size:23px;line-height:1}
+.story-choice-row button[data-story-type="text"]::before{content:"✎"}
+.story-choice-row button[data-story-type="image"]::before{content:"▧"}
+.story-choice-row button[data-story-type="video"]::before{content:"▶"}
+.story-choice-row button:active{transform:scale(.96)!important}
+body.dark-mode:not(.amoled-mode) .story-compose{background:linear-gradient(145deg,#25212e,#201d29)!important;border-color:#40384b!important}
+body.dark-mode:not(.amoled-mode) .story-choice-row button{background:linear-gradient(145deg,#302b3b,#25212f)!important;color:#f8f3ff!important;border-color:#51465f!important}
+body.amoled-mode .story-compose{background:#050505!important;border:1px solid #29252f!important;box-shadow:none!important}
+body.amoled-mode .story-choice-row button{background:#000!important;color:#fff!important;border:1px solid #39323f!important;box-shadow:inset 0 0 0 1px #111!important}
+body.amoled-mode .story-choice-row button:active{background:#17121b!important;border-color:#e65bb7!important}
+@media(max-width:600px){.story-compose{padding:13px!important;border-radius:19px!important}.story-choice-row button{min-height:68px!important;flex-basis:calc(33.333% - 8px)!important;padding:9px 5px!important}}
+
+
+/* AMOLED: force the complete attachment popover and its buttons to true black. */
+body.dark-mode.amoled-mode #messageForm.composer .composer-media-menu,
+body.amoled-mode #messageForm.composer .composer-media-menu,
+body.amoled-mode #composerMediaMenu{background:#000!important;background-color:#000!important;background-image:none!important;border:1px solid #292929!important;box-shadow:0 12px 30px #000!important;color:#fff!important;backdrop-filter:none!important}
+body.dark-mode.amoled-mode #messageForm.composer .composer-media-menu .tool-btn,
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn,
+body.amoled-mode #composerMediaMenu .tool-btn{background:#000!important;background-color:#000!important;background-image:none!important;border:1px solid #292929!important;color:#fff!important;box-shadow:none!important}
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn span{background:transparent!important;color:#fff!important}
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn:hover,
+body.amoled-mode #messageForm.composer .composer-media-menu .tool-btn:active{background:#101010!important;border-color:#514052!important}
+/* Small red activity indicators for new inbox broadcasts and new stories. */
+.sidebar-stories-btn{position:relative!important}
+.stories-unread-dot{position:absolute!important;top:7px!important;inset-inline-start:9px!important;width:9px!important;height:9px!important;border-radius:50%!important;background:#ff304f!important;border:2px solid var(--panel,#fff)!important;box-shadow:0 0 0 2px #ff304f22,0 0 10px #ff304f88!important;z-index:5!important}
+.notifications-entry .notification-unread-dot{background:#ff304f!important;border:2px solid var(--panel,#fff)!important;box-shadow:0 0 0 2px #ff304f22,0 0 10px #ff304f88!important}
+body.amoled-mode .stories-unread-dot{border-color:#000!important}
+body.amoled-mode .notifications-entry .notification-unread-dot{border-color:#000!important}
+
+/* Final AMOLED polish: collapsed sidebar dock, mini avatars and centered dock arrow. */
+body.amoled-mode .sidebar-mini-dock,
+body.amoled-mode .sidebar-mini-dock:hover,
+body.amoled-mode .sidebar-mini-contact,
+body.amoled-mode .sidebar-mini-contact:hover,
+body.amoled-mode .sidebar-mini-contact.is-selected,
+body.amoled-mode .sidebar-dock-toggle,
+body.amoled-mode .sidebar-dock-toggle:hover,
+body.amoled-mode .chat-header,
+body.amoled-mode .chat-header .avatar {
+  background: #000 !important;
+  background-color: #000 !important;
+  background-image: none !important;
+  border-color: #242424 !important;
+  box-shadow: none !important;
+}
+body.amoled-mode .sidebar-mini-contact img,
+body.amoled-mode .sidebar-mini-contact .avatar,
+body.amoled-mode .sidebar-mini-contact .group-avatar,
+body.amoled-mode .sidebar-mini-contact .contact-avatar-wrap {
+  background: #000 !important;
+  border-color: #292929 !important;
+}
+body.amoled-mode .sidebar-dock-toggle {
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin-inline: auto !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  color: #ededed !important;
+}
+body.amoled-mode .sidebar-dock-toggle::before,
+body.amoled-mode .sidebar-dock-toggle::after { line-height: 1 !important; }
+
+/* User requested: make the collapsed users strip edge-to-edge with perfectly square corners. */
+.chat-view.sidebar-collapsed > .sidebar-mini-dock,
+.chat-view.sidebar-collapsed .sidebar-mini-dock {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  box-shadow: none !important;
+}
+
+
+/* Final correction: full-width rectangular collapsed-user strip, exact arrow centering,
+   and true-black AMOLED composer/footer surfaces. */
+.chat-view.sidebar-collapsed .conversation > .sidebar-mini-dock,
+.chat-view.sidebar-collapsed .sidebar-mini-dock {
+  display:flex !important;
+  position:relative !important;
+  inset:auto !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  min-height:62px !important;
+  height:62px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:4px 14px !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  border-radius:0 !important;
+  border-top:0 !important;
+  border-left:0 !important;
+  border-right:0 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+.chat-view.sidebar-collapsed .sidebar-mini-items {
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  min-width:0 !important;
+  margin-inline-start:auto !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  display:flex !important;
+  flex:0 0 46px !important;
+  width:46px !important;
+  min-width:46px !important;
+  height:46px !important;
+  min-height:46px !important;
+  margin:0 !important;
+  padding:0 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  place-items:center !important;
+  text-align:center !important;
+  text-indent:0 !important;
+  line-height:1 !important;
+  font-size:21px !important;
+  border-radius:0 !important;
+  border:1px solid var(--line,#333) !important;
+  border-top:1px solid var(--line,#333) !important;
+  box-sizing:border-box !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle::first-letter { line-height:1 !important; }
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-dock,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-dock,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-dock-toggle,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  background:#000 !important;
+  background-color:#000 !important;
+  background-image:none !important;
+  color:#f5f1fa !important;
+  border-color:#242424 !important;
+  box-shadow:none !important;
+}
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-dock { border-bottom:1px solid #242424 !important; }
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  place-items:center !important;
+  padding:0 !important;
+  line-height:1 !important;
+  transform:none !important;
+}
+/* The composer sits inside active-chat; force every surrounding strip/footer to AMOLED black. */
+body.amoled-mode .conversation,
+body.amoled-mode .active-chat,
+body.amoled-mode #activeChat,
+body.amoled-mode #messageForm.composer,
+body.amoled-mode .composer-note,
+body.amoled-mode .reply-preview,
+body.amoled-mode .sticker-tray,
+body.dark-mode.amoled-mode .conversation,
+body.dark-mode.amoled-mode .active-chat,
+body.dark-mode.amoled-mode #activeChat,
+body.dark-mode.amoled-mode #messageForm.composer,
+body.dark-mode.amoled-mode .composer-note,
+body.dark-mode.amoled-mode .reply-preview,
+body.dark-mode.amoled-mode .sticker-tray {
+  background:#000 !important;
+  background-color:#000 !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
+body.amoled-mode #messageForm.composer { border-color:#242424 !important; }
+body.amoled-mode .composer-note { color:#777 !important; border-color:#242424 !important; }
+body.amoled-mode #messageForm.composer textarea { background:#050505 !important; }
+
+/* Move the mini profile thumbnails from the first dock row to the marked
+   upper-right area of the active chat header; keep the collapse arrow in place. */
+.chat-view.sidebar-collapsed .sidebar-mini-dock {
+  position:absolute !important;
+  top:62px !important;
+  left:0 !important;
+  right:0 !important;
+  width:100% !important;
+  height:0 !important;
+  min-height:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  pointer-events:none !important;
+  z-index:30 !important;
+}
+.chat-view.sidebar-collapsed .sidebar-mini-items {
+  position:absolute !important;
+  top:5px !important;
+  right:12px !important;
+  left:auto !important;
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:7px !important;
+  width:max-content !important;
+  max-width:calc(100% - 82px) !important;
+  margin:0 !important;
+  pointer-events:auto !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  position:absolute !important;
+  top:-57px !important;
+  left:14px !important;
+  right:auto !important;
+  pointer-events:auto !important;
+}
+@media (max-width:600px) {
+  .chat-view.sidebar-collapsed .sidebar-mini-items { right:8px !important; gap:5px !important; }
+  .chat-view.sidebar-collapsed .sidebar-dock-toggle { left:8px !important; }
+}
+
+
+/* Keep the collapsed-sidebar reopen arrow visible and centered inside the top dock. */
+.chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  position:absolute !important;
+  top:50% !important;
+  left:14px !important;
+  right:auto !important;
+  transform:translateY(-50%) !important;
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  min-height:42px !important;
+  display:grid !important;
+  place-items:center !important;
+  padding:0 !important;
+  margin:0 !important;
+  line-height:1 !important;
+  font-size:25px !important;
+  z-index:100 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+.chat-view.sidebar-collapsed .sidebar-mini-dock { position:relative !important; }
+@media (max-width:600px) {
+  .chat-view.sidebar-collapsed .sidebar-dock-toggle { left:8px !important; }
+}
+
+/* Final AMOLED login + sidebar dock alignment correction. */
+body.amoled-mode .login-view,
+body.amoled-mode .login-card,
+body.amoled-mode .login-view .members,
+body.amoled-mode .login-view #loginForm,
+body.amoled-mode .login-view .input-wrap,
+body.dark-mode.amoled-mode .login-view,
+body.dark-mode.amoled-mode .login-card,
+body.dark-mode.amoled-mode .login-view .members,
+body.dark-mode.amoled-mode .login-view #loginForm,
+body.dark-mode.amoled-mode .login-view .input-wrap {
+  background:#000 !important;
+  background-color:#000 !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
+body.amoled-mode .login-card,
+body.dark-mode.amoled-mode .login-card {
+  border-color:#242424 !important;
+}
+body.amoled-mode .login-card .input-wrap,
+body.dark-mode.amoled-mode .login-card .input-wrap {
+  border-color:#292929 !important;
+}
+body.amoled-mode .login-card .input-wrap:focus-within,
+body.dark-mode.amoled-mode .login-card .input-wrap:focus-within {
+  background:#050505 !important;
+  border-color:#d72bc1 !important;
+}
+
+/* Keep the collapsed dock as a 62px top strip; center the reopen arrow
+   geometrically in that strip (not relative to its zero-height contents). */
+.chat-view.sidebar-collapsed .sidebar-mini-dock {
+  top:0 !important;
+  height:62px !important;
+  min-height:62px !important;
+  pointer-events:none !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  top:10px !important;
+  left:14px !important;
+  right:auto !important;
+  transform:none !important;
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  min-height:42px !important;
+  display:grid !important;
+  place-items:center !important;
+  align-content:center !important;
+  justify-content:center !important;
+  padding:0 !important;
+  margin:0 !important;
+  line-height:1 !important;
+  text-align:center !important;
+  z-index:100 !important;
+}
+@media(max-width:600px) {
+  .chat-view.sidebar-collapsed .sidebar-dock-toggle { left:8px !important; }
+}

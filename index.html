@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=dev-inbox-live-fix-20261118b" rel="stylesheet"/>
+  <link href="style.css?v=amoled-login-dock-center-20261120" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -127,6 +127,7 @@
      </div>
      <div class="side-footer">
       <button class="install-app-btn" id="installAppBtn" type="button" aria-label="تثبيت Bubble Chat كتطبيق">⬇ <span>تثبيت التطبيق</span></button>
+      <button class="sidebar-stories-btn" id="sidebarStoriesBtn" type="button" aria-label="فتح الحالات" title="الحالات"><span class="sidebar-stories-icon" aria-hidden="true">◉</span><span>الحالات</span><i class="sidebar-stories-spark" aria-hidden="true">✦</i><i id="storiesUnreadDot" class="stories-unread-dot hidden" aria-label="حالات جديدة"></i></button>
      </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
@@ -143,9 +144,6 @@
       <h2>
        أهلًا بيكم في Bubble Chat
       </h2>
-      <p>
-       ♡
-      </p>
       <div class="sparkles">
        ✦　♡　✧
       </div>
@@ -199,10 +197,10 @@
         </button>
         <div class="composer-media-menu hidden" id="composerMediaMenu" aria-label="أدوات المرفقات">
          <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button" aria-label="الملصقات">😊 <span>الستيكرات</span></button>
-         <button class="tool-btn" id="imageMessageBtn" title="إرسال صورة" type="button" aria-label="إرسال صورة">🖼️ <span>الصور</span></button>
+         <button class="tool-btn" id="imageMessageBtn" title="إرسال وسائط" type="button" aria-label="إرسال وسائط">🖼️ <span data-ar="الوسائط" data-en="Media">الوسائط</span></button>
         </div>
        </div>
-       <input id="imageMessageInput" type="file" accept="image/*" hidden>
+       <input id="imageMessageInput" type="file" accept="image/*,video/*" hidden>
       </form>
       <p class="composer-note">
        ♡ . ♡
@@ -246,12 +244,6 @@
       <div class="decoration-gallery" id="decorationGallery" aria-label="اختيار ديكوريشن الصورة"></div>
       
     </div>
-    <div class="profile-media-settings compact-media-settings"><h3>الحالات</h3>
-      <button class="story-add-card" id="addStoryBtn" type="button"><span>＋</span><b>إضافة حالة</b></button>
-      <div class="story-compose hidden" id="storyCompose"><div class="story-choice-row"><button type="button" data-story-type="text">حالة نصية</button><button type="button" data-story-type="image">صورة</button><button type="button" data-story-type="video">فيديو</button></div>
-      <textarea id="storyCaptionInput" maxlength="240" rows="2" placeholder="اكتب كلام الحالة..."></textarea><input id="storyFile" type="file" accept="image/*,video/*" hidden><small class="story-file-name" id="storyFileName">لم يتم اختيار ملف</small><button class="story-publish-btn" id="publishStoryBtn" type="button">نشر الحالة</button></div>
-      <div class="my-stories-list" id="myStoriesList"><small class="profile-hint">حالاتك النشطة هتظهر هنا وتقدر تفتحها أو تمسحها.</small></div><small class="profile-hint">الحالة بتختفي بعد 24 ساعة.</small>
-    </div>
     <button class="primary-btn" type="submit">
      حفظ التغييرات
     </button>
@@ -269,6 +261,13 @@
     <div class="crop-actions"><button type="button" class="crop-cancel" id="cancelBannerCrop2">إلغاء</button><button type="button" class="crop-confirm" id="confirmBannerCrop">استخدام الصورة</button></div>
    </div>
   </div>
+  <div class="stories-page hidden" id="storiesHubModal"><section class="stories-hub-card" role="main" aria-label="Stories">
+    <header class="stories-hub-heading"><button class="stories-back-btn" id="closeStoriesHub" type="button" aria-label="Back">‹</button><div><span class="stories-hub-kicker">BUBBLE MOMENTS</span><h2 data-ar="الحالات ✦" data-en="Stories ✦">الحالات ✦</h2><p data-ar="شارك لحظاتك وشوف جديد أصحابك" data-en="Share your moments and catch up with friends">شارك لحظاتك وشوف جديد أصحابك</p></div></header>
+    <div class="stories-hub-self"><button class="stories-self-avatar" id="addStoryBtn" type="button"><span>＋</span></button><div><b data-ar="قصتك" data-en="Your story">قصتك</b><small data-ar="أضف صورة أو فيديو أو نص" data-en="Add a photo, video or text">أضف صورة أو فيديو أو نص</small></div></div>
+    <div class="story-compose hidden" id="storyCompose"><div class="story-choice-row"><button type="button" data-story-type="text">حالة نصية</button><button type="button" data-story-type="image">صورة</button><button type="button" data-story-type="video">فيديو</button></div><textarea id="storyCaptionInput" maxlength="240" rows="2" placeholder="اكتب كلام الحالة..."></textarea><input id="storyFile" type="file" accept="image/*,video/*" hidden><small class="story-file-name" id="storyFileName">لم يتم اختيار ملف</small><button class="story-publish-btn" id="publishStoryBtn" type="button">نشر الحالة</button></div>
+    <h3 class="stories-hub-section-title" data-ar="الأصدقاء" data-en="Friends">الأصدقاء</h3><div class="stories-hub-friends" id="storiesFriendsList"><span class="profile-hint">جاري تحميل الحالات...</span></div>
+    <h3 class="stories-hub-section-title" data-ar="حالاتك النشطة" data-en="Your active stories">حالاتك النشطة</h3><div class="my-stories-list" id="myStoriesList"><small class="profile-hint">حالاتك النشطة هتظهر هنا.</small></div>
+  </section></div>
   <div class="modal hidden" id="publicProfileModal">
    <section class="modal-card public-profile-card" role="dialog" aria-modal="true" aria-label="الملف الشخصي">
     <button class="modal-close" id="closePublicProfile" type="button">&times;</button>

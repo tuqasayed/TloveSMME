@@ -4772,8 +4772,7 @@ body.amoled-mode .sidebar-mini-contact:hover,
 body.amoled-mode .sidebar-mini-contact.is-selected,
 body.amoled-mode .sidebar-dock-toggle,
 body.amoled-mode .sidebar-dock-toggle:hover,
-body.amoled-mode .chat-header,
-body.amoled-mode .chat-header .avatar {
+body.amoled-mode .chat-header {
   background: #000 !important;
   background-color: #000 !important;
   background-image: none !important;
@@ -4784,7 +4783,6 @@ body.amoled-mode .sidebar-mini-contact img,
 body.amoled-mode .sidebar-mini-contact .avatar,
 body.amoled-mode .sidebar-mini-contact .group-avatar,
 body.amoled-mode .sidebar-mini-contact .contact-avatar-wrap {
-  background: #000 !important;
   border-color: #292929 !important;
 }
 body.amoled-mode .sidebar-dock-toggle {
@@ -5136,4 +5134,35 @@ body #messageForm.composer .composer-media-wrap::after{
 }
 body.amoled-mode #messageForm.composer .composer-media-wrap{
   background:transparent!important;border:0!important;outline:0!important;box-shadow:none!important;
+}
+
+
+/* AMOLED: preserve actual profile photos in the collapsed sidebar.
+   Avatar wrappers may paint photos with background-image, so never flatten them to black. */
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap {
+  background: transparent !important; background-color: transparent !important;
+  background-image: none !important; overflow: visible !important;
+}
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap > img,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .avatar img,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .contact-avatar-wrap img,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .group-avatar img,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap > img,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .avatar img,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .contact-avatar-wrap img,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .mini-avatar-wrap .group-avatar img {
+  display:block !important; visibility:visible !important; opacity:1 !important;
+  width:100% !important; height:100% !important; min-width:100% !important;
+  object-fit:cover !important; object-position:center !important;
+  filter:none !important; mix-blend-mode:normal !important;
+}
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .avatar,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .group-avatar,
+body.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .contact-avatar-wrap,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .avatar,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .group-avatar,
+body.dark-mode.amoled-mode .chat-view.sidebar-collapsed .sidebar-mini-contact .contact-avatar-wrap {
+  background-color:transparent !important; background-repeat:no-repeat !important;
+  background-position:center !important; background-size:cover !important;
 }

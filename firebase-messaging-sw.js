@@ -3,7 +3,7 @@
 // push event is enough for data-only FCM messages and avoids SDK evaluation errors.
 
 const APP_URL = new URL('./', self.location.href).href;
-const ICON_URL = new URL('./icons/icon-192.png', self.location.href).href;
+const ICON_URL = new URL('./icons/notification-icon.png', self.location.href).href;
 const BADGE_URL = ICON_URL;
 const DB_NAME = 'bubble-chat-push-state';
 const DB_VERSION = 1;
@@ -24,19 +24,40 @@ function openStateDb() {
   });
 }
 
-async function updateNotificationBatch() {
+async function readState(key) {
+  const db = await openStateDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('state', 'readonly');
+    const request = tx.objectStore('state').get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function updateNotificationBatch(item) {
   const db = await openStateDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('state', 'readwrite');
     const store = tx.objectStore('state');
     const request = store.get(COALESCE_KEY);
-    let count = 1;
     request.onsuccess = () => {
       const previous = request.result || {};
-      count = Date.now() - Number(previous.at || 0) <= RECENT_WINDOW_MS ? Number(previous.count || 0) + 1 : 1;
-      store.put({ at: Date.now(), count }, COALESCE_KEY);
+      const fresh = Date.now() - Number(previous.at || 0) <= RECENT_WINDOW_MS;
+      const identities = fresh ? (previous.identities || []) : [];
+      const identity = `${item.threadId}::${item.senderId}`;
+      if (!identities.includes(identity)) identities.push(identity);
+      const messages = fresh && identities.length === 1 ? (previous.messages || []) : [];
+      if (identities.length === 1) {
+        messages.push(item.preview);
+        while (messages.length > 5) messages.shift();
+      }
+      const next = { at: Date.now(), identities, messages, threadId: item.threadId };
+      store.put(next, COALESCE_KEY);
+      resolve(next);
     };
-    tx.oncomplete = () => { db.close(); resolve(count); };
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
     tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }
@@ -48,32 +69,42 @@ self.addEventListener('push', event => {
       try { payload = { data: { body: event.data?.text() || '' } }; } catch (_) {}
     }
 
-    // Firebase sends data-only messages; handle them in every app state:
-    // foreground, background, and fully closed.
     const data = payload.data || payload;
     const threadId = String(data.threadId || '');
-    let messageBody = String(data.body || 'افتح المحادثة لقراءة رسائلك الجديدة').slice(0, 240);
-    let title = 'رسالة جديدة ♡';
-
-    // Suppress system notifications while Bubble Chat is visible in the foreground.
-    // Background tabs and closed PWA windows continue to receive notifications.
+    const senderId = String(data.senderId || '');
+    const senderName = String(data.senderName || 'صديق');
+    const groupName = String(data.groupName || '');
+    const preview = String(data.body || 'رسالة جديدة').slice(0, 180);
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const appIsForeground = windows.some(client => client.visibilityState === 'visible' && client.focused);
     if (appIsForeground) return;
 
-    let batchCount = 1;
-    try { batchCount = await updateNotificationBatch(); } catch (error) { console.warn('Notification batch state failed:', error); }
-    if (batchCount > 1) {
-      title = 'لديك رسائل جديدة ♡';
+    // Respect a locally muted conversation while its mute period is active.
+    try {
+      const mutedUntil = Number(await readState(`muted:${threadId}`) || 0);
+      if (mutedUntil > Date.now()) return;
+    } catch (error) { console.warn('Could not read mute preference:', error); }
+
+    let batch = { identities: [ `${threadId}::${senderId}` ], messages: [preview] };
+    try { batch = await updateNotificationBatch({ threadId, senderId, preview }); }
+    catch (error) { console.warn('Notification batch state failed:', error); }
+
+    let messageBody;
+    if ((batch.identities || []).length > 1) {
       messageBody = 'لديك رسائل جديدة ♡';
+    } else {
+      const lines = [];
+      if (groupName) lines.push(`• ${groupName}:`);
+      lines.push(`• ${senderName}:`);
+      (batch.messages || [preview]).slice(-5).forEach(message => lines.push(`• ${message}`));
+      messageBody = lines.join('\n');
     }
-    await self.registration.showNotification(title, {
+
+    await self.registration.showNotification('Bubble Chat', {
       body: messageBody,
       icon: ICON_URL,
       badge: BADGE_URL,
       data: { threadId },
-      // Use one shared notification for messages from every conversation.
-      // Each new message updates this same notification instead of stacking another one.
       tag: 'bubble-chat-new-messages',
       renotify: false,
       requireInteraction: false,

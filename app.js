@@ -67,7 +67,7 @@ function unlockChatSounds(){
 );
 
 document.addEventListener("contextmenu",event=>{
-  if(event.target.closest("input,textarea,[contenteditable='true']"))return;
+  if(event.target.closest("input,textarea,[contenteditable='true'],.contact"))return;
   event.preventDefault();
 },{capture:true});
 
@@ -177,13 +177,19 @@ function nameStyle(p){
  const fonts={noto:"'Noto Sans','Noto Sans Arabic','Noto Sans JP','Noto Sans SC','Noto Sans KR',sans-serif",arabic:"'Noto Sans Arabic','Noto Sans',sans-serif",serif:"'Noto Serif','Noto Naskh Arabic',serif","arabic-serif":"'Noto Naskh Arabic','Noto Serif',serif",mono:"'Noto Sans Mono','Noto Sans Arabic',monospace",kufi:"'Noto Kufi Arabic','Noto Sans',sans-serif"};
  return `font-family:${fonts[p?.nameFont]||fonts.noto};font-weight:700;background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`
 }
-function decorationUrl(value){
-  // Accept the stored decoration as an id ("3"), filename ("3.gif"),
-  // or relative path ("./3.gif" / "decorations/3.gif"). Always serve
-  // the original GIF from the same directory as index.html.
+function decorationId(value){
   const raw=String(value??"").trim().replaceAll("\\","/");
-  const match=raw.match(/(?:^|\/)0?([1-9]|1[0-4])(?:\.gif)?$/i);
-  return match?`./${Number(match[1])}.gif`:"";
+  const match=raw.match(/(?:^|\/)0?([1-9]|1[0-4])(?:\.(?:gif|png))?$/i);
+  return match?String(Number(match[1])):"";
+}
+function decorationUrl(value){
+  // Static first-frame PNG avoids continuous GIF decoding in ordinary UI.
+  const id=decorationId(value);
+  return id?`./decorations/${id}.png`:"";
+}
+function decorationGifUrl(value){
+  const id=decorationId(value);
+  return id?`./decorations/${id}.gif`:"";
 }
 function applyMyTheme(){if(currentProfile)document.documentElement.style.setProperty("--theme-color",colorOf(currentProfile))}
 
@@ -528,7 +534,8 @@ function renderInboxMessages(items){
   if(!target){list.innerHTML=`<div id="developerBroadcastList"></div><div id="dailyQuestionMember"></div>`;target=$("developerBroadcastList");}
   const newest=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0))[0];
   target.dataset.sortTime=String(newest?.createdAt?.toMillis?.()||0);
-  target.innerHTML=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).map(m=>`<article class="inbox-message" data-inbox-message="${$safe(m.id)}"><small>${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</h3><p>${$safe(m.body||"")}</p></article>`).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  target.innerHTML=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).map(m=>`<article class="inbox-message" data-inbox-message="${$safe(m.id)}"><small>${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</h3><p>${$safe(m.body||"")}</p>${Array.isArray(m.choices)&&m.choices.length?`<div class="inbox-poll" data-poll="${$safe(m.id)}"><div class="inbox-poll-options">${m.choices.map((choice,i)=>`<label><input type="radio" name="poll-${$safe(m.id)}" value="${i}"><span>${$safe(choice)}</span></label>`).join("")}</div><button type="button" class="inbox-poll-submit" data-vote="${$safe(m.id)}">${en?"Confirm choice":"تأكيد الاختيار"}</button><small class="inbox-poll-state">${en?"Choose one option only.":"اختار إجابة واحدة بس."}</small></div>`:""}</article>`).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  target.querySelectorAll('[data-vote]').forEach(btn=>{const messageId=btn.dataset.vote,wrap=btn.closest('[data-poll]');const voteRef=doc(db,"developerBroadcasts",messageId,"votes",currentUser.uid);getDoc(voteRef).then(v=>{const state=wrap.querySelector('.inbox-poll-state');if(v.exists()){wrap.querySelectorAll('input').forEach(input=>{input.disabled=true;input.checked=Number(input.value)===v.data().choiceIndex;});btn.disabled=true;state.textContent=en?"Your choice has been recorded.":"تم تسجيل اختيارك ومش هتقدر تصوّت تاني.";}}).catch(console.warn);btn.onclick=async()=>{const selected=wrap.querySelector('input:checked');const state=wrap.querySelector('.inbox-poll-state');if(!selected){state.textContent=en?"Choose one option first.":"اختار إجابة الأول.";return;}btn.disabled=true;try{await setDoc(voteRef,{uid:currentUser.uid,choiceIndex:Number(selected.value),choice:items.find(x=>x.id===messageId).choices[Number(selected.value)],createdAt:serverTimestamp()});wrap.querySelectorAll('input').forEach(input=>input.disabled=true);state.textContent=en?"Your choice has been recorded.":"تم تسجيل اختيارك ومش هتقدر تصوّت تاني.";}catch(err){console.error(err);state.textContent=en?"You have already voted or the vote failed.":"إما إنك صوّت قبل كده أو حصلت مشكلة.";btn.disabled=false;}};});
   sortInboxSections();
 }
 function sortInboxSections(){
@@ -553,17 +560,17 @@ async function renderMemberQuestion(q){
   let host=$("dailyQuestionMember");if(!host){host=document.createElement("section");host.id="dailyQuestionMember";host.className="daily-question-card";$("notificationsContent")?.append(host);}
   host.className="daily-question-card";
   const en=isEnglishUi();
-  let existing="";
-  try{const mine=await getDoc(doc(db,"dailyQuestions",q.id,"answers",currentUser.uid));existing=mine.exists()?mine.data().answer||"":"";}catch(e){console.warn(e);}
+  let existing="",alreadyAnswered=false;
+  try{const mine=await getDoc(doc(db,"dailyQuestions",q.id,"answers",currentUser.uid));alreadyAnswered=mine.exists();existing=alreadyAnswered?mine.data().answer||"":"";}catch(e){console.warn(e);}
   // Guard against an older async profile read overwriting a newer question.
   if(!$("dailyQuestionMember")||$("dailyQuestionMember").dataset.questionId===q.id)return;
   host.dataset.questionId=q.id;
-  host.innerHTML=`<div class="daily-kicker">✦ ${en?"QUESTION OF THE DAY":"سؤال اليوم"}</div><h3>${$safe(q.question||"")}</h3><form id="dailyAnswerForm"><textarea id="dailyAnswerInput" maxlength="1000" rows="3" placeholder="${en?"Write your answer...":"اكتب إجابتك..."}">${$safe(existing)}</textarea><button type="submit">${en?"Reply":"الرد"}</button></form><div class="daily-answers" id="dailyAnswers"></div>`;
-  $("dailyAnswerForm").addEventListener("submit",async e=>{e.preventDefault();const answer=$("dailyAnswerInput").value.trim();if(!answer)return;try{const answerRef=doc(db,"dailyQuestions",q.id,"answers",currentUser.uid);const prior=await getDoc(answerRef);if(prior.exists())await updateDoc(answerRef,{answer,updatedAt:serverTimestamp()});else await setDoc(answerRef,{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,answer,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});toast(en?"Answer saved ♡":"تم حفظ إجابتك ♡");}catch(err){console.error(err);toast(en?"Could not save your answer.":"تعذر حفظ الإجابة.");}});
+  host.innerHTML=`<div class="daily-kicker">✦ ${en?"QUESTION OF THE DAY":"سؤال اليوم"}</div><h3>${$safe(q.question||"")}</h3><form id="dailyAnswerForm"><textarea id="dailyAnswerInput" maxlength="1000" rows="3" placeholder="${en?"Write your answer...":"اكتب إجابتك..."}" ${alreadyAnswered?"disabled":""}>${$safe(existing)}</textarea><button type="submit" ${alreadyAnswered?"disabled":""}>${alreadyAnswered?(en?"Already answered":"تمت الإجابة"):en?"Reply":"الرد"}</button></form>${alreadyAnswered?`<small class="daily-locked-note">${en?"You can answer only once.":"مسموح بإجابة واحدة بس."}</small>`:""}<div class="daily-answers" id="dailyAnswers"></div>`;
+  $("dailyAnswerForm").addEventListener("submit",async e=>{e.preventDefault();const answer=$("dailyAnswerInput").value.trim();if(!answer||alreadyAnswered)return;try{const answerRef=doc(db,"dailyQuestions",q.id,"answers",currentUser.uid);const keyword=String(q.keyword||"").trim();const matched=!!keyword&&answer.toLocaleLowerCase().includes(keyword.toLocaleLowerCase());await setDoc(answerRef,{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,answer,developerReaction:matched?"star":"wrong",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});alreadyAnswered=true;$("dailyAnswerInput").disabled=true;$("dailyAnswerForm").querySelector("button").disabled=true;toast(en?"Answer saved ♡":"تم حفظ إجابتك ♡");}catch(err){console.error(err);toast(en?"You may have already answered.":"مسموح بإجابة واحدة، أو حصلت مشكلة في الحفظ.");}});
   if(stopDailyAnswers)stopDailyAnswers();
   stopDailyAnswers=onSnapshot(query(collection(db,"dailyQuestions",q.id,"answers"),orderBy("createdAt","asc")),snap=>{
     const target=$("dailyAnswers");if(!target)return;
-    target.innerHTML=snap.docs.map(d=>{const a=d.data();const reaction=a.developerReaction==="star"?"⭐":a.developerReaction==="wrong"?"🙊":"";return `<article class="daily-answer"><b>${$safe(a.displayName||(en?"Member":"عضو"))}</b><p>${$safe(a.answer||"")}</p>${reaction?`<span class="answer-reaction">${reaction}</span>`:""}</article>`}).join("")||`<small>${en?"Be the first to answer.":"كن أول من يجيب."}</small>`;
+    target.innerHTML=snap.docs.map(d=>{const a=d.data();const reaction=a.developerReaction==="star"?"⭐":a.developerReaction==="wrong"?"🐒":"";return `<article class="daily-answer"><b>${$safe(a.displayName||(en?"Member":"عضو"))}</b><p>${$safe(a.answer||"")}</p>${reaction?`<span class="answer-reaction">${reaction}</span>`:""}</article>`}).join("")||`<small>${en?"Be the first to answer.":"كن أول من يجيب."}</small>`;
   },e=>console.warn(e));
 }
 function setupDeveloperCommunity(){
@@ -571,16 +578,16 @@ function setupDeveloperCommunity(){
   const publish=$("devPublishQuestion");if(!publish)return;
   publish.dataset.bound="1";
   publish.addEventListener("click",async()=>{
-    const question=$("devDailyQuestion").value.trim();if(!question)return;
+    const question=$("devDailyQuestion").value.trim(),keyword=$("devDailyKeyword").value.trim();if(!question||!keyword){$("devQuestionState").textContent="اكتب السؤال والكلمة المفتاحية الأول.";return;}
     publish.disabled=true;
-    try{const ref=await addDoc(collection(developerDb,"dailyQuestions"),{question,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devDailyQuestion").value="";$("devQuestionState").textContent="تم نشر سؤال اليوم بنجاح ♡";watchDeveloperAnswers(ref.id);}
+    try{const ref=await addDoc(collection(developerDb,"dailyQuestions"),{question,keyword,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devDailyQuestion").value="";$("devDailyKeyword").value="";$("devQuestionState").textContent="تم نشر سؤال اليوم بنجاح ♡";watchDeveloperAnswers(ref.id);}
     catch(e){console.error(e);$("devQuestionState").textContent="تعذر نشر السؤال. تحقق من قواعد Firestore.";}
     finally{publish.disabled=false;}
   });
   $("devSendBroadcast")?.addEventListener("click",async()=>{
-    const title=$("devBroadcastTitle").value.trim(),body=$("devBroadcastBody").value.trim();if(!body)return;
+    const title=$("devBroadcastTitle").value.trim(),body=$("devBroadcastBody").value.trim(),choices=$("devBroadcastChoices").value.split("\n").map(x=>x.trim()).filter(Boolean);if(!body||choices.length<2){$("devBroadcastState").textContent="اكتب نص البريد واختيارين على الأقل، كل اختيار في سطر.";return;}
     const btn=$("devSendBroadcast");btn.disabled=true;
-    try{await addDoc(collection(developerDb,"developerBroadcasts"),{title,body,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devBroadcastTitle").value="";$("devBroadcastBody").value="";$("devBroadcastState").textContent="تم إرسال الرسالة إلى بريد الأعضاء ♡";}
+    try{await addDoc(collection(developerDb,"developerBroadcasts"),{title,body,choices,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devBroadcastTitle").value="";$("devBroadcastBody").value="";$("devBroadcastChoices").value="";$("devBroadcastState").textContent="تم إرسال البريد مع الاختيارات ♡";}
     catch(e){console.error(e);$("devBroadcastState").textContent="تعذر الإرسال. تحقق من قواعد Firestore.";}
     finally{btn.disabled=false;}
   });
@@ -596,7 +603,8 @@ function setupDeveloperContentManagement(){
     const orderedDocs=[...snap.docs].sort((a,b)=>(b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0));
     const ids=new Set(snap.docs.map(d=>d.id));
     for(const [id,stop] of devInboxReplyStops){if(!ids.has(id)){stop();devInboxReplyStops.delete(id);}}
-    section.innerHTML=`<h3>${en?"Inbox messages":"رسائل البريد"} (${snap.size})</h3>`+orderedDocs.map(d=>{const m=d.data();return `<article class="dev-inbox-card"><div class="dev-inbox-message"><b>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</b><p>${$safe(m.body||"")}</p></div><button type="button" class="danger dev-delete-mail" data-delete-broadcast="${$safe(d.id)}">${en?"Delete message":"حذف البريد"}</button></article>`;}).join("")||`<small>${en?"No messages.":"لا توجد رسائل."}</small>`;
+    section.innerHTML=`<h3>${en?"Inbox messages":"رسائل البريد"} (${snap.size})</h3>`+orderedDocs.map(d=>{const m=d.data();return `<article class="dev-inbox-card"><div class="dev-inbox-message"><b>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</b><p>${$safe(m.body||"")}</p><small>${$safe((m.choices||[]).join(" · "))}</small></div><button type="button" class="secondary" data-edit-broadcast="${$safe(d.id)}">تعديل</button><button type="button" class="danger dev-delete-mail" data-delete-broadcast="${$safe(d.id)}">${en?"Delete message":"حذف البريد"}</button></article>`;}).join("")||`<small>${en?"No messages.":"لا توجد رسائل."}</small>`;
+    section.querySelectorAll("[data-edit-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.editBroadcast;const snap=await getDoc(doc(developerDb,"developerBroadcasts",id));if(!snap.exists())return;const data=snap.data();const title=prompt("عنوان البريد",data.title||"");if(title===null)return;const body=prompt("نص البريد",data.body||"");if(body===null)return;const choicesText=prompt("الاختيارات (كل اختيار في سطر)",(data.choices||[]).join("\n"));if(choicesText===null)return;const choices=choicesText.split("\n").map(x=>x.trim()).filter(Boolean);if(!body.trim()||choices.length<2){toast("لازم البريد يحتوي على نص واختيارين على الأقل.");return;}try{await updateDoc(doc(developerDb,"developerBroadcasts",id),{title:title.trim(),body:body.trim(),choices,updatedAt:serverTimestamp()});toast("تم تعديل البريد ♡");}catch(e){console.error(e);toast("تعذر تعديل البريد.");}});
     section.querySelectorAll("[data-delete-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteBroadcast;if(!await askElegantDelete(en?"Delete this inbox message and all its replies?":"هل تريد حذف رسالة البريد دي وكل الردود المرتبطة بيها؟"))return;btn.disabled=true;try{const replies=await getDocs(collection(developerDb,"developerBroadcasts",id,"replies"));await Promise.all(replies.docs.map(r=>deleteDoc(r.ref)));await deleteDoc(doc(developerDb,"developerBroadcasts",id));$("devBroadcastState").textContent=en?"Message deleted.":"تم حذف رسالة البريد وردودها.";}catch(err){console.error("Delete inbox message:",err);btn.disabled=false;$("devBroadcastState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
 
   },e=>{console.error("Broadcast management listener:",e);recordDevError("Inbox management listener",e);const section=$("devBroadcastManagement");if(section)section.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Could not load inbox management: ":"تعذر تحميل إدارة البريد: "}${$safe(e.code||e.message||"")}</p>`;});
@@ -632,8 +640,8 @@ function ensureDeveloperView(){
   <section class="dev-panel"><h2>صحة التطبيق</h2><div class="dev-stats dev-stats-four"><div><b id="devRuntimeStatus">يعمل</b><small>حالة الواجهة</small></div><div><b id="devErrorCount">0</b><small>أخطاء مسجلة</small></div><div><b id="devOnlineState">متصل</b><small>الاتصال</small></div><div><b id="devFirebaseState">غير مفحوص</b><small>Firebase</small></div></div><div class="dev-actions dev-tools"><button id="devCheckFirebase" type="button">فحص اتصال Firebase</button><button id="devCopyReport" type="button" class="secondary">نسخ تقرير تقني</button><button id="devDownloadErrors" type="button" class="secondary">تنزيل سجل الأخطاء</button><button id="devReloadApp" type="button" class="secondary">إعادة تحميل التطبيق</button></div><p id="devHealthState" class="dev-state" aria-live="polite">لم يتم إجراء فحص بعد.</p></section>
   <section class="dev-panel dev-panel-wide"><h2>سجل الأخطاء</h2><pre id="devErrorLog" class="dev-log">لا توجد أخطاء مسجلة.</pre><div class="dev-actions"><button id="devClearErrors" type="button" class="secondary">مسح السجل المحلي</button></div></section>
   <section class="dev-panel"><h2>معلومات البيئة</h2><div class="dev-info-grid"><span>المتصفح</span><b id="devBrowserInfo">—</b><span>الشاشة</span><b id="devScreenInfo">—</b><span>اللغة</span><b id="devLanguageInfo">—</b><span>الذاكرة التقريبية</span><b id="devMemoryInfo">غير متاحة</b></div></section>
-  <section class="dev-panel dev-panel-wide"><h2>سؤال اليوم ✨</h2><label>السؤال<textarea id="devDailyQuestion" maxlength="500" rows="3" placeholder="اكتب سؤال اليوم..."></textarea></label><button id="devPublishQuestion" type="button">نشر السؤال</button><p id="devQuestionState" class="dev-state"></p><div id="devQuestionAnswers" class="dev-question-answers"></div><div id="devQuestionManagement" class="dev-question-answers"></div></section>
-  <section class="dev-panel dev-panel-wide"><h2>رسالة إلى البريد ♡</h2><label>عنوان الرسالة<input id="devBroadcastTitle" maxlength="90" placeholder="عنوان الرسالة"></label><label>نص الرسالة<textarea id="devBroadcastBody" maxlength="2000" rows="4" placeholder="اكتب رسالة للأعضاء..."></textarea></label><button id="devSendBroadcast" type="button">إرسال الرسالة للأعضاء</button><p id="devBroadcastState" class="dev-state"></p><div id="devBroadcastManagement" class="dev-question-answers"></div></section>
+  <section class="dev-panel dev-panel-wide"><h2>سؤال اليوم ✨</h2><label>السؤال<textarea id="devDailyQuestion" maxlength="500" rows="3" placeholder="اكتب سؤال اليوم..."></textarea></label><label>الكلمة المفتاحية<input id="devDailyKeyword" maxlength="80" placeholder="الكلمة التي تمنح الإجابة نجمة"></label><button id="devPublishQuestion" type="button">نشر السؤال</button><p id="devQuestionState" class="dev-state"></p><div id="devQuestionAnswers" class="dev-question-answers"></div><div id="devQuestionManagement" class="dev-question-answers"></div></section>
+  <section class="dev-panel dev-panel-wide"><h2>رسالة إلى البريد ♡</h2><label>عنوان الرسالة<input id="devBroadcastTitle" maxlength="90" placeholder="عنوان الرسالة"></label><label>نص الرسالة<textarea id="devBroadcastBody" maxlength="2000" rows="4" placeholder="اكتب رسالة للأعضاء..."></textarea></label><label>اختيارات الأعضاء (كل اختيار في سطر)<textarea id="devBroadcastChoices" maxlength="1000" rows="4" placeholder="الاختيار الأول&#10;الاختيار الثاني"></textarea></label><button id="devSendBroadcast" type="button">إرسال الرسالة للأعضاء</button><p id="devBroadcastState" class="dev-state"></p><div id="devBroadcastManagement" class="dev-question-answers"></div></section>
   </div><div class="dev-quickbar"><button id="devScrollTop" type="button" class="dev-top-button">↑ العودة للأعلى</button><button id="devClearLocalErrors" type="button" class="secondary">تنظيف سجل الأخطاء</button></div><button id="devLogout" class="dev-logout" type="button">تسجيل الخروج</button></div>`;
   document.querySelector(".app-shell")?.prepend(view);
   setupDeveloperCommunity();
@@ -770,9 +778,10 @@ function renderMe(){
     ownPresence.classList.toggle("is-invisible",currentProfile.presenceState==="invisible");
   }
   paintAvatar($("myAvatar"),currentProfile);
-  if(currentProfile.decoration){
-    $("myAvatar").insertAdjacentHTML("beforeend",`<span class="chat-avatar-decoration"><img src="${decorationUrl(currentProfile.decoration)}" alt=""></span>`);
-  }
+  // Keep the signed-in user's sidebar frame animated continuously; other avatar
+  // decorations remain static to avoid decoding many GIFs across the contact list.
+  const ownDecoration=$("myAvatar")?.querySelector(".chat-avatar-decoration img");
+  if(ownDecoration&&currentProfile.decoration)ownDecoration.src=decorationGifUrl(currentProfile.decoration);
   paintAvatar($("profileAvatarPreview"),currentProfile);
   $("profileAvatarPreview").style.width=$("profileAvatarPreview").style.height="96px";
   $("myAvatar").style.width=$("myAvatar").style.height="64px";
@@ -883,6 +892,7 @@ async function loadContacts(){
         watchUnreadThread(threadId(currentUser.uid,currentUser.uid));
       }
       contactsInitialized=true;
+      sortContactCards();
       unreadCounts.forEach((_,thread)=>updateUnreadBadge(thread));
     } else {
       users.filter(u=>u.id!==currentUser.uid).forEach(updateContactCard);
@@ -890,6 +900,7 @@ async function loadContacts(){
       if(selfButton){const title=selfButton.querySelector("strong");if(title)title.textContent="You!";}
     }
     refreshPresenceUI();
+    sortContactCards();
     getDoc(doc(db,"threads",GROUP_ID)).then(groupSnap=>{
       if(groupSnap.exists()){
         const data=groupSnap.data();
@@ -902,6 +913,61 @@ async function loadContacts(){
 
 function contactsElReplace(groupBtn){$("contacts").innerHTML="";groupBtn.style.order="0";}
 
+const CHAT_PREFS_KEY="bubble-chat-contact-preferences-v1";
+function readChatPrefs(){try{return JSON.parse(localStorage.getItem(CHAT_PREFS_KEY)||"{}")}catch(_){return {}}}
+function saveChatPrefs(prefs){localStorage.setItem(CHAT_PREFS_KEY,JSON.stringify(prefs))}
+function saveMuteUntil(thread,until){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open("bubble-chat-push-state",1);
+    request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains("state"))request.result.createObjectStore("state")};
+    request.onsuccess=()=>{const db=request.result;const tx=db.transaction("state","readwrite");tx.objectStore("state").put(until,`muted:${thread}`);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}};
+    request.onerror=()=>reject(request.error);
+  });
+}
+function sortContactCards(){
+  const list=$("contacts");if(!list)return;
+  const prefs=readChatPrefs();
+  [...list.querySelectorAll(".contact")].sort((a,b)=>{
+    const at=a.dataset.threadId,bt=b.dataset.threadId;
+    if(at===GROUP_ID)return -1;if(bt===GROUP_ID)return 1;
+    const ap=prefs[at]||{},bp=prefs[bt]||{};
+    return Number(!!bp.pinned)-Number(!!ap.pinned)||Number(!!bp.favorite)-Number(!!ap.favorite);
+  }).forEach(card=>list.appendChild(card));
+}
+function closeContactMenu(){document.querySelector(".contact-context-menu")?.remove()}
+function showContactMenu(contact){
+  closeContactMenu();
+  const thread=contact.dataset.threadId,prefs=readChatPrefs(),pref=prefs[thread]||{};
+  const menu=document.createElement("div");menu.className="contact-context-menu";menu.setAttribute("role","menu");
+  const add=(label,action,icon="")=>{
+    const button=document.createElement("button");button.type="button";button.className="contact-menu-action";button.setAttribute("role","menuitem");
+    button.innerHTML=`<span class="contact-menu-icon">${icon}</span><span>${$safe(label)}</span>`;
+    button.onclick=async()=>{try{await action();closeContactMenu()}catch(error){console.error(error);toast("تعذر تنفيذ الإجراء")}};menu.appendChild(button);return button;
+  };
+  add(pref.pinned?"إلغاء التثبيت":"تثبيت المحادثة فوق خالص",()=>{prefs[thread]={...pref,pinned:!pref.pinned};saveChatPrefs(prefs);sortContactCards()},"⌃");
+  add(pref.favorite?"إزالة من المفضلة":"إضافة للمفضلة",()=>{prefs[thread]={...pref,favorite:!pref.favorite};saveChatPrefs(prefs);sortContactCards()},"♡");
+  const muteWrap=document.createElement("div");muteWrap.className="contact-mute-wrap";
+  const muteToggle=document.createElement("button");muteToggle.type="button";muteToggle.className="contact-menu-action contact-mute-toggle";muteToggle.innerHTML='<span class="contact-menu-icon">♧</span><span>كتم الإشعارات</span><span class="contact-menu-chevron">‹</span>';
+  const muteOptions=document.createElement("div");muteOptions.className="contact-mute-options";
+  [["15 دقيقة",900000],["ساعة واحدة",3600000],["8 ساعات",28800000],["24 ساعة",86400000],["دائمًا",Number.MAX_SAFE_INTEGER]].forEach(([label,duration])=>{
+    const option=document.createElement("button");option.type="button";option.textContent=label;
+    option.onclick=async()=>{await saveMuteUntil(thread,duration===Number.MAX_SAFE_INTEGER?duration:Date.now()+duration);closeContactMenu();toast(`تم كتم الإشعارات: ${label}`)};muteOptions.appendChild(option);
+  });
+  const unmute=document.createElement("button");unmute.type="button";unmute.className="contact-mute-clear";unmute.textContent="إلغاء الكتم";unmute.onclick=async()=>{await saveMuteUntil(thread,0);closeContactMenu();toast("تم إلغاء كتم الإشعارات")};muteOptions.appendChild(unmute);
+  muteToggle.onclick=()=>{
+    muteWrap.classList.toggle("is-expanded");menu.classList.toggle("has-expanded-submenu",muteWrap.classList.contains("is-expanded"));
+    const nextTop=Math.max(8,Math.min(innerHeight-menu.offsetHeight-8,parseFloat(menu.style.top)||rect.top));menu.style.top=`${nextTop}px`;
+  };
+  muteWrap.append(muteToggle,muteOptions);menu.appendChild(muteWrap);
+  document.body.appendChild(menu);
+  const rect=contact.getBoundingClientRect();
+  menu.style.top=`${Math.max(8,Math.min(innerHeight-menu.offsetHeight-8,rect.top))}px`;
+  menu.style.left=`${Math.max(8,Math.min(innerWidth-menu.offsetWidth-8,rect.left))}px`;
+  setTimeout(()=>{
+    const outside=e=>{if(!menu.contains(e.target)){closeContactMenu();document.removeEventListener("pointerdown",outside)}};
+    document.addEventListener("pointerdown",outside);
+  },0);
+}
 function contactButton(p,group){
   const b=document.createElement("button");b.className="contact";
   b.dataset.threadId=group?GROUP_ID:threadId(currentUser.uid,p.id);
@@ -910,6 +976,14 @@ function contactButton(p,group){
   const info=group?{online:false,text:"التلاتة مع بعض ✨"}:presenceInfo(p);
   b.innerHTML=`${group?`<div class="group-avatar">${activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡<small>3</small>'}</div>`:`<span class="contact-avatar-wrap">${avatarMarkup(p)}<i class="presence-dot is-${info.state}" title="${$safe(info.text)}">${info.icon}</i></span>`}<div class="contact-details"><strong style="${group?'color:#a78be8':nameStyle(p)}">${$safe(group?(activeGroupMeta.name||"S.T.M 🌷"):p.displayName||p.username)}</strong><small class="contact-status">${$safe(info.text)}</small></div>`;
   b.onclick=()=>openChat(p);
+  b.addEventListener("contextmenu",event=>{event.preventDefault();event.stopPropagation();showContactMenu(b)});
+  let holdTimer=null,holdTriggered=false;
+  b.addEventListener("pointerdown",event=>{
+    if(event.pointerType==="mouse")return;
+    holdTriggered=false;holdTimer=setTimeout(()=>{holdTriggered=true;showContactMenu(b)},550);
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(name=>b.addEventListener(name,()=>clearTimeout(holdTimer)));
+  b.addEventListener("click",event=>{if(holdTriggered){event.preventDefault();event.stopImmediatePropagation();holdTriggered=false}},{capture:true});
   return b;
 }
 
@@ -1330,7 +1404,20 @@ function messageNode(m){
   const row=document.createElement('div');row.className=`message-row ${mine?'mine':'theirs'}`;row.append(avatar,el);
   if(sender.id||m.senderId){avatar.classList.add("clickable-message-avatar");avatar.setAttribute("role","button");avatar.setAttribute("tabindex","0");const openSender=()=>openPublicProfile(sender.id?sender:(userProfiles.get(m.senderId)||{id:m.senderId,displayName:m.senderName,photoURL:senderPhoto}));avatar.addEventListener("click",openSender);avatar.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSender()}})}
   row.querySelectorAll('.reaction-chip').forEach(btn=>btn.onclick=()=>reactTo(m,btn.dataset.emoji));
-  row.querySelector(".message-envelope")?.addEventListener("click",e=>{const button=e.currentTarget,wrap=button.closest(".envelope-wrap"),hidden=wrap?.querySelector(".envelope-hidden-content");if(button.classList.contains("opening")||button.classList.contains("is-gone"))return;button.classList.add("opening");m.envelopeOpened=true;setTimeout(()=>{button.classList.add("is-gone");hidden?.classList.remove("hidden");hidden?.classList.add("revealed");setTimeout(()=>button.remove(),420);},520);setTimeout(()=>updateDoc(doc(db,"threads",activeThreadId(),"messages",m.id),{envelopeOpened:true}).catch(err=>console.warn("Envelope state update failed:",err)),560);});
+  row.querySelector(".message-envelope")?.addEventListener("click",e=>{
+    const button=e.currentTarget,wrap=button.closest(".envelope-wrap"),hidden=wrap?.querySelector(".envelope-hidden-content");
+    if(button.dataset.opened==="true"||button.classList.contains("opening"))return;
+    button.dataset.opened="true";button.classList.add("opening");m.envelopeOpened=true;
+    // Reveal the payload only after the flap animation completes; never remove the
+    // button node (removal caused a brief close/reopen flash on message snapshots).
+    window.setTimeout(()=>{
+      button.classList.remove("opening");button.classList.add("is-gone");button.setAttribute("aria-hidden","true");
+      if(hidden){hidden.classList.remove("hidden");hidden.classList.add("revealed");}
+      button.style.display="none";
+    },520);
+    updateDoc(doc(db,"threads",activeThreadId(),"messages",m.id),{envelopeOpened:true})
+      .catch(err=>console.warn("Envelope state update failed:",err));
+  });
 
   row.querySelector('.message-image-link')?.addEventListener('click',()=>openImageLightbox(m.imageUrl||m.mediaUrl));
   const videoPlayer=row.querySelector('[data-video-player]');
@@ -1355,9 +1442,9 @@ function showForwardPicker(message){
   const head=document.createElement('div');head.className='forward-picker-head';head.innerHTML='<strong>إعادة توجيه الرسالة</strong><button type="button" aria-label="إغلاق">✕</button>';head.querySelector('button').onclick=closeForwardPicker;
   const hint=document.createElement('p');hint.className='forward-picker-hint';hint.textContent='اختار المحادثة اللي هتبعت لها الرسالة';
   const list=document.createElement('div');list.className='forward-picker-list';
-  const addTarget=(target,label,subtitle,avatar)=>{
+  const addTarget=(target,label,subtitle,avatar,photoURL)=>{
     const b=document.createElement('button');b.type='button';b.className='forward-picker-target';
-    const pic=document.createElement('span');pic.className='forward-picker-avatar';pic.textContent=avatar||'♡';
+    const pic=document.createElement('span');pic.className='forward-picker-avatar';if(photoURL){const image=document.createElement('img');image.src=photoURL;image.alt='';pic.appendChild(image)}else pic.textContent=avatar||'♡';
     const names=document.createElement('span');names.className='forward-picker-names';const strong=document.createElement('strong');strong.textContent=label;const small=document.createElement('small');small.textContent=subtitle;names.append(strong,small);
     const arrow=document.createElement('span');arrow.className='forward-picker-arrow';arrow.textContent='➜';b.append(pic,names,arrow);
     b.onclick=async()=>{b.disabled=true;try{await forwardMessageTo(message,target);closeForwardPicker();toast('تمت إعادة توجيه الرسالة ♡')}catch(error){console.error('Forward message failed:',error);toast('تعذر إعادة توجيه الرسالة')}finally{b.disabled=false}};
@@ -1367,7 +1454,7 @@ function showForwardPicker(message){
   addTarget({...currentProfile,id:currentUser.uid,kind:'self'},'رسائلي','محادثتك الشخصية','♡');
   [...userProfiles.values()].filter(person=>person.id&&person.id!==currentUser.uid).sort((a,b)=>(a.displayName||a.username||'').localeCompare(b.displayName||b.username||'','ar')).forEach(person=>{
     const name=person.displayName||person.username||'صديق';
-    addTarget({...person,kind:'direct'},name,'محادثة خاصة',(name||'♡').slice(0,1));
+    addTarget({...person,kind:'direct'},name,'محادثة خاصة',(name||'♡').slice(0,1),person.photoURL||person.avatarURL||'');
   });
   panel.append(head,hint,list);layer.append(backdrop,panel);document.body.appendChild(layer);
 }
@@ -1563,7 +1650,7 @@ function renderDecorationGallery(){
   const selected=String($("decorationSelect").value||"");
   const en=localStorage.getItem('bubble-chat-language')==='en';
   gallery.innerHTML=[{id:"",label:en?"None":"بدون"},...[...Array(14)].map((_,i)=>({id:String(i+1),label:`${i+1}`}))].map(item=>
-    `<button type="button" class="decoration-choice ${selected===item.id?'is-selected':''}" data-decoration="${item.id}" aria-label="${item.id?`اختيار الديكوريشن ${item.id}`:'بدون ديكوريشن'}">${item.id?`<img src="${decorationUrl(item.id)}" alt="">`:'<span class="no-decoration-icon">＋</span>'}<small>${item.label}</small></button>`
+    `<button type="button" class="decoration-choice ${selected===item.id?'is-selected':''}" data-decoration="${item.id}" aria-label="${item.id?`اختيار الديكوريشن ${item.id}`:'بدون ديكوريشن'}">${item.id?`<img src="${decorationGifUrl(item.id)}" alt="">`:'<span class="no-decoration-icon">＋</span>'}<small>${item.label}</small></button>`
   ).join('');
   gallery.querySelectorAll('img').forEach(image=>image.addEventListener('error',()=>{
     const fallback=document.createElement('span');fallback.className='decoration-missing';fallback.textContent=image.closest('[data-decoration]')?.dataset.decoration||'';image.replaceWith(fallback);
@@ -1574,6 +1661,8 @@ function renderDecorationGallery(){
   }));
 }
 renderDecorationGallery();
+
+// Profile editor previews use GIFs; regular chat/contact frames stay static for performance.
 
 function updateProfileCustomizationPreview(){
   const name=$("displayNameInput"),c1=$("profileColor").value,c2=$("profileColor2").value;
@@ -1589,7 +1678,7 @@ function updateProfileCustomizationPreview(){
   }
   const deco=$("decorationSelect").value;
   $("profileAvatarPreview").style.backgroundImage=avatarGradient();
-  const preview=$("editorDecoration"),src=deco?decorationUrl(deco):"";
+  const preview=$("editorDecoration"),src=deco?decorationGifUrl(deco):"";
   const current=preview.querySelector("img");
   if(!src){
     if(current)current.remove();
@@ -1743,7 +1832,10 @@ async function openPublicProfile(profile){
   $("publicProfileStatus").textContent=profile.statusText||presenceInfo(profile).text;$("publicProfileBio").textContent=profile.bio||(en?"No bio yet.":"لا توجد نبذة تعريفية بعد.");
   const banner=$("publicProfileBanner");banner.style.height="150px";banner.style.backgroundImage=profile.bannerURL?`url("${profile.bannerURL.replaceAll('"','').replaceAll("\\",'')}")`:profileGradient(profile);
   const avatar=$("publicProfileAvatar");avatar.innerHTML=profile.photoURL?`<img src="${$safe(profile.photoURL)}" alt="">`:$safe((profile.displayName||profile.username||"♡").slice(0,1));avatar.style.width=avatar.style.height="104px";avatar.style.backgroundImage=avatarGradient(profile);avatar.classList.toggle('has-decoration',!!profile.decoration);
-  const list=$("publicStoriesItems");list.innerHTML=`<span class="profile-hint">${en?"Loading stories...":"جاري تحميل الحالات..."}</span>`;modal.classList.remove("hidden");
+  const list=$("publicStoriesItems");list.innerHTML=`<span class="profile-hint">${en?"Loading stories...":"جاري تحميل الحالات..."}</span>`;
+  const mediaHost=$("publicProfileMediaItems");if(mediaHost)mediaHost.innerHTML=`<span class="profile-hint">${en?"Loading shared media...":"جاري تحميل الميديا..."}</span>`;
+  modal.classList.remove("hidden");
+  loadPublicProfileMedia(profile).catch(error=>{console.warn("Profile media load failed",error);if(mediaHost)mediaHost.innerHTML=`<span class="profile-hint">${en?"Could not load media.":"تعذر تحميل الميديا."}</span>`});
   try{
     const snap=await getDocs(collection(db,"stories"));
     const stories=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.uid===profile.id&&Number(x.expiresAt||0)>Date.now()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
@@ -1754,6 +1846,69 @@ async function openPublicProfile(profile){
       b.onclick=()=>showStory(story);list.appendChild(b);
     });
   }catch(e){console.warn("Stories load failed",e);list.innerHTML=`<span class="profile-hint">${en?"Could not load stories.":"تعذر تحميل الحالات."}</span>`;}
+}
+
+async function loadPublicProfileMedia(profile){
+  const host=$("publicProfileMediaItems");if(!host||!currentUser||!profile?.id)return;
+  const en=localStorage.getItem("bubble-chat-language")==="en";
+  host.style.setProperty("--media-accent",colorOf(currentProfile)||"#9b83d7");
+  host.innerHTML=`<span class="profile-hint">${en?"Loading shared media...":"جاري تحميل الميديا..."}</span>`;
+  const tid=threadId(currentUser.uid,profile.id);
+  // Only media documents are queried; text messages are not downloaded.
+  const mediaQuery=query(collection(db,"threads",tid,"messages"),where("mediaType","in",["image","video"]),orderBy("createdAt","desc"),limit(40));
+  const snap=await getDocs(mediaQuery);
+  const items=snap.docs.map(d=>({id:d.id,...d.data()})).filter(item=>item.mediaUrl||item.imageUrl)
+    .sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
+  host.innerHTML="";
+  if(!items.length){host.innerHTML=`<span class="profile-hint">${en?"No shared photos or videos yet.":"مفيش صور أو فيديوهات متبادلة لسه."}</span>`;return;}
+  const videos=items.filter(x=>x.mediaType==="video"), images=items.filter(x=>x.mediaType!=="video");
+  const makeCard=(item)=>{
+    const url=item.mediaUrl||item.imageUrl,type=item.mediaType||(item.imageUrl?"image":"image");
+    const card=document.createElement("button");card.type="button";card.className="profile-media-item";
+    card.setAttribute("aria-label",type==="video"?(en?"Open shared video":"فتح فيديو متبادل"):(en?"Open shared photo":"فتح صورة متبادلة"));
+    if(type==="video")card.innerHTML=`<video src="${$safe(url)}" muted playsinline preload="metadata"></video><span class="profile-media-play">▶</span>`;
+    else card.innerHTML=`<img src="${$safe(url)}" alt="${en?"Shared photo":"صورة متبادلة"}" loading="lazy" decoding="async">`;
+    const date=item.createdAt?.toDate?.();if(date){const tag=document.createElement("small");tag.textContent=date.toLocaleDateString(en?"en-US":"ar-EG",{day:"numeric",month:"short"});card.appendChild(tag);}
+    card.onclick=()=>type==="video"?openSharedVideo(item):openImageLightbox(url);
+    return card;
+  };
+  // Preserve the actual newest-first order, regardless of media type.
+  items.slice(0,2).forEach(item=>host.appendChild(makeCard(item)));
+  if(items.length>2){
+    const more=document.createElement("button");more.type="button";more.className="profile-media-more";
+    more.innerHTML=`<span class="profile-media-more-arrow">↗</span><b>+${items.length-2}</b><small>${en?"View all":"عرض الكل"}</small>`;
+    more.setAttribute("aria-label",en?"Open all shared media":"فتح كل الميديا المتبادلة");
+    more.onclick=()=>openSharedMediaSheet(items,en);host.appendChild(more);
+  }
+
+  const note=document.createElement("small");note.className="profile-media-note";note.textContent=en?`${images.length} photos · ${videos.length} videos`:`${images.length} صور · ${videos.length} فيديو`;host.appendChild(note);
+}
+
+function openSharedVideo(item){
+  const url=item.mediaUrl||item.imageUrl;const viewer=document.createElement("div");viewer.className="shared-media-viewer";
+  viewer.innerHTML=`<button class="shared-media-close" aria-label="إغلاق">×</button><video src="${$safe(url)}" controls autoplay playsinline></video>`;
+  viewer.addEventListener("click",e=>{if(e.target===viewer||e.target.closest(".shared-media-close")){viewer.querySelector("video")?.pause();viewer.remove();}});
+  document.body.appendChild(viewer);
+}
+function openSharedMediaSheet(items,en){
+  const overlay=document.createElement("div");overlay.className="shared-media-sheet ios-media-fullscreen";overlay.style.setProperty("--media-accent",document.querySelector("#publicProfileMediaItems")?.style.getPropertyValue("--media-accent")||colorOf(currentProfile)||"var(--theme-color,#9b83d7)");overlay.setAttribute("role","dialog");overlay.setAttribute("aria-modal","true");
+  const photos=items.filter(item=>item.mediaType!=="video"),videos=items.filter(item=>item.mediaType==="video");
+  overlay.innerHTML=`<section class="shared-media-sheet-card"><header class="ios-media-header"><button class="shared-media-sheet-close" aria-label="${en?"Back":"رجوع"}"><span aria-hidden="true">‹</span></button><div><small>BUBBLE CHAT</small><h3>${en?"Shared media":"الميديا بينكم"}</h3></div><span class="ios-media-header-spacer"></span></header><div class="ios-media-columns"><section class="ios-media-column"><h4><span>▧</span>${en?"Photos":"الصور"}<small>${photos.length}</small></h4><div class="ios-media-grid"></div></section><section class="ios-media-column"><h4><span>▶</span>${en?"Videos":"الفيديوهات"}<small>${videos.length}</small></h4><div class="ios-media-grid"></div></section></div></section>`;
+  const columns=overlay.querySelectorAll(".ios-media-grid");
+  [[photos,columns[0],false],[videos,columns[1],true]].forEach(([group,grid,isVideo])=>{
+    if(!group.length){grid.innerHTML=`<div class="ios-media-empty">${en?"Nothing here yet":"مفيش محتوى هنا لسه"}</div>`;return;}
+    group.forEach((item,index)=>{
+      const url=item.mediaUrl||item.imageUrl,cell=document.createElement("button");cell.type="button";cell.className="ios-media-cell";
+      cell.innerHTML=isVideo?`<video src="${$safe(url)}#t=0.1" muted playsinline preload="metadata"></video><span class="ios-media-video-mark">▶</span>`:`<img src="${$safe(url)}" loading="lazy" decoding="async" alt="">`;
+      const date=item.createdAt?.toDate?.();if(date){const stamp=document.createElement("small");stamp.textContent=date.toLocaleDateString(en?"en-US":"ar-EG",{day:"numeric",month:"short"});cell.appendChild(stamp);}
+      cell.setAttribute("aria-label",`${isVideo?(en?"Video":"فيديو"):(en?"Photo":"صورة")} ${index+1}`);
+      cell.onclick=()=>{overlay.remove();isVideo?openSharedVideo(item):openImageLightbox(url);};grid.appendChild(cell);
+    });
+  });
+  const close=()=>overlay.remove();overlay.querySelector(".shared-media-sheet-close").onclick=close;
+  overlay.addEventListener("click",e=>{if(e.target===overlay)close();});
+  const onKey=e=>{if(e.key==="Escape"){close();document.removeEventListener("keydown",onKey);}};document.addEventListener("keydown",onKey);
+  document.body.appendChild(overlay);
 }
 
 function showStory(story){

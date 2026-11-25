@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" name="viewport"/>
+  <meta content="#f7f5ff" name="theme-color"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Bubble Chat"/>
+  <link rel="apple-touch-icon" href="./icons/icon-192.png"/>
+  <title>
+   Bubble Chat ♡
+  </title>
+  <style>
+   html,body{margin:0;min-height:100%;background:#000}
+   #bubbleStartup{position:fixed;inset:0;z-index:2147483000;overflow:hidden;background:#000;opacity:1;visibility:visible;transition:opacity .22s ease,visibility .22s ease;isolation:isolate}
+   #bubbleStartup.startup-hide{opacity:0;visibility:hidden;pointer-events:none}
+   #bubbleStartup .startup-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+   #bubbleStartup .startup-loading{position:absolute;z-index:2;top:65.2%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;width:max-content;max-width:90%;color:#f8eaff;text-align:center;pointer-events:none}
+   #bubbleStartup .startup-loader{display:block;width:43px;height:43px;border:4px solid rgba(173,42,255,.3);border-top-color:#f0c0ff;border-right-color:#b72cff;border-radius:50%;animation:startupSpin .85s linear infinite}
+   @keyframes startupSpin{to{transform:rotate(360deg)}}
+  </style>
+  <link href="style.css?v=no-blue-name-highlight-v2-20261125" rel="stylesheet"/>
+  <link rel="manifest" href="./manifest.webmanifest"/>
+ </head>
+ <body>
+ <div class="bubble-startup" id="bubbleStartup" aria-label="Bubble Chat loading">
+  <img class="startup-background" src="./startup-splash.png" alt="" fetchpriority="high" decoding="async">
+  <div class="startup-loading" role="status" aria-live="polite">
+   <span class="startup-loader" aria-hidden="true"></span>
+   <p>جارٍ التحميل ...</p>
+  </div>
+ </div>
+ <script>
+  (() => {
+   const started = performance.now();
+   let requested = false, finished = false;
+   function finish() {
+    if (finished) return;
+    finished = true;
+    const splash = document.getElementById('bubbleStartup');
+    if (!splash) return;
+    const wait = Math.max(0, 350 - (performance.now() - started));
+    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+     splash.classList.add('startup-hide');
+     setTimeout(() => splash.remove(), 260);
+    })), wait);
+   }
+   window.__hideBubbleStartup = () => {
+    if (requested || finished) return;
+    requested = true;
+    const splash = document.getElementById('bubbleStartup');
+    const img = splash && splash.querySelector('img');
+    if (img && !img.complete) {
+     img.addEventListener('load', finish, {once:true});
+     img.addEventListener('error', finish, {once:true});
+     setTimeout(finish, 900);
+    } else finish();
+   };
+   // Fail open quickly if Firebase or another network request is slow.
+   setTimeout(() => window.__hideBubbleStartup(), 1600);
+  })();
+ </script>
+  <main class="app-shell">
+   <section class="login-view" id="loginView">
+    <div class="login-card">
+     <div class="logo-bubble">
+      ♡
+     </div>
+     <p class="eyebrow">
+     </p>
+     <h1>
+      Bubble
+      <span>
+       Chat
+      </span>
+     </h1>
+     <p class="subtext">
+      ﴿قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ...﴾ - ﴿قُلْ أَعُوذُ بِرَبِّ النَّاسِ...﴾
+     </p>
+     <div id="loginForm">
+      <label for="username">
+       اسم المستخدم
+      </label>
+      <div class="input-wrap">
+       <span>
+        ✿
+       </span>
+       <input autocomplete="username" id="username" placeholder="اكتب اسم المستخدم" required=""/>
+      </div>
+      <label for="password">
+       كلمة المرور
+      </label>
+      <div class="input-wrap">
+       <span>
+        ♡
+       </span>
+       <input autocomplete="current-password" id="password" required="" type="password"/>
+      </div>
+      <button class="primary-btn" id="loginBtn" type="button">
+       تسجيل الدخول
+       <span>
+        &rarr;
+       </span>
+      </button>
+      <p class="error" id="loginError" role="alert">
+      </p>
+     </div>
+     <div class="members">
+      <span>
+       كل
+      </span>
+      <span>
+       صبرٍ
+      </span>
+      <span>
+       جبر
+      </span>
+     </div>
+    </div>
+    <div class="floating f1">
+     ✦
+    </div>
+    <div class="floating f2">
+     ♡
+    </div>
+    <div class="floating f3">
+     ✧
+    </div>
+   </section>
+   <section class="chat-view hidden" id="chatView">
+    <aside class="sidebar">
+     <header class="side-header">
+      <div>
+       <div class="mini-brand">
+        Bubble
+        <b>
+         Chat
+        </b>
+        🫧
+       </div>
+       <small>
+        أهلًا بيكم في بابل شات ♡
+       </small>
+      </div>
+      <div class="side-actions">
+       <button class="icon-btn settings-toggle" id="settingsToggle" type="button" aria-label="الإعدادات" aria-haspopup="dialog" aria-expanded="false" title="الإعدادات">الإعدادات ⚙</button>
+      </div>
+     </header>
+     <button class="notifications-entry" id="notificationsEntry" type="button"><span class="notification-bell">🔔</span><span class="notification-entry-label" data-ar="البريد" data-en="Inbox">البريد</span><i id="notificationUnreadDot" class="notification-unread-dot hidden"></i></button>
+     <button class="me-card profile-trigger" id="profileBtn">
+      <div class="avatar cyan" id="myAvatar">
+       ♡
+      </div>
+      <div>
+       <strong id="myName">
+        اسمك
+       </strong>
+       <small>
+        تعديل الملف الشخصي ✎
+       </small>
+      </div>
+      <i class="online-dot">
+      </i>
+     </button>
+     <div class="section-label">
+      المحادثات
+      <span>
+       ✿
+      </span>
+     </div>
+     <div class="contacts" id="contacts">
+     </div>
+     <div class="side-footer">
+      <button class="install-app-btn" id="installAppBtn" type="button" aria-label="تثبيت Bubble Chat كتطبيق">⬇ <span>تثبيت التطبيق</span></button>
+      <button class="sidebar-stories-btn" id="sidebarStoriesBtn" type="button" aria-label="فتح الحالات" title="الحالات"><span>الحالات</span><i class="sidebar-stories-spark" aria-hidden="true">✦</i><i id="storiesUnreadDot" class="stories-unread-dot hidden" aria-label="حالات جديدة"></i></button>
+     </div>
+    </aside>
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
+    <button class="collapsed-unread-indicator hidden" id="collapsedUnreadIndicator" type="button">✉ رسائل جديدة <b id="collapsedUnreadCount">0</b></button>
+    <section class="conversation">
+     <div class="sidebar-mini-dock" id="sidebarMiniDock" aria-label="اختصارات المحادثات">
+      <div class="sidebar-mini-items" id="sidebarMiniItems"></div>
+      <button class="sidebar-dock-toggle" id="sidebarDockToggle" type="button" aria-label="إظهار الشريط الجانبي" title="إظهار الشريط الجانبي">⌄</button>
+     </div>
+     <div class="empty-state" id="emptyState">
+      <div class="empty-art">
+       🫧
+      </div>
+      <h2>
+       أهلًا بيكم في Bubble Chat
+      </h2>
+      <div class="sparkles">
+       ✦　♡　✧
+      </div>
+     </div>
+     <div class="active-chat hidden" id="activeChat">
+      <header class="chat-header" id="chatHeader">
+       <div class="avatar pink" id="chatAvatar">
+        ♡
+       </div>
+       <div class="chat-person">
+        <strong id="chatName">
+         اسم الصديق
+        </strong>
+        <small id="chatSubtitle">
+         BSFE
+        </small>
+       </div>
+       <div class="chat-tools-wrap">
+        <button class="soft-btn chat-tools-toggle" id="chatToolsToggle" type="button" aria-label="المزيد من خيارات المحادثة" aria-expanded="false" title="المزيد">⋮</button>
+        <div class="chat-tools-menu hidden" id="chatToolsMenu" role="menu" aria-label="خيارات المحادثة">
+         <button class="chat-tools-item" id="chatSearchToggle" type="button" role="menuitem"><span>⌕</span> بحث في المحادثة</button>
+         <button class="chat-tools-item" id="pinnedToggle" type="button" role="menuitem"><span>📌</span> الرسائل المثبتة</button>
+        </div>
+       </div>
+       <div class="header-deco">
+        ✧
+       </div>
+       <div class="chat-search-panel hidden" id="chatSearchPanel"><input id="chatSearchInput" type="search" placeholder="" aria-label="بحث في الرسائل" autocomplete="off"><span id="chatSearchCount" aria-live="polite"></span><button type="button" id="chatSearchClose" aria-label="إغلاق البحث" title="إغلاق">×</button></div>
+      </header>
+      <div class="pinned-bar hidden" id="pinnedBar">
+      </div>
+      <div class="messages" id="messages">
+      </div>
+      <button class="scroll-to-bottom" id="scrollToBottom" type="button" aria-label="الانتقال لآخر الشات" title="آخر الرسائل">↓</button>
+      <div class="reply-preview hidden" id="replyPreview">
+       <span id="replyText">
+       </span>
+       <button id="cancelReply" type="button">
+        &times;
+       </button>
+      </div>
+      <div class="sticker-tray hidden" id="stickerTray" aria-label="قائمة الملصقات">
+      </div>
+      <input id="stickerUploadInput" type="file" accept="image/*,.gif" hidden/>
+      <div class="chat-attachment-preview hidden" id="chatAttachmentPreview" aria-live="polite"></div>
+      <form class="composer" id="messageForm">
+       <button aria-label="إرسال" class="send-btn" type="submit">➤</button>
+       <div class="mention-host"><textarea autocomplete="off" id="messageInput" maxlength="2000" rows="1" placeholder="اكتب رسالة..."></textarea><div class="mention-menu hidden" id="chatMentionMenu" role="listbox" aria-label="اقتراحات المنشن"></div></div>
+       <div class="composer-media-wrap">
+        <button class="composer-media-toggle" id="composerMediaToggle" type="button" aria-label="فتح أدوات الصور والستيكرات" aria-expanded="false" title="الصور والستيكرات">
+         <span></span><span></span><span></span><span></span>
+        </button>
+        <div class="composer-media-menu hidden" id="composerMediaMenu" aria-label="أدوات المرفقات">
+         <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button" aria-label="الملصقات">😊 <span>الستيكرات</span></button>
+         <button class="tool-btn" id="imageMessageBtn" title="إرسال وسائط" type="button" aria-label="إرسال وسائط">🖼️ <span data-ar="الوسائط" data-en="Media">الوسائط</span></button>
+        </div>
+       </div>
+       <input id="imageMessageInput" type="file" accept="image/*,video/*" hidden>
+      </form>
+      <p class="composer-note">
+       ♡ . ♡
+      </p>
+     </div>
+    </section>
+   </section>
+  </main>
+  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">✎</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><div class="group-admin-tools" id="groupAdminTools"><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><label class="group-description-field">وصف الجروب<textarea id="groupDescriptionInput" maxlength="300" rows="3" placeholder="اكتب وصفًا للجروب..."></textarea></label><section class="group-colors-panel"><h3>ألوان الجروب</h3><label>اللون الأول<input id="groupNameColorInput" type="color" value="#a78be8" aria-label="اللون الأول لتدرج الجروب"></label><label>اللون الثاني<input id="groupNameColor2Input" type="color" value="#ec65c8" aria-label="اللون الثاني لتدرج الجروب"></label><div id="groupGradientPreview" class="group-gradient-preview" aria-live="polite"><span class="group-gradient-preview-text">S.T.M 🌷</span></div></section></div><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
+  <div class="modal hidden" id="profileModal">
+   <form class="modal-card" id="profileForm">
+    <button class="modal-close" id="closeProfile" type="button">
+     &times;
+    </button>
+    <h2>
+     ملفك الشخصي ✨
+    </h2>
+    <section class="profile-editor-hero">
+      <div class="profile-editor-banner" id="profileBannerStage"><span>غلاف الملف الشخصي</span></div>
+      <label class="banner-edit-pencil" for="bannerFile" title="تغيير البنر" aria-label="تغيير البنر"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></label>
+      <input id="bannerFile" type="file" accept="image/*" hidden>
+      <div class="profile-editor-avatar-row"><div class="profile-editor-avatar-wrap">
+        <div class="avatar cyan" id="profileAvatarPreview">♡</div><div class="profile-editor-decoration" id="editorDecoration"></div>
+        <label class="avatar-edit-pencil" for="avatarFile" title="تغيير الصورة">✎</label><input accept="image/*" id="avatarFile" type="file" hidden>
+      </div><span class="profile-editor-caption">صورتك الشخصية</span></div>
+    </section>
+    <label>
+     الاسم الظاهر
+     <input id="displayNameInput" maxlength="24" required=""/>
+    </label>
+    <label>نبذة تعريفية <textarea id="profileBioInput" maxlength="180" rows="2" placeholder="اكتب نبذة بسيطة عنك..."></textarea></label>
+    <div class="profile-customization compact-profile-options">
+      <h3>ألوان الاسم</h3>
+      <div class="dual-color-row"><label>اللون الأول <input id="profileColor" type="color" value="#ed4245"></label><label>اللون الثاني <input id="profileColor2" type="color" value="#ffffff"></label></div>
+      <div class="preset-colors" aria-label="تركيبات ألوان جاهزة">
+       <button type="button" data-pair="#00f5ff,#b8ffff" aria-label="سماوي نيون"></button><button type="button" data-pair="#ff2bd6,#ffc4f2" aria-label="وردي نيون"></button><button type="button" data-pair="#a3ff12,#eaffad" aria-label="ليموني نيون"></button><button type="button" data-pair="#8b5cf6,#e0b7ff" aria-label="بنفسجي نيون"></button><button type="button" data-pair="#ff6b00,#ffd08a" aria-label="برتقالي نيون"></button><button type="button" data-pair="#00ffa3,#b5ffe4" aria-label="أخضر نيون"></button><button type="button" data-pair="#ff3158,#ffb4c3" aria-label="أحمر نيون"></button><button type="button" data-pair="#4d7cff,#c5d6ff" aria-label="أزرق نيون"></button>
+      </div>
+      <label class="font-picker-label">خط الاسم<select id="nameFontSelect"><option value="noto">Noto Sans</option><option value="arabic">Noto Sans Arabic</option><option value="serif">Noto Serif</option><option value="arabic-serif">Noto Naskh Arabic</option><option value="mono">Noto Sans Mono</option><option value="kufi">Noto Kufi Arabic</option></select></label>
+      <div class="profile-name-preview" id="profileNamePreview">Cute · محمد</div>
+      <label class="font-picker-label">إطار الصورة الشخصية<select id="decorationSelect" class="visually-hidden-select"><option value="">بدون إطار</option><option value="1">الإطار 1</option><option value="2">الإطار 2</option><option value="3">الإطار 3</option><option value="4">الإطار 4</option><option value="5">الإطار 5</option><option value="6">الإطار 6</option><option value="7">الإطار 7</option><option value="8">الإطار 8</option><option value="9">الإطار 9</option><option value="10">الإطار 10</option><option value="11">الإطار 11</option><option value="12">الإطار 12</option><option value="13">الإطار 13</option><option value="14">الإطار 14</option></select></label>
+      <div class="decoration-gallery" id="decorationGallery" aria-label="اختيار ديكوريشن الصورة"></div>
+      
+    </div>
+    <button class="primary-btn" type="submit">
+     حفظ التغييرات
+    </button>
+    <p class="error" id="profileError">
+    </p>
+   </form>
+  </div>
+  <div class="crop-modal hidden" id="bannerCropModal" role="dialog" aria-modal="true" aria-label="تحديد صورة البنر">
+   <div class="crop-card">
+    <button type="button" class="crop-close" id="cancelBannerCrop" aria-label="إلغاء">×</button>
+    <h3>ظبّط صورة البنر</h3>
+    <p>حرّك الصورة وحدد الجزء اللي تحب يظهر في البروفايل</p>
+    <div class="banner-crop-viewport" id="bannerCropViewport"><img id="bannerCropImage" alt="معاينة البنر"></div>
+    <label class="crop-zoom-label">تكبير الصورة <input id="bannerCropZoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+    <div class="crop-actions"><button type="button" class="crop-cancel" id="cancelBannerCrop2">إلغاء</button><button type="button" class="crop-confirm" id="confirmBannerCrop">استخدام الصورة</button></div>
+   </div>
+  </div>
+  <div class="stories-page hidden" id="storiesHubModal"><section class="stories-hub-card" role="main" aria-label="Stories">
+    <header class="stories-hub-heading"><button class="stories-back-btn" id="closeStoriesHub" type="button" aria-label="Back">‹</button><div><span class="stories-hub-kicker">BUBBLE MOMENTS</span><h2 data-ar="الحالات ✦" data-en="Stories ✦">الحالات ✦</h2><p data-ar="شارك لحظاتك وشوف جديد أصحابك" data-en="Share your moments and catch up with friends">شارك لحظاتك وشوف جديد أصحابك</p></div></header>
+    <div class="stories-hub-self"><button class="stories-self-avatar" id="addStoryBtn" type="button"><span>＋</span></button><div><b data-ar="قصتك" data-en="Your story">قصتك</b><small data-ar="أضف صورة أو فيديو أو نص" data-en="Add a photo, video or text">أضف صورة أو فيديو أو نص</small></div></div>
+    <div class="story-compose hidden" id="storyCompose"><div class="story-choice-row"><button type="button" data-story-type="text">حالة نصية</button><button type="button" data-story-type="image">صورة</button><button type="button" data-story-type="video">فيديو</button></div><textarea id="storyCaptionInput" maxlength="240" rows="2" placeholder="اكتب كلام الحالة..."></textarea><input id="storyFile" type="file" accept="image/*,video/*" hidden><small class="story-file-name" id="storyFileName">لم يتم اختيار ملف</small><button class="story-publish-btn" id="publishStoryBtn" type="button">نشر الحالة</button></div>
+    <h3 class="stories-hub-section-title" data-ar="الأصدقاء" data-en="Friends">الأصدقاء</h3><div class="stories-hub-friends" id="storiesFriendsList"><span class="profile-hint">جاري تحميل الحالات...</span></div>
+    <h3 class="stories-hub-section-title" data-ar="حالاتك النشطة" data-en="Your active stories">حالاتك النشطة</h3><div class="my-stories-list" id="myStoriesList"><small class="profile-hint">حالاتك النشطة هتظهر هنا.</small></div>
+  </section></div>
+  <div class="modal hidden" id="publicProfileModal">
+   <section class="modal-card public-profile-card" role="dialog" aria-modal="true" aria-label="الملف الشخصي">
+    <button class="modal-close" id="closePublicProfile" type="button">&times;</button>
+    <div class="public-profile-banner" id="publicProfileBanner"></div>
+    <div class="public-profile-head"><div class="public-profile-avatar-wrap"><div class="public-profile-avatar" id="publicProfileAvatar"></div><div class="public-profile-decoration" id="publicProfileDecoration"></div></div><div><h2 id="publicProfileName">الملف الشخصي</h2><p id="publicProfileStatus"></p></div></div>
+    <p class="public-profile-bio" id="publicProfileBio"></p>
+    <section class="public-profile-media"><div class="public-profile-media-heading"><div><span>SHARED MOMENTS</span><h3>الميديا بينكم</h3></div><small>الصور والفيديوهات</small></div><div class="public-profile-media-grid" id="publicProfileMediaItems"><span class="profile-hint">افتح الملف الشخصي لعرض الميديا المتبادلة.</span></div></section>
+    <div class="stories-strip"><h3>الحالة</h3><div class="stories-items" id="publicStoriesItems"></div></div>
+   </section>
+  </div>
+  <div class="modal hidden" id="storyViewer"><section class="story-viewer-card"><button class="modal-close" id="closeStoryViewer" type="button">&times;</button><div id="storyViewerMedia"></div><p id="storyViewerCaption"></p><button id="deleteViewedStory" class="story-delete-btn hidden" type="button">حذف حالتي</button></section></div>
+  <audio id="messageSound" src="./rs.mp3" preload="auto" playsinline></audio>
+  <audio id="receiveSound" src="./ash.mp3" preload="auto" playsinline></audio>
+
+  <div class="modal hidden" id="notificationsModal"><section class="modal-card notifications-card" role="dialog" aria-modal="true" aria-label="الإشعارات"><button class="modal-close" id="closeNotifications" type="button">&times;</button><div class="inbox-heading"><span>🔔</span><div><h2 data-ar="البريد" data-en="Inbox">البريد</h2></div></div><div id="notificationsContent" class="notifications-content"></div></section></div>
+  <div class="modal hidden" id="settingsModal"><section class="modal-card app-settings-card" role="dialog" aria-modal="true" aria-label="الإعدادات">
+   <button class="modal-close" id="closeSettings" type="button">&times;</button><h2>الإعدادات ⚙</h2>
+   <button class="settings-action" id="themeToggle" type="button">🌙 الوضع الليلي</button>
+   <button class="settings-action" id="enableNotificationsBtn" type="button">🔔 تفعيل الإشعارات</button>
+   <button class="settings-action" id="languageToggle" type="button" aria-pressed="false">🌐 English</button>
+   <button class="settings-action settings-logout" id="logoutBtn" type="button">↪ تسجيل الخروج</button>
+  </section></div>
+  <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><a id="downloadLightboxImage" class="lightbox-download" download target="_blank" rel="noopener" aria-label="تحميل الصورة" title="تحميل الصورة">⬇</a><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
+  <div class="toast hidden" id="toast">
+  </div>
+  <script src="app.js?v=image-splash-20261125" type="module">
+  </script>
+ </body>
+</html>

@@ -6,7 +6,7 @@ const APP_URL = new URL('./', self.location.href).href;
 const ICON_URL = new URL('./icons/notification-icon.png', self.location.href).href;
 const BADGE_URL = ICON_URL;
 const DB_NAME = 'bubble-chat-push-state';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const RECENT_WINDOW_MS = 15000;
 const COALESCE_KEY = 'recent-notification-batch';
 
@@ -18,6 +18,7 @@ function openStateDb() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains('state')) request.result.createObjectStore('state');
+      if (!request.result.objectStoreNames.contains('pushMessages')) request.result.createObjectStore('pushMessages');
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -32,6 +33,16 @@ async function readState(key) {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
     tx.oncomplete = () => db.close();
+  });
+}
+
+async function persistPushMessage(item) {
+  const db = await openStateDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pushMessages', 'readwrite');
+    tx.objectStore('pushMessages').put(item, `${item.threadId}::${item.messageId}`);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }
 
@@ -72,9 +83,11 @@ self.addEventListener('push', event => {
     const data = payload.data || payload;
     const threadId = String(data.threadId || '');
     const senderId = String(data.senderId || '');
+    const messageId = String(data.messageId || '');
     const senderName = String(data.senderName || 'صديق');
     const groupName = String(data.groupName || '');
     const preview = String(data.body || 'رسالة جديدة').slice(0, 180);
+    if (threadId && messageId) { try { await persistPushMessage({threadId,messageId,senderId,senderName,body:String(data.offlineText||preview).slice(0,700),at:Date.now()}); } catch(error) { console.warn('Could not persist received push message:',error); } }
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const appIsForeground = windows.some(client => client.visibilityState === 'visible' && client.focused);
     if (appIsForeground) return;
@@ -104,7 +117,7 @@ self.addEventListener('push', event => {
       body: messageBody,
       icon: ICON_URL,
       badge: BADGE_URL,
-      data: { threadId },
+      data: { threadId, messageId, senderId, senderName, body: preview },
       tag: 'bubble-chat-new-messages',
       renotify: false,
       requireInteraction: false,
@@ -130,5 +143,50 @@ self.addEventListener('notificationclick', event => {
       }
     }
     await clients.openWindow(targetUrl);
+  })());
+});
+
+// Offline app-shell cache (coexists with the notification handlers above).
+const OFFLINE_CACHE = 'bubble-chat-offline-v2';
+const OFFLINE_ASSETS = [
+  './', './index.html', './style.css', './app.js', './firebase-config.js',
+  './icons/notification-icon.png',
+  ...Array.from({length:14}, (_,i)=>`./decorations/${i+1}.png`),
+  ...Array.from({length:14}, (_,i)=>`./decorations/${i+1}.gif`)
+];
+self.addEventListener('install', event => {
+  event.waitUntil((async()=>{
+    const cache=await caches.open(OFFLINE_CACHE);
+    await Promise.all(OFFLINE_ASSETS.map(async url=>{try{const r=await fetch(new Request(url,{cache:'reload'}));if(r.ok)await cache.put(url,r);}catch(e){console.warn('Could not cache',url);}}));
+  })().catch(err=>console.warn('Offline precache partial failure',err)));
+});
+self.addEventListener('activate', event => {
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>k.startsWith('bubble-chat-offline-')&&k!==OFFLINE_CACHE).map(k=>caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', event => {
+  const req=event.request;
+  if(req.method!=='GET') return;
+  const url=new URL(req.url);
+  // Never cache Firebase data/auth requests, uploads, or other dynamic API traffic.
+  const isShell=url.origin===self.location.origin;
+  const isFirebaseModule=url.hostname==='www.gstatic.com' && url.pathname.includes('/firebasejs/');
+  if(!isShell && !isFirebaseModule) return;
+  if(isShell && (url.pathname.includes('/api/') || url.pathname.includes('/upload') || url.pathname.includes('/firestore'))) return;
+  event.respondWith((async()=>{
+    const cache=await caches.open(OFFLINE_CACHE);
+    const cached=await cache.match(req);
+    if(cached) return cached;
+    try{
+      const response=await fetch(req);
+      if(response && (response.ok || response.type==='opaque')) cache.put(req,response.clone()).catch(()=>{});
+      return response;
+    }catch(err){
+      if(req.mode==='navigate') return cache.match('./index.html');
+      throw err;
+    }
   })());
 });

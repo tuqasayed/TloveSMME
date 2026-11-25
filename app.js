@@ -14,13 +14,16 @@ else removeEscapedNewlineArtifacts();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
+const app=initializeApp(firebaseConfig), auth=getAuth(app);
+// Enable Firestore IndexedDB persistence: cached reads and queued writes can survive offline periods.
+const db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
 // Keep the developer session in a separate Firebase Auth app so it never replaces a regular user session.
-const developerApp=initializeApp(firebaseConfig,"bubble-chat-developer"), developerAuth=getAuth(developerApp), developerDb=getFirestore(developerApp);
+const developerApp=initializeApp(firebaseConfig,"bubble-chat-developer"), developerAuth=getAuth(developerApp);
+const developerDb=initializeFirestore(developerApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
 let selectedAuthMode=sessionStorage.getItem("bubble-chat-auth-mode")||"user";
 const CLOUDINARY_CLOUD_NAME="svigkr4e", CLOUDINARY_UPLOAD_PRESET="chat_upload";
 const NOTIFICATION_WORKER_URL="https://bubble-chat-notifications.mainmohammedy.workers.dev";
@@ -42,7 +45,7 @@ const PRESENCE_STALE_MS=65000;
 const READ_KEY_PREFIX="bubble-chat-read-";
 let lastIncomingSoundAt=0;
 const MESSAGE_PAGE_SIZE=100; // Load message history in batches of 100.
-let loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true,initialChatPositioning=false,pageLoadToken=0;
+let pendingPushMessages=[],loadedMessageDocs=new Map(),oldestMessageCursor=null,loadingOlderMessages=false,hasOlderMessages=true,initialChatPositioning=false,pageLoadToken=0;
 let selectedChatMediaFile=null,selectedChatMediaUrl=null;
 let audioUnlocked=false;
 
@@ -88,6 +91,8 @@ function playIncomingSound(){
 }
 
 function readKey(thread){return `${READ_KEY_PREFIX}${currentUser?.uid||"guest"}-${thread}`;}
+function envelopeStorageKey(messageId){return `bubble-envelope-opened:${currentUser?.uid||"guest"}:${messageId}`;}
+function envelopeIsOpened(message){return !!message.envelopeOpened || localStorage.getItem(envelopeStorageKey(message.id))==="1";}
 function setThreadRead(thread,latestTime=Date.now()){localStorage.setItem(readKey(thread),String(latestTime));unreadCounts.set(thread,0);updateUnreadBadge(thread);}
 
 function updateUnreadBadge(thread){
@@ -173,6 +178,20 @@ function isGroup(){return activeChat?.kind==="group"}
 function colorOf(p){return p?.color1||p?.color||({Samaa:"#55cbd5",Tuqa:"#ed8fbd",Menna:"#a78be8"}[p?.username]||"#a78be8")}
 function profileGradient(p){return `linear-gradient(120deg,${p?.color1||p?.color||colorOf(p)},${p?.color2||p?.color1||p?.color||colorOf(p)})`}
 function avatarGradient(p){return "linear-gradient(135deg,#5865f2,#eb459e)"}
+function nameMarkup(value,p){
+ const raw=String(value||"");
+ const parts=raw.split(/(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu);
+ return parts.map(part=>/^\p{Extended_Pictographic}/u.test(part)?`<span class="name-emoji">${$safe(part)}</span>`:`<span class="gradient-name-text" style="${nameStyle(p)}">${$safe(part)}</span>`).join("");
+}
+function renderMessageTextMarkup(value){
+ const escaped=$safe(value);
+ return escaped.replace(/(^|\s)(https?:\/\/[^\s<]+)/gi,(all,space,url)=>`${space}<a class="message-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,(all,space,tag)=>{
+   const key=tag.slice(1).toLowerCase(),person=[...userProfiles.values()].find(p=>String(p.username||p.displayName||"").toLowerCase()===key);
+   if(!person)return `${space}<span class="mention-tag">${tag}</span>`;
+   const c1=person.color1||person.color||colorOf(person),c2=person.color2||c1;
+   return `${space}<span class="mention-tag" style="--mention-color:${c1};--mention-color-2:${c2}"><span class="mention-gradient-text">${tag}</span></span>`;
+ });
+}
 function nameStyle(p){
  const fonts={noto:"'Noto Sans','Noto Sans Arabic','Noto Sans JP','Noto Sans SC','Noto Sans KR',sans-serif",arabic:"'Noto Sans Arabic','Noto Sans',sans-serif",serif:"'Noto Serif','Noto Naskh Arabic',serif","arabic-serif":"'Noto Naskh Arabic','Noto Serif',serif",mono:"'Noto Sans Mono','Noto Sans Arabic',monospace",kufi:"'Noto Kufi Arabic','Noto Sans',sans-serif"};
  return `font-family:${fonts[p?.nameFont]||fonts.noto};font-weight:700;background-image:${profileGradient(p)};background-clip:text;-webkit-background-clip:text;color:transparent`
@@ -189,7 +208,7 @@ function decorationUrl(value){
 }
 function decorationGifUrl(value){
   const id=decorationId(value);
-  return id?`./decorations/${id}.gif`:"";
+  return id?`./decorations/${id}.png`:"";
 }
 function applyMyTheme(){if(currentProfile)document.documentElement.style.setProperty("--theme-color",colorOf(currentProfile))}
 
@@ -238,7 +257,15 @@ function renderChatAvatar(target){
 
 function isEnglishUi(){return localStorage.getItem("bubble-chat-language")==="en"}
 function uiText(ar,en){return isEnglishUi()?en:ar}
-function toast(t){const el=$("toast");el.textContent=t;el.classList.remove("hidden");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.add("hidden"),2600)}
+function toast(t){
+  const el=$("toast");if(!el)return;
+  let message=String(t??"");
+  if(/firebase|firestore|auth\/|permission-denied|failed-precondition|service.?worker|messaging\/|registration token|indexeddb|network request failed/i.test(message)){
+    message=uiText("حصلت مشكلة مؤقتة. جرّب تاني بعد شوية.","Something went wrong temporarily. Please try again.");
+  }
+  el.textContent=message;el.classList.remove("hidden");clearTimeout(toast.timer);
+  toast.timer=setTimeout(()=>el.classList.add("hidden"),3000);
+}
 
 let deferredInstallPrompt = null;
 const installAppBtn = $("installAppBtn");
@@ -462,7 +489,7 @@ function updateDecorationButton(){
 function ensureDecorationPicker(){
   let picker=$("messageDecorationPicker");if(picker)return picker;
   picker=document.createElement("section");picker.id="messageDecorationPicker";picker.className="message-decoration-picker hidden";picker.setAttribute("aria-label","ديكورات الرسائل");
-  picker.innerHTML=`<header class="message-decoration-heading"><strong>ديكورات الرسائل</strong><span>اختار شكل الرسالة</span></header><div class="message-decoration-grid"><button type="button" data-decoration="envelope" class="deco-envelope"><i class="deco-preview deco-preview-envelope">🎁</i><span>هدية</span></button><button type="button" data-decoration="heart" class="deco-heart-choice"><i class="deco-preview deco-preview-heart">💗</i><span>قلوب</span></button><button type="button" data-decoration="fire" class="deco-fire-choice"><i class="deco-preview deco-preview-fire">🔥</i><span>نار</span></button><button type="button" data-decoration="sparkles" class="deco-sparkles-choice"><i class="deco-preview deco-preview-sparkles">✨</i><span>نجوم</span></button><button type="button" data-decoration="" class="deco-none-choice"><i class="deco-preview deco-preview-none">✕</i><span>بدون</span></button></div>`;
+  picker.innerHTML=`<header class="message-decoration-heading"><strong>ديكورات الرسائل</strong><span>اختار شكل الرسالة</span></header><div class="message-decoration-grid"><button type="button" data-decoration="envelope" class="deco-envelope"><i class="deco-preview deco-preview-envelope">✉️</i><span>ظرف</span></button><button type="button" data-decoration="heart" class="deco-heart-choice"><i class="deco-preview deco-preview-heart">💗</i><span>قلوب</span></button><button type="button" data-decoration="fire" class="deco-fire-choice"><i class="deco-preview deco-preview-fire">🔥</i><span>نار</span></button><button type="button" data-decoration="sparkles" class="deco-sparkles-choice"><i class="deco-preview deco-preview-sparkles">✨</i><span>نجوم</span></button><button type="button" data-decoration="" class="deco-none-choice"><i class="deco-preview deco-preview-none">✕</i><span>بدون</span></button></div>`;
   document.body.append(picker);
   picker.querySelectorAll("[data-decoration]").forEach(b=>b.addEventListener("click",()=>{selectedMessageDecoration=b.dataset.decoration||"";updateDecorationButton();picker.classList.add("hidden");}));
   return picker;
@@ -534,7 +561,11 @@ function renderInboxMessages(items){
   if(!target){list.innerHTML=`<div id="developerBroadcastList"></div><div id="dailyQuestionMember"></div>`;target=$("developerBroadcastList");}
   const newest=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0))[0];
   target.dataset.sortTime=String(newest?.createdAt?.toMillis?.()||0);
-  target.innerHTML=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).map(m=>`<article class="inbox-message" data-inbox-message="${$safe(m.id)}"><small>${timeOf(m.createdAt)}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</h3><p>${$safe(m.body||"")}</p>${Array.isArray(m.choices)&&m.choices.length?`<div class="inbox-poll" data-poll="${$safe(m.id)}"><div class="inbox-poll-options">${m.choices.map((choice,i)=>`<label><input type="radio" name="poll-${$safe(m.id)}" value="${i}"><span>${$safe(choice)}</span></label>`).join("")}</div><button type="button" class="inbox-poll-submit" data-vote="${$safe(m.id)}">${en?"Confirm choice":"تأكيد الاختيار"}</button><small class="inbox-poll-state">${en?"Choose one option only.":"اختار إجابة واحدة بس."}</small></div>`:""}</article>`).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  const ordered=[...items].sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
+  const categories=[...new Set(ordered.map(m=>m.category||"عام"))];
+  target.innerHTML=categories.map(category=>{const group=ordered.filter(m=>(m.category||"عام")===category);return group.map((m,index)=>{const date=m.createdAt?.toDate?.();const dateLabel=date?date.toLocaleString(en?"en-US":"ar-EG",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"}):timeOf(m.createdAt);const media=m.mediaUrl?(m.mediaType==="video"?`<video class="inbox-attachment" src="${$safe(m.mediaUrl)}" controls playsinline preload="metadata"></video>`:`<img class="inbox-attachment" src="${$safe(m.mediaUrl)}" alt="مرفق البريد" loading="lazy">`):"";const poll=Array.isArray(m.choices)&&m.choices.length?`<div class="inbox-poll" data-poll="${$safe(m.id)}"><div class="inbox-poll-options">${m.choices.map((choice,i)=>`<label><input type="radio" name="poll-${$safe(m.id)}" value="${i}"><span>${$safe(choice)}</span></label>`).join("")}</div><button type="button" class="inbox-poll-submit" data-vote="${$safe(m.id)}">${en?"Confirm choice":"تأكيد الاختيار"}</button><small class="inbox-poll-state">${en?"Choose one option only.":"اختار إجابة واحدة بس."}</small></div>`:"";return `<article class="inbox-message ${index>0?'inbox-message-collapsed':''}" data-inbox-message="${$safe(m.id)}" data-inbox-category="${$safe(category)}"><button type="button" class="inbox-collapse-toggle" aria-expanded="${index===0?'true':'false'}"><span>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</span><small>${dateLabel}</small><b aria-hidden="true">⌄</b></button><div class="inbox-message-content"><small class="inbox-date">${dateLabel}</small><h3>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</h3><p>${$safe(m.body||"")}</p>${media}${poll}</div></article>`}).join("")}).join("")||`<p class="inbox-empty">${en?"No inbox messages yet.":"لا توجد رسائل في البريد حتى الآن."}</p>`;
+  target.querySelectorAll(".inbox-collapse-toggle").forEach(btn=>btn.addEventListener("click",()=>{const card=btn.closest(".inbox-message");card.classList.toggle("inbox-message-collapsed");btn.setAttribute("aria-expanded",String(!card.classList.contains("inbox-message-collapsed")));}));
+
   target.querySelectorAll('[data-vote]').forEach(btn=>{const messageId=btn.dataset.vote,wrap=btn.closest('[data-poll]');const voteRef=doc(db,"developerBroadcasts",messageId,"votes",currentUser.uid);getDoc(voteRef).then(v=>{const state=wrap.querySelector('.inbox-poll-state');if(v.exists()){wrap.querySelectorAll('input').forEach(input=>{input.disabled=true;input.checked=Number(input.value)===v.data().choiceIndex;});btn.disabled=true;state.textContent=en?"Your choice has been recorded.":"تم تسجيل اختيارك ومش هتقدر تصوّت تاني.";}}).catch(console.warn);btn.onclick=async()=>{const selected=wrap.querySelector('input:checked');const state=wrap.querySelector('.inbox-poll-state');if(!selected){state.textContent=en?"Choose one option first.":"اختار إجابة الأول.";return;}btn.disabled=true;try{await setDoc(voteRef,{uid:currentUser.uid,choiceIndex:Number(selected.value),choice:items.find(x=>x.id===messageId).choices[Number(selected.value)],createdAt:serverTimestamp()});wrap.querySelectorAll('input').forEach(input=>input.disabled=true);state.textContent=en?"Your choice has been recorded.":"تم تسجيل اختيارك ومش هتقدر تصوّت تاني.";}catch(err){console.error(err);state.textContent=en?"You have already voted or the vote failed.":"إما إنك صوّت قبل كده أو حصلت مشكلة.";btn.disabled=false;}};});
   sortInboxSections();
 }
@@ -566,7 +597,7 @@ async function renderMemberQuestion(q){
   if(!$("dailyQuestionMember")||$("dailyQuestionMember").dataset.questionId===q.id)return;
   host.dataset.questionId=q.id;
   host.innerHTML=`<div class="daily-kicker">✦ ${en?"QUESTION OF THE DAY":"سؤال اليوم"}</div><h3>${$safe(q.question||"")}</h3><form id="dailyAnswerForm"><textarea id="dailyAnswerInput" maxlength="1000" rows="3" placeholder="${en?"Write your answer...":"اكتب إجابتك..."}" ${alreadyAnswered?"disabled":""}>${$safe(existing)}</textarea><button type="submit" ${alreadyAnswered?"disabled":""}>${alreadyAnswered?(en?"Already answered":"تمت الإجابة"):en?"Reply":"الرد"}</button></form>${alreadyAnswered?`<small class="daily-locked-note">${en?"You can answer only once.":"مسموح بإجابة واحدة بس."}</small>`:""}<div class="daily-answers" id="dailyAnswers"></div>`;
-  $("dailyAnswerForm").addEventListener("submit",async e=>{e.preventDefault();const answer=$("dailyAnswerInput").value.trim();if(!answer||alreadyAnswered)return;try{const answerRef=doc(db,"dailyQuestions",q.id,"answers",currentUser.uid);const keyword=String(q.keyword||"").trim();const matched=!!keyword&&answer.toLocaleLowerCase().includes(keyword.toLocaleLowerCase());await setDoc(answerRef,{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,answer,developerReaction:matched?"star":"wrong",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});alreadyAnswered=true;$("dailyAnswerInput").disabled=true;$("dailyAnswerForm").querySelector("button").disabled=true;toast(en?"Answer saved ♡":"تم حفظ إجابتك ♡");}catch(err){console.error(err);toast(en?"You may have already answered.":"مسموح بإجابة واحدة، أو حصلت مشكلة في الحفظ.");}});
+  $("dailyAnswerForm").addEventListener("submit",async e=>{e.preventDefault();const answer=$("dailyAnswerInput").value.trim();if(!answer||alreadyAnswered)return;try{const answerRef=doc(db,"dailyQuestions",q.id,"answers",currentUser.uid);const keywords=(Array.isArray(q.keywords)?q.keywords:String(q.keyword||"").split(/[\n,،]+/)).map(x=>String(x).trim()).filter(Boolean);const matched=keywords.some(keyword=>answer.toLocaleLowerCase().includes(keyword.toLocaleLowerCase()));await setDoc(answerRef,{uid:currentUser.uid,displayName:currentProfile.displayName||currentProfile.username,answer,developerReaction:matched?"star":"wrong",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});alreadyAnswered=true;$("dailyAnswerInput").disabled=true;$("dailyAnswerForm").querySelector("button").disabled=true;toast(en?"Answer saved ♡":"تم حفظ إجابتك ♡");}catch(err){console.error(err);toast(en?"You may have already answered.":"مسموح بإجابة واحدة، أو حصلت مشكلة في الحفظ.");}});
   if(stopDailyAnswers)stopDailyAnswers();
   stopDailyAnswers=onSnapshot(query(collection(db,"dailyQuestions",q.id,"answers"),orderBy("createdAt","asc")),snap=>{
     const target=$("dailyAnswers");if(!target)return;
@@ -578,17 +609,24 @@ function setupDeveloperCommunity(){
   const publish=$("devPublishQuestion");if(!publish)return;
   publish.dataset.bound="1";
   publish.addEventListener("click",async()=>{
-    const question=$("devDailyQuestion").value.trim(),keyword=$("devDailyKeyword").value.trim();if(!question||!keyword){$("devQuestionState").textContent="اكتب السؤال والكلمة المفتاحية الأول.";return;}
+    const question=$("devDailyQuestion").value.trim(),keywords=$("devDailyKeyword").value.split(/[\n,،]+/).map(x=>x.trim()).filter(Boolean);if(!question||!keywords.length){$("devQuestionState").textContent="اكتب السؤال وكلمة مفتاحية واحدة على الأقل.";return;}
     publish.disabled=true;
-    try{const ref=await addDoc(collection(developerDb,"dailyQuestions"),{question,keyword,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devDailyQuestion").value="";$("devDailyKeyword").value="";$("devQuestionState").textContent="تم نشر سؤال اليوم بنجاح ♡";watchDeveloperAnswers(ref.id);}
+    try{const ref=await addDoc(collection(developerDb,"dailyQuestions"),{question,keywords,keyword:keywords[0],createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devDailyQuestion").value="";$("devDailyKeyword").value="";$("devQuestionState").textContent="تم نشر سؤال اليوم بنجاح ♡";watchDeveloperAnswers(ref.id);}
     catch(e){console.error(e);$("devQuestionState").textContent="تعذر نشر السؤال. تحقق من قواعد Firestore.";}
     finally{publish.disabled=false;}
   });
+  $("devBroadcastMedia")?.addEventListener("change",event=>{const host=$("devBroadcastMediaPreview");if(!host)return;host.replaceChildren();const file=event.target.files?.[0];if(!file)return;const url=URL.createObjectURL(file);const node=document.createElement(file.type.startsWith("video/")?"video":"img");node.src=url;if(node.tagName==="VIDEO"){node.controls=true;node.muted=true;node.playsInline=true;}host.appendChild(node);});
   $("devSendBroadcast")?.addEventListener("click",async()=>{
-    const title=$("devBroadcastTitle").value.trim(),body=$("devBroadcastBody").value.trim(),choices=$("devBroadcastChoices").value.split("\n").map(x=>x.trim()).filter(Boolean);if(!body||choices.length<2){$("devBroadcastState").textContent="اكتب نص البريد واختيارين على الأقل، كل اختيار في سطر.";return;}
+    const title=$("devBroadcastTitle").value.trim(),body=$("devBroadcastBody").value.trim(),choices=$("devBroadcastChoices").value.split("\n").map(x=>x.trim()).filter(Boolean),category=$("devBroadcastCategory")?.value.trim()||"عام",file=$("devBroadcastMedia")?.files?.[0];
+    if(!body||choices.length===1||choices.length>12){$("devBroadcastState").textContent="اكتب نص البريد، واترك الاختيارات فارغة أو أضف اختيارين على الأقل.";return;}
     const btn=$("devSendBroadcast");btn.disabled=true;
-    try{await addDoc(collection(developerDb,"developerBroadcasts"),{title,body,choices,createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});$("devBroadcastTitle").value="";$("devBroadcastBody").value="";$("devBroadcastChoices").value="";$("devBroadcastState").textContent="تم إرسال البريد مع الاختيارات ♡";}
-    catch(e){console.error(e);$("devBroadcastState").textContent="تعذر الإرسال. تحقق من قواعد Firestore.";}
+    try{
+      let mediaUrl="",mediaType="";
+      if(file){if(!file.type.startsWith("image/")&&!file.type.startsWith("video/"))throw new Error("اختار صورة أو فيديو فقط");if(file.size>100*1024*1024)throw new Error("حجم الملف أكبر من 100MB");mediaUrl=await uploadChatMedia(file);mediaType=file.type.startsWith("video/")?"video":"image";}
+      await addDoc(collection(developerDb,"developerBroadcasts"),{title,body,choices,category,...(mediaUrl?{mediaUrl,mediaType}:{}),createdAt:serverTimestamp(),createdBy:developerAuth.currentUser.uid});
+      $("devBroadcastTitle").value="";$("devBroadcastBody").value="";$("devBroadcastChoices").value="";if($("devBroadcastMedia"))$("devBroadcastMedia").value="";
+      $("devBroadcastState").textContent=choices.length?"تم إرسال البريد مع الاختيارات ♡":"تم إرسال البريد العادي ♡";
+    }catch(e){console.error(e);$("devBroadcastState").textContent=e.message||"تعذر الإرسال. راجع سجل المطوّر.";}
     finally{btn.disabled=false;}
   });
   const latest=query(collection(developerDb,"dailyQuestions"),orderBy("createdAt","desc"),limit(1));
@@ -604,7 +642,7 @@ function setupDeveloperContentManagement(){
     const ids=new Set(snap.docs.map(d=>d.id));
     for(const [id,stop] of devInboxReplyStops){if(!ids.has(id)){stop();devInboxReplyStops.delete(id);}}
     section.innerHTML=`<h3>${en?"Inbox messages":"رسائل البريد"} (${snap.size})</h3>`+orderedDocs.map(d=>{const m=d.data();return `<article class="dev-inbox-card"><div class="dev-inbox-message"><b>${$safe(m.title||(en?"Inbox message":"رسالة بريد"))}</b><p>${$safe(m.body||"")}</p><small>${$safe((m.choices||[]).join(" · "))}</small></div><button type="button" class="secondary" data-edit-broadcast="${$safe(d.id)}">تعديل</button><button type="button" class="danger dev-delete-mail" data-delete-broadcast="${$safe(d.id)}">${en?"Delete message":"حذف البريد"}</button></article>`;}).join("")||`<small>${en?"No messages.":"لا توجد رسائل."}</small>`;
-    section.querySelectorAll("[data-edit-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.editBroadcast;const snap=await getDoc(doc(developerDb,"developerBroadcasts",id));if(!snap.exists())return;const data=snap.data();const title=prompt("عنوان البريد",data.title||"");if(title===null)return;const body=prompt("نص البريد",data.body||"");if(body===null)return;const choicesText=prompt("الاختيارات (كل اختيار في سطر)",(data.choices||[]).join("\n"));if(choicesText===null)return;const choices=choicesText.split("\n").map(x=>x.trim()).filter(Boolean);if(!body.trim()||choices.length<2){toast("لازم البريد يحتوي على نص واختيارين على الأقل.");return;}try{await updateDoc(doc(developerDb,"developerBroadcasts",id),{title:title.trim(),body:body.trim(),choices,updatedAt:serverTimestamp()});toast("تم تعديل البريد ♡");}catch(e){console.error(e);toast("تعذر تعديل البريد.");}});
+    section.querySelectorAll("[data-edit-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.editBroadcast;const snap=await getDoc(doc(developerDb,"developerBroadcasts",id));if(!snap.exists())return;const data=snap.data();const title=prompt("عنوان البريد",data.title||"");if(title===null)return;const body=prompt("نص البريد",data.body||"");if(body===null)return;const choicesText=prompt("الاختيارات (كل اختيار في سطر)",(data.choices||[]).join("\n"));if(choicesText===null)return;const choices=choicesText.split("\n").map(x=>x.trim()).filter(Boolean);if(!body.trim()||choices.length===1||choices.length>12){toast("اترك الاختيارات فارغة أو أضف اختيارين على الأقل.");return;}try{await updateDoc(doc(developerDb,"developerBroadcasts",id),{title:title.trim(),body:body.trim(),choices,updatedAt:serverTimestamp()});toast("تم تعديل البريد ♡");}catch(e){console.error(e);toast("تعذر تعديل البريد.");}});
     section.querySelectorAll("[data-delete-broadcast]").forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteBroadcast;if(!await askElegantDelete(en?"Delete this inbox message and all its replies?":"هل تريد حذف رسالة البريد دي وكل الردود المرتبطة بيها؟"))return;btn.disabled=true;try{const replies=await getDocs(collection(developerDb,"developerBroadcasts",id,"replies"));await Promise.all(replies.docs.map(r=>deleteDoc(r.ref)));await deleteDoc(doc(developerDb,"developerBroadcasts",id));$("devBroadcastState").textContent=en?"Message deleted.":"تم حذف رسالة البريد وردودها.";}catch(err){console.error("Delete inbox message:",err);btn.disabled=false;$("devBroadcastState").textContent=(en?"Delete failed: ":"فشل الحذف: ")+(err.code||err.message||"");}});
 
   },e=>{console.error("Broadcast management listener:",e);recordDevError("Inbox management listener",e);const section=$("devBroadcastManagement");if(section)section.innerHTML=`<p class="inbox-empty">${isEnglishUi()?"Could not load inbox management: ":"تعذر تحميل إدارة البريد: "}${$safe(e.code||e.message||"")}</p>`;});
@@ -640,8 +678,8 @@ function ensureDeveloperView(){
   <section class="dev-panel"><h2>صحة التطبيق</h2><div class="dev-stats dev-stats-four"><div><b id="devRuntimeStatus">يعمل</b><small>حالة الواجهة</small></div><div><b id="devErrorCount">0</b><small>أخطاء مسجلة</small></div><div><b id="devOnlineState">متصل</b><small>الاتصال</small></div><div><b id="devFirebaseState">غير مفحوص</b><small>Firebase</small></div></div><div class="dev-actions dev-tools"><button id="devCheckFirebase" type="button">فحص اتصال Firebase</button><button id="devCopyReport" type="button" class="secondary">نسخ تقرير تقني</button><button id="devDownloadErrors" type="button" class="secondary">تنزيل سجل الأخطاء</button><button id="devReloadApp" type="button" class="secondary">إعادة تحميل التطبيق</button></div><p id="devHealthState" class="dev-state" aria-live="polite">لم يتم إجراء فحص بعد.</p></section>
   <section class="dev-panel dev-panel-wide"><h2>سجل الأخطاء</h2><pre id="devErrorLog" class="dev-log">لا توجد أخطاء مسجلة.</pre><div class="dev-actions"><button id="devClearErrors" type="button" class="secondary">مسح السجل المحلي</button></div></section>
   <section class="dev-panel"><h2>معلومات البيئة</h2><div class="dev-info-grid"><span>المتصفح</span><b id="devBrowserInfo">—</b><span>الشاشة</span><b id="devScreenInfo">—</b><span>اللغة</span><b id="devLanguageInfo">—</b><span>الذاكرة التقريبية</span><b id="devMemoryInfo">غير متاحة</b></div></section>
-  <section class="dev-panel dev-panel-wide"><h2>سؤال اليوم ✨</h2><label>السؤال<textarea id="devDailyQuestion" maxlength="500" rows="3" placeholder="اكتب سؤال اليوم..."></textarea></label><label>الكلمة المفتاحية<input id="devDailyKeyword" maxlength="80" placeholder="الكلمة التي تمنح الإجابة نجمة"></label><button id="devPublishQuestion" type="button">نشر السؤال</button><p id="devQuestionState" class="dev-state"></p><div id="devQuestionAnswers" class="dev-question-answers"></div><div id="devQuestionManagement" class="dev-question-answers"></div></section>
-  <section class="dev-panel dev-panel-wide"><h2>رسالة إلى البريد ♡</h2><label>عنوان الرسالة<input id="devBroadcastTitle" maxlength="90" placeholder="عنوان الرسالة"></label><label>نص الرسالة<textarea id="devBroadcastBody" maxlength="2000" rows="4" placeholder="اكتب رسالة للأعضاء..."></textarea></label><label>اختيارات الأعضاء (كل اختيار في سطر)<textarea id="devBroadcastChoices" maxlength="1000" rows="4" placeholder="الاختيار الأول&#10;الاختيار الثاني"></textarea></label><button id="devSendBroadcast" type="button">إرسال الرسالة للأعضاء</button><p id="devBroadcastState" class="dev-state"></p><div id="devBroadcastManagement" class="dev-question-answers"></div></section>
+  <section class="dev-panel dev-panel-wide"><h2>سؤال اليوم ✨</h2><label>السؤال<textarea id="devDailyQuestion" maxlength="500" rows="3" placeholder="اكتب سؤال اليوم..."></textarea></label><label>الكلمات المفتاحية (كل كلمة في سطر)<textarea id="devDailyKeyword" maxlength="500" rows="3" placeholder="اكتب كل كلمة مفتاحية في سطر"></textarea></label><button id="devPublishQuestion" type="button">نشر السؤال</button><p id="devQuestionState" class="dev-state"></p><div id="devQuestionAnswers" class="dev-question-answers"></div><div id="devQuestionManagement" class="dev-question-answers"></div></section>
+  <section class="dev-panel dev-panel-wide"><h2>رسالة إلى البريد ♡</h2><label>عنوان الرسالة<input id="devBroadcastTitle" maxlength="90" placeholder="عنوان الرسالة"></label><label>نص الرسالة<textarea id="devBroadcastBody" maxlength="2000" rows="4" placeholder="اكتب رسالة للأعضاء..."></textarea></label><label>نوع البريد<input id="devBroadcastCategory" maxlength="40" value="عام" placeholder="مثال: عام، تحديثات، تنبيه"></label><label>اختيارات الأعضاء (اختياري، كل اختيار في سطر)<textarea id="devBroadcastChoices" maxlength="1000" rows="4" placeholder="اتركها فارغة لبريد عادي بلا تصويت"></textarea></label><label>صورة أو فيديو (اختياري)<input id="devBroadcastMedia" type="file" accept="image/*,video/*"></label><div id="devBroadcastMediaPreview" class="dev-broadcast-media-preview"></div><button id="devSendBroadcast" type="button">إرسال الرسالة للأعضاء</button><p id="devBroadcastState" class="dev-state"></p><div id="devBroadcastManagement" class="dev-question-answers"></div></section>
   </div><div class="dev-quickbar"><button id="devScrollTop" type="button" class="dev-top-button">↑ العودة للأعلى</button><button id="devClearLocalErrors" type="button" class="secondary">تنظيف سجل الأخطاء</button></div><button id="devLogout" class="dev-logout" type="button">تسجيل الخروج</button></div>`;
   document.querySelector(".app-shell")?.prepend(view);
   setupDeveloperCommunity();
@@ -781,7 +819,7 @@ function renderMe(){
   // Keep the signed-in user's sidebar frame animated continuously; other avatar
   // decorations remain static to avoid decoding many GIFs across the contact list.
   const ownDecoration=$("myAvatar")?.querySelector(".chat-avatar-decoration img");
-  if(ownDecoration&&currentProfile.decoration)ownDecoration.src=decorationGifUrl(currentProfile.decoration);
+  if(ownDecoration&&currentProfile.decoration)ownDecoration.src=decorationUrl(currentProfile.decoration);
   paintAvatar($("profileAvatarPreview"),currentProfile);
   $("profileAvatarPreview").style.width=$("profileAvatarPreview").style.height="96px";
   $("myAvatar").style.width=$("myAvatar").style.height="64px";
@@ -904,11 +942,11 @@ async function loadContacts(){
     getDoc(doc(db,"threads",GROUP_ID)).then(groupSnap=>{
       if(groupSnap.exists()){
         const data=groupSnap.data();
-        activeGroupMeta={name:data.groupName||"S.T.M 🌷",photoURL:data.groupPhotoURL||"",bannerURL:data.groupBannerURL||"",admins:data.admins||[]};
+        activeGroupMeta={name:data.groupName||"S.T.M 🌷",photoURL:data.groupPhotoURL||"",bannerURL:data.groupBannerURL||"",admins:data.admins||[],nameColor:data.groupNameColor||"#a78be8",nameColor2:data.groupNameColor2||"#ec65c8",description:data.groupDescription||""};
         refreshGroupSidebar();
       }
     }).catch(error=>console.warn("Could not load group settings:",error));
-  },error=>{console.error("Contacts listener failed:",error);toast("تعذر تحديث حالة الأصدقاء");});
+  },error=>{console.error("Contacts listener failed:",error);toast("تعذر تحديث الحالة، حاول مرة أخرى");});
 }
 
 function contactsElReplace(groupBtn){$("contacts").innerHTML="";groupBtn.style.order="0";}
@@ -934,16 +972,33 @@ function sortContactCards(){
     return Number(!!bp.pinned)-Number(!!ap.pinned)||Number(!!bp.favorite)-Number(!!ap.favorite);
   }).forEach(card=>list.appendChild(card));
 }
-function closeContactMenu(){document.querySelector(".contact-context-menu")?.remove()}
+let contactMenuOutsideHandler=null,contactMenuKeyHandler=null,contactMenuPopHandler=null,contactMenuHistoryEntry=false,ignoreNextContactMenuPop=false;
+function closeContactMenu(fromPopState=false){
+  const menu=document.querySelector(".contact-context-menu");
+  if(!menu)return;
+  menu.remove();
+  if(contactMenuOutsideHandler)document.removeEventListener("pointerdown",contactMenuOutsideHandler,true);
+  if(contactMenuKeyHandler)document.removeEventListener("keydown",contactMenuKeyHandler,true);
+  if(contactMenuPopHandler)window.removeEventListener("popstate",contactMenuPopHandler);
+  contactMenuOutsideHandler=contactMenuKeyHandler=contactMenuPopHandler=null;
+  if(contactMenuHistoryEntry&&!fromPopState){
+    contactMenuHistoryEntry=false;
+    ignoreNextContactMenuPop=true;
+    try{history.back()}catch(_){ignoreNextContactMenuPop=false}
+  }else contactMenuHistoryEntry=false;
+}
 function showContactMenu(contact){
-  closeContactMenu();
+  const existing=document.querySelector(".contact-context-menu");
+  if(existing&&existing.dataset.threadId===contact.dataset.threadId)return;
+  if(existing)closeContactMenu();
   const thread=contact.dataset.threadId,prefs=readChatPrefs(),pref=prefs[thread]||{};
-  const menu=document.createElement("div");menu.className="contact-context-menu";menu.setAttribute("role","menu");
+  const menu=document.createElement("div");menu.className="contact-context-menu";menu.dataset.threadId=thread;menu.setAttribute("role","menu");
   const add=(label,action,icon="")=>{
     const button=document.createElement("button");button.type="button";button.className="contact-menu-action";button.setAttribute("role","menuitem");
     button.innerHTML=`<span class="contact-menu-icon">${icon}</span><span>${$safe(label)}</span>`;
-    button.onclick=async()=>{try{await action();closeContactMenu()}catch(error){console.error(error);toast("تعذر تنفيذ الإجراء")}};menu.appendChild(button);return button;
+    button.onclick=async()=>{try{await action()}catch(error){console.error(error);toast("تعذر تنفيذ الإجراء")}};menu.appendChild(button);return button;
   };
+  add("✓ قراءة جميع الرسائل",()=>{setThreadRead(thread,Date.now());updateCollapsedUnreadIndicator();toast("تم تعليم هذه المحادثة كمقروءة ♡")},"✓");
   add(pref.pinned?"إلغاء التثبيت":"تثبيت المحادثة فوق خالص",()=>{prefs[thread]={...pref,pinned:!pref.pinned};saveChatPrefs(prefs);sortContactCards()},"⌃");
   add(pref.favorite?"إزالة من المفضلة":"إضافة للمفضلة",()=>{prefs[thread]={...pref,favorite:!pref.favorite};saveChatPrefs(prefs);sortContactCards()},"♡");
   const muteWrap=document.createElement("div");muteWrap.className="contact-mute-wrap";
@@ -951,9 +1006,9 @@ function showContactMenu(contact){
   const muteOptions=document.createElement("div");muteOptions.className="contact-mute-options";
   [["15 دقيقة",900000],["ساعة واحدة",3600000],["8 ساعات",28800000],["24 ساعة",86400000],["دائمًا",Number.MAX_SAFE_INTEGER]].forEach(([label,duration])=>{
     const option=document.createElement("button");option.type="button";option.textContent=label;
-    option.onclick=async()=>{await saveMuteUntil(thread,duration===Number.MAX_SAFE_INTEGER?duration:Date.now()+duration);closeContactMenu();toast(`تم كتم الإشعارات: ${label}`)};muteOptions.appendChild(option);
+    option.onclick=async()=>{await saveMuteUntil(thread,duration===Number.MAX_SAFE_INTEGER?duration:Date.now()+duration);toast(`تم كتم الإشعارات: ${label}`)};muteOptions.appendChild(option);
   });
-  const unmute=document.createElement("button");unmute.type="button";unmute.className="contact-mute-clear";unmute.textContent="إلغاء الكتم";unmute.onclick=async()=>{await saveMuteUntil(thread,0);closeContactMenu();toast("تم إلغاء كتم الإشعارات")};muteOptions.appendChild(unmute);
+  const unmute=document.createElement("button");unmute.type="button";unmute.className="contact-mute-clear";unmute.textContent="إلغاء الكتم";unmute.onclick=async()=>{await saveMuteUntil(thread,0);toast("تم إلغاء كتم الإشعارات")};muteOptions.appendChild(unmute);
   muteToggle.onclick=()=>{
     muteWrap.classList.toggle("is-expanded");menu.classList.toggle("has-expanded-submenu",muteWrap.classList.contains("is-expanded"));
     const nextTop=Math.max(8,Math.min(innerHeight-menu.offsetHeight-8,parseFloat(menu.style.top)||rect.top));menu.style.top=`${nextTop}px`;
@@ -963,10 +1018,13 @@ function showContactMenu(contact){
   const rect=contact.getBoundingClientRect();
   menu.style.top=`${Math.max(8,Math.min(innerHeight-menu.offsetHeight-8,rect.top))}px`;
   menu.style.left=`${Math.max(8,Math.min(innerWidth-menu.offsetWidth-8,rect.left))}px`;
-  setTimeout(()=>{
-    const outside=e=>{if(!menu.contains(e.target)){closeContactMenu();document.removeEventListener("pointerdown",outside)}};
-    document.addEventListener("pointerdown",outside);
-  },0);
+  try{history.pushState({...history.state,bubbleContactMenu:true},"",location.href);contactMenuHistoryEntry=true}catch(_){}
+  contactMenuOutsideHandler=e=>{if(!menu.contains(e.target))closeContactMenu()};
+  contactMenuKeyHandler=e=>{if(e.key==="Escape"||e.key==="Backspace"){e.preventDefault();closeContactMenu()}};
+  contactMenuPopHandler=()=>{if(ignoreNextContactMenuPop){ignoreNextContactMenuPop=false;return;}closeContactMenu(true)};
+  document.addEventListener("pointerdown",contactMenuOutsideHandler,true);
+  document.addEventListener("keydown",contactMenuKeyHandler,true);
+  window.addEventListener("popstate",contactMenuPopHandler);
 }
 function contactButton(p,group){
   const b=document.createElement("button");b.className="contact";
@@ -974,7 +1032,7 @@ function contactButton(p,group){
   if(!group)b.dataset.userId=p.id;
   b.style.setProperty("--contact-color",group?"#a78be8":colorOf(p));
   const info=group?{online:false,text:"التلاتة مع بعض ✨"}:presenceInfo(p);
-  b.innerHTML=`${group?`<div class="group-avatar">${activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡<small>3</small>'}</div>`:`<span class="contact-avatar-wrap">${avatarMarkup(p)}<i class="presence-dot is-${info.state}" title="${$safe(info.text)}">${info.icon}</i></span>`}<div class="contact-details"><strong style="${group?'color:#a78be8':nameStyle(p)}">${$safe(group?(activeGroupMeta.name||"S.T.M 🌷"):p.displayName||p.username)}</strong><small class="contact-status">${$safe(info.text)}</small></div>`;
+  b.innerHTML=`${group?`<div class="group-avatar">${activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡<small>3</small>'}</div>`:`<span class="contact-avatar-wrap">${avatarMarkup(p)}<i class="presence-dot is-${info.state}" title="${$safe(info.text)}">${info.icon}</i></span>`}<div class="contact-details"><strong style="${group?`color:${activeGroupMeta.nameColor||'#a78be8'}`:nameStyle(p)}">${nameMarkup(group?(activeGroupMeta.name||"S.T.M 🌷"):p.displayName||p.username,group?{color1:activeGroupMeta.nameColor,color2:activeGroupMeta.nameColor2}:p)}</strong><small class="contact-status">${$safe(info.text)}</small></div>`;
   b.onclick=()=>openChat(p);
   b.addEventListener("contextmenu",event=>{event.preventDefault();event.stopPropagation();showContactMenu(b)});
   let holdTimer=null,holdTriggered=false;
@@ -991,7 +1049,7 @@ function refreshGroupSidebar(){
   const button=[...$("contacts").querySelectorAll(".contact")].find(item=>item.dataset.threadId===GROUP_ID);
   if(!button)return;
   button.style.order="-1";
-  const title=button.querySelector("strong");if(title)title.textContent=activeGroupMeta.name||"S.T.M 🌷";
+  const title=button.querySelector("strong");if(title){title.innerHTML=nameMarkup(activeGroupMeta.name||"S.T.M 🌷",{color1:activeGroupMeta.nameColor||"#a78be8",color2:activeGroupMeta.nameColor2||"#ec65c8"});title.style.backgroundImage=`linear-gradient(110deg,${activeGroupMeta.nameColor||"#a78be8"},${activeGroupMeta.nameColor2||"#ec65c8"})`;title.style.backgroundClip="text";title.style.webkitBackgroundClip="text";title.style.color="transparent";}
   const avatar=button.querySelector(".group-avatar");
   if(avatar)avatar.innerHTML=activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡<small>3</small>';
 }
@@ -1017,7 +1075,7 @@ async function openChat(target){
   syncMiniDockAfterChatOpen();
   $("emptyState").classList.add("hidden");
   $("activeChat").classList.remove("hidden");
-  $("chatName").textContent=target.kind==="group"?(activeGroupMeta.name||"S.T.M 🌷"):(target.kind==="self"?"You!":target.displayName||target.username);
+  $("chatName").textContent=target.kind==="group"?(activeGroupMeta.name||"S.T.M 🌷"):(target.kind==="self"?"You!":target.displayName||target.username);if(target.kind==="group")$("chatName").style.cssText=`background-image:linear-gradient(120deg,${activeGroupMeta.nameColor||"#a78be8"},${activeGroupMeta.nameColor||"#a78be8"});background-clip:text;-webkit-background-clip:text;color:transparent`;else $("chatName").style.cssText=nameStyle(target);
   $("chatHeader").style.setProperty("--chat-color",target.kind==="group"?"#a78be8":colorOf(target));
   $("chatSubtitle").textContent=target.kind==="group"?"Samaa · Tuqa · Menna":(target.kind==="self"?"محادثتك الشخصية":"");
   $("chatHeader").classList.remove("is-online");
@@ -1032,6 +1090,8 @@ async function openChat(target){
   previousMessagesScrollTop=0;
   $("messages").innerHTML="";
   const ref=doc(db,"threads",id);
+  await loadOfflinePushMessages(id);
+  if(openVersion!==chatOpenVersion)return;
 
   try{
     const snap=await getDoc(ref);
@@ -1051,12 +1111,12 @@ async function openChat(target){
     startTypingListener(id);
     if(target.kind==="group"){
       const fresh=await getDoc(ref);
-      activeGroupMeta={name:fresh.data()?.groupName||"S.T.M 🌷",photoURL:fresh.data()?.groupPhotoURL||"",bannerURL:fresh.data()?.groupBannerURL||"",admins:fresh.data()?.admins||[]};
-      if(currentProfile?.username?.toLowerCase()==="tuqa"&&!activeGroupMeta.admins.includes(currentUser.uid)){
+      activeGroupMeta={name:fresh.data()?.groupName||"S.T.M 🌷",photoURL:fresh.data()?.groupPhotoURL||"",bannerURL:fresh.data()?.groupBannerURL||"",admins:fresh.data()?.admins||[],nameColor:fresh.data()?.groupNameColor||"#a78be8",nameColor2:fresh.data()?.groupNameColor2||"#ec65c8",description:fresh.data()?.groupDescription||""};
+      if(false && currentProfile?.username?.toLowerCase()==="tuqa"&&!activeGroupMeta.admins.includes(currentUser.uid)){
         activeGroupMeta.admins=[currentUser.uid,...activeGroupMeta.admins];
         await updateDoc(ref,{admins:activeGroupMeta.admins});
       }
-      $("chatName").textContent=activeGroupMeta.name;renderChatAvatar(target);
+      $("chatName").innerHTML=nameMarkup(activeGroupMeta.name,{color1:activeGroupMeta.nameColor||"#a78be8",color2:activeGroupMeta.nameColor2||"#ec65c8"});$("chatName").style.backgroundImage="none";$("chatName").style.color="inherit";renderChatAvatar(target);
       const groupNameNode=$("contacts").querySelector(".contact strong");if(groupNameNode)groupNameNode.textContent=activeGroupMeta.name;
     }
 
@@ -1131,7 +1191,7 @@ async function openChat(target){
   }catch(err){
     if(openVersion!==chatOpenVersion)return;
     console.error("Could not open chat:",err);
-    toast(uiText("تعذر فتح المحادثة. راجع الاتصال وقواعد Firestore","Could not open chat. Check your connection and Firestore rules."));
+    toast(uiText("تعذر فتح المحادثة حاليًا، حاول مرة أخرى","Could not open chat right now. Please try again."));
   }
 }
 
@@ -1141,7 +1201,7 @@ function startTypingListener(thread){
   stopTypingListener=onSnapshot(typingCollection(thread),snapshot=>{
     const writers=snapshot.docs.map(d=>d.data()).filter(v=>v.uid!==currentUser?.uid&&Date.now()-(timestampMs(v.updatedAt)||0)<9000);
     const subtitle=$("chatSubtitle");if(!subtitle)return;
-    if(writers.length){subtitle.textContent=writers.length===1?`${writers[0].displayName||"صديق"} يكتب...`:`${writers.length} بيكتبوا...`;subtitle.classList.add("is-typing");}
+    if(writers.length){subtitle.textContent=writers.length===1?`${writers[0].displayName||"صديق"} تكتب`:`${writers.length} بيكتبوا`;subtitle.classList.add("is-typing");}
     else{subtitle.classList.remove("is-typing");updateActiveChatPresence();}
   },error=>console.warn("Typing listener failed:",error));
 }
@@ -1185,11 +1245,54 @@ function renderPinnedBar(pinned){
 function messageMillis(docSnap){return docSnap?.data?.()?.createdAt?.toMillis?.()||0;}
 function compareMessageDocs(a,b){const delta=messageMillis(a)-messageMillis(b);return delta||String(a.id).localeCompare(String(b.id));}
 
+async function loadOfflinePushMessages(thread){
+  pendingPushMessages=[];
+  if(!("indexedDB" in window))return;
+  try{
+    const db=await new Promise((resolve,reject)=>{
+      const request=indexedDB.open("bubble-chat-push-state",2);
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+    if(!db.objectStoreNames.contains("pushMessages")){db.close();return;}
+    const records=await new Promise((resolve,reject)=>{
+      const tx=db.transaction("pushMessages","readonly");
+      const request=tx.objectStore("pushMessages").getAll();
+      request.onsuccess=()=>resolve(request.result||[]);
+      request.onerror=()=>reject(request.error);
+    });
+    db.close();
+    pendingPushMessages=records.filter(item=>item.threadId===thread&&item.messageId);
+  }catch(error){console.warn("Offline notification cache unavailable:",error)}
+}
+async function removeOfflinePushMessage(thread,messageId){
+  try{
+    const db=await new Promise((resolve,reject)=>{
+      const request=indexedDB.open("bubble-chat-push-state",2);
+      request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+    });
+    if(db.objectStoreNames.contains("pushMessages")){
+      const tx=db.transaction("pushMessages","readwrite");
+      tx.objectStore("pushMessages").delete(`${thread}::${messageId}`);
+      tx.oncomplete=()=>db.close();tx.onerror=()=>db.close();
+    }else db.close();
+  }catch(error){console.warn("Could not reconcile offline notification:",error)}
+}
+
 function renderMessages(docs,options={}){
   const box=$("messages");
   const wasAtBottom=box.scrollHeight-box.scrollTop-box.clientHeight<120;
   const wasEmpty=box.childElementCount===0;
-  const messages=docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
+  const firestoreMessages=docs.map(d=>({id:d.id,...d.data()}));
+  const firestoreIds=new Set(firestoreMessages.map(m=>m.id));
+  const thread=activeThreadId();
+  pendingPushMessages.filter(item=>firestoreIds.has(item.messageId)).forEach(item=>removeOfflinePushMessage(thread,item.messageId));
+  pendingPushMessages=pendingPushMessages.filter(item=>!firestoreIds.has(item.messageId));
+  const offlineMessages=pendingPushMessages.filter(item=>item.threadId===thread&&!firestoreIds.has(item.messageId)).map(item=>({
+    id:item.messageId,senderId:item.senderId,senderName:item.senderName,text:item.body,
+    createdAt:Timestamp.fromMillis(Number(item.at)||Date.now()),offlinePushPreview:true
+  }));
+  const messages=[...firestoreMessages,...offlineMessages].sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0)).filter(m=>!m.deletedForAll&&!(Array.isArray(m.deletedFor)&&m.deletedFor.includes(currentUser.uid)));
   activeMessagesCache=messages;
 
   // Reuse unchanged message DOM nodes. Rebuilding the whole list on every Firestore
@@ -1292,6 +1395,18 @@ const scrollBottomButton=$("scrollToBottom");
 function updateScrollBottomButton(){const box=$("messages");if(!box||!scrollBottomButton)return;const away=box.scrollHeight-box.scrollTop-box.clientHeight>220;scrollBottomButton.classList.toggle("is-visible",away&&!$("activeChat").classList.contains("hidden"));}
 $("messages").addEventListener("scroll",updateScrollBottomButton,{passive:true});
 scrollBottomButton?.addEventListener("click",()=>$("messages").scrollTo({top:$("messages").scrollHeight,behavior:"smooth"}));
+function syncScrollButtonPosition(){
+  const composer=$("messageForm"),active=$("activeChat");
+  if(!composer||!active||!scrollBottomButton)return;
+  const height=composer.getBoundingClientRect().height||0;
+  scrollBottomButton.style.bottom=`${Math.max(12,height+12)}px`;
+}
+if(window.ResizeObserver&&$("messageForm")){
+  const composerResizeObserver=new ResizeObserver(syncScrollButtonPosition);
+  composerResizeObserver.observe($("messageForm"));
+}
+window.addEventListener("resize",syncScrollButtonPosition,{passive:true});
+requestAnimationFrame(syncScrollButtonPosition);
 
 async function jumpToMessage(messageId){
   if(!messageId||!activeChat||!currentUser)return;
@@ -1351,18 +1466,29 @@ function showMessageContext(m,el){
 }
 
 function beginMessageGestures(row,m,el){
-  let startX=0,startY=0,lastX=0,lastY=0,pressTimer=null,tracking=false,longPressed=false,swiping=false;
+  let startX=0,startY=0,lastX=0,lastY=0,pressTimer=null,tracking=false,longPressed=false,swiping=false,suppressContextUntil=0;
   const clearPress=()=>{if(pressTimer){clearTimeout(pressTimer);pressTimer=null}};
   row.addEventListener('pointerdown',event=>{
-    if(event.button!==undefined&&event.button!==0)return;
-    if(event.target.closest('button,a,input,textarea'))return;
-    tracking=true;longPressed=false;swiping=false;try{window.getSelection()?.removeAllRanges()}catch(_){}startX=lastX=event.clientX;startY=lastY=event.clientY;
-    clearPress();pressTimer=setTimeout(()=>{if(!tracking||swiping)return;longPressed=true;try{window.getSelection()?.removeAllRanges()}catch(_){}showMessageContext(m,el)},460);
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+    if(event.target.closest('button,a,input,textarea,[contenteditable="true"]'))return;
+    tracking=true;longPressed=false;swiping=false;
+    startX=lastX=event.clientX;startY=lastY=event.clientY;
+    try{row.setPointerCapture?.(event.pointerId);window.getSelection()?.removeAllRanges()}catch(_){}
+    clearPress();
+    pressTimer=setTimeout(()=>{
+      if(!tracking||swiping)return;
+      longPressed=true;suppressContextUntil=Date.now()+900;
+      try{window.getSelection()?.removeAllRanges()}catch(_){}
+      showMessageContext(m,el);
+    },520);
   });
   row.addEventListener('pointermove',event=>{
-    if(!tracking)return;lastX=event.clientX;lastY=event.clientY;
+    if(!tracking)return;
+    lastX=event.clientX;lastY=event.clientY;
     const dx=lastX-startX,dy=lastY-startY;
-    if(Math.abs(dx)>10||Math.abs(dy)>10)clearPress();
+    // Ignore tiny touch jitter; cancel only after a deliberate move.
+    const tolerance=event.pointerType==='touch'?16:9;
+    if(Math.abs(dx)>tolerance||Math.abs(dy)>tolerance)clearPress();
     if(dx>0&&Math.abs(dx)>Math.abs(dy)*1.35){swiping=true;el.style.setProperty('--reply-swipe',`${Math.min(dx,76)}px`);el.classList.add('is-swiping-reply')}
   });
   const finish=()=>{
@@ -1372,7 +1498,12 @@ function beginMessageGestures(row,m,el){
     if(!longPressed&&dx>64&&Math.abs(dx)>Math.abs(dy)*1.35){handleMessageAction('reply',m,el);el.classList.remove('reply-swipe-done');void el.offsetWidth;el.classList.add('reply-swipe-done');setTimeout(()=>el.classList.remove('reply-swipe-done'),260)}
   };
   row.addEventListener('pointerup',finish);row.addEventListener('pointercancel',finish);row.addEventListener('lostpointercapture',finish);
-  row.addEventListener('contextmenu',event=>{event.preventDefault();try{window.getSelection()?.removeAllRanges()}catch(_){}showMessageContext(m,el)});
+  row.addEventListener('contextmenu',event=>{
+    event.preventDefault();
+    if(Date.now()<suppressContextUntil)return;
+    try{window.getSelection()?.removeAllRanges()}catch(_){}
+    showMessageContext(m,el);
+  });
 }
 
 function messageNode(m){
@@ -1386,7 +1517,7 @@ function messageNode(m){
   const avatar=document.createElement('div');avatar.className='avatar message-avatar';avatar.style.setProperty('--user-color',senderColor);avatar.style.backgroundImage=avatarGradient(sender);
   avatar.innerHTML=(senderPhoto?`<img src="${$safe(senderPhoto)}" alt="">`:$safe(senderInitial))+(sender.decoration?`<span class="chat-avatar-decoration"><img src="${decorationUrl(sender.decoration)}" alt=""></span>`:"");
   const reply=m.replyTo?`<button class="reply-quote" type="button" data-jump="${$safe(m.replyTo.id||'')}" ${m.replyTo.id?'':'disabled'}><b>${$safe(m.replyTo.senderName)}</b><span>${m.replyTo.decoration==="envelope"&&!m.replyTo.envelopeOpened?'رسالة لك 💌':(m.replyTo.imageUrl||m.replyTo.mediaType==="image")?'<span class="reply-media-label">📷 صورة</span>':m.replyTo.mediaType==="video"?'🎬 فيديو':m.replyTo.sticker?'<img class="reply-sticker-thumb" src="'+$safe(m.replyTo.sticker)+'" alt="ملصق">':$safe(m.replyTo.text||"رسالة")}</span></button>`:'';
-  const messageTextMarkup=m.text?`<p>${$safe(m.text).replace(/(^|\s)(https?:\/\/[^\s<]+)/gi,(all,space,url)=>`${space}<a class="message-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,'$1<span class="mention-tag">$2</span>')}</p>`:"";
+  const messageTextMarkup=m.text?`<p>${renderMessageTextMarkup(m.text)}</p>`:"";
   const content=(m.mediaType==="video"&&m.mediaUrl)?`<div class="message-media-content">${messageTextMarkup}<div class="bubble-video-player" data-video-player><video class="message-video" src="${$safe(m.mediaUrl)}" playsinline preload="metadata"></video><button class="bubble-video-play" type="button" aria-label="تشغيل الفيديو">▶</button><div class="bubble-video-controls"><button class="bubble-video-toggle" type="button" aria-label="تشغيل أو إيقاف">▶</button><span class="bubble-video-current">0:00</span><input class="bubble-video-seek" type="range" min="0" max="1000" value="0" aria-label="موضع الفيديو"><span class="bubble-video-duration">0:00</span><button class="bubble-video-mute" type="button" aria-label="كتم الصوت">🔊</button><button class="bubble-video-speed" type="button" aria-label="سرعة التشغيل">1x</button><button class="bubble-video-fullscreen" type="button" aria-label="تكبير الفيديو" title="تكبير">⛶</button><button class="bubble-video-download" type="button" aria-label="تحميل الفيديو" title="تحميل الفيديو">↓</button></div><div class="bubble-video-error hidden">تعذر تشغيل الفيديو</div></div></div>`:(m.imageUrl||m.mediaUrl)?`<div class="message-media-content">${messageTextMarkup}<button class="message-image-link" type="button" aria-label="فتح الصورة"><img class="message-photo" src="${$safe(m.imageUrl||m.mediaUrl)}" alt="وسائط مرسلة" loading="lazy" decoding="async"></button></div>`:m.sticker?`<img class="sticker-image" src="${$safe(m.sticker)}" alt="ملصق">`:messageTextMarkup;
   const reactions=Object.entries(m.reactions||{}).filter(([k,v])=>Array.isArray(v)&&v.length).map(([emoji,uids])=>{
     const people=uids.map(uid=>{
@@ -1399,15 +1530,15 @@ function messageNode(m){
     return `<button class="reaction-chip ${mine?'reacted-by-me':''}" data-emoji="${$safe(emoji)}" type="button" aria-label="${$safe(emoji)} تفاعل ${uids.length}"><span class="reaction-emoji">${$safe(emoji)}</span><span class="reaction-people">${people}</span><span class="reaction-count">${uids.length}</span></button>`;
   }).join('');
   const storyReply=m.storyReply?`<div class="story-reply-context"><strong>↩ رد على حالتك</strong><span>${$safe(m.storyReply.caption|| (m.storyReply.mediaType==='image'?'📷 صورة حالة':m.storyReply.mediaType==='video'?'🎬 فيديو حالة':'حالة'))}</span></div>`:'';
-  const decorated=m.decoration==="envelope"?(m.envelopeOpened?`<div class="envelope-opened-content">${content}</div>`:`<div class="envelope-wrap"><button class="message-envelope" type="button" aria-label="${isEnglishUi()?"Open message":"افتح الرسالة"}"><span class="envelope-art" aria-hidden="true"><i></i><em class="envelope-ribbon"></em><em class="envelope-bow"></em></span><b>${isEnglishUi()?"A letter for you":"رسالة لك"}</b></button><div class="envelope-hidden-content message-decor-content hidden">${content}</div></div>`):m.decoration?`<div class="message-decorated decor-${$safe(m.decoration)}"><span class="message-decor-art" aria-hidden="true"></span><span class="message-decor-emoji" aria-hidden="true"></span><div class="message-decor-content">${content}</div></div>`:content;
-  el.innerHTML=`${!mine?`<small class="sender-name" style="${nameStyle(sender.id?sender:{color1:senderColor,color2:senderColor})}">${$safe(m.senderName||'صديق')}</small>`:''}${m.pinned?'<div class="pin-mark">📌 مثبتة</div>':''}${m.forwarded?'<div class="forwarded-label">➦ رسالة معاد توجيهها!</div>':''}${storyReply}${reply}${decorated}<div class="message-meta"><time>${timeOf(m.createdAt)}</time>${m.edited?'<span>تم التعديل</span>':''}</div><div class="reaction-list">${reactions}</div>`;
+  const decorated=m.decoration==="envelope"?(envelopeIsOpened(m)?`<div class="envelope-opened-content">${content}</div>`:`<div class="envelope-wrap"><button class="message-envelope" type="button" aria-label="${isEnglishUi()?"Open message":"افتح الرسالة"}"><span class="envelope-art" aria-hidden="true"><i></i><em class="envelope-ribbon"></em><em class="envelope-bow"></em></span><b>${isEnglishUi()?"A letter for you":"رسالة لك"}</b></button><div class="envelope-hidden-content message-decor-content hidden">${content}</div></div>`):m.decoration?`<div class="message-decorated decor-${$safe(m.decoration)}"><span class="message-decor-art" aria-hidden="true"></span><span class="message-decor-emoji" aria-hidden="true"></span><div class="message-decor-content">${content}</div></div>`:content;
+  el.innerHTML=`${!mine?`<small class="sender-name">${nameMarkup(m.senderName||'صديق',sender.id?sender:{color1:senderColor,color2:senderColor})}</small>`:''}${m.pinned?'<div class="pin-mark">📌 مثبتة</div>':''}${m.forwarded?'<div class="forwarded-label">➦ رسالة معاد توجيهها!</div>':''}${storyReply}${reply}${decorated}<div class="message-meta"><time>${timeOf(m.createdAt)}</time>${m.edited?'<span>تم التعديل</span>':''}</div><div class="reaction-list">${reactions}</div>`;
   const row=document.createElement('div');row.className=`message-row ${mine?'mine':'theirs'}`;row.append(avatar,el);
   if(sender.id||m.senderId){avatar.classList.add("clickable-message-avatar");avatar.setAttribute("role","button");avatar.setAttribute("tabindex","0");const openSender=()=>openPublicProfile(sender.id?sender:(userProfiles.get(m.senderId)||{id:m.senderId,displayName:m.senderName,photoURL:senderPhoto}));avatar.addEventListener("click",openSender);avatar.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSender()}})}
   row.querySelectorAll('.reaction-chip').forEach(btn=>btn.onclick=()=>reactTo(m,btn.dataset.emoji));
   row.querySelector(".message-envelope")?.addEventListener("click",e=>{
     const button=e.currentTarget,wrap=button.closest(".envelope-wrap"),hidden=wrap?.querySelector(".envelope-hidden-content");
     if(button.dataset.opened==="true"||button.classList.contains("opening"))return;
-    button.dataset.opened="true";button.classList.add("opening");m.envelopeOpened=true;
+    button.dataset.opened="true";button.classList.add("opening");m.envelopeOpened=true;try{localStorage.setItem(envelopeStorageKey(m.id),"1")}catch(storageError){console.warn("Envelope local state unavailable:",storageError)}
     // Reveal the payload only after the flap animation completes; never remove the
     // button node (removal caused a brief close/reopen flash on message snapshots).
     window.setTimeout(()=>{
@@ -1505,9 +1636,11 @@ function attachMentionPicker(input,menu,getKind){
     if(!match){close();return;}
     const queryText=match[1].toLowerCase();
     active=mentionCandidates(getKind()).filter(p=>String(p.username||p.displayName||"").toLowerCase().includes(queryText)).slice(0,8);
-    if(!active.length){close();return;}
     menu.innerHTML="";
-    active.forEach(person=>{const b=document.createElement("button");b.type="button";b.className="mention-option";b.style.setProperty("--mention-color",colorOf(person));const photo=person.photoURL||"";const label=person.displayName||person.username||"عضو";const avatar=document.createElement("span");avatar.className="mention-option-avatar";avatar.style.backgroundImage=avatarGradient(person);if(photo){const img=document.createElement("img");img.src=photo;img.alt="";avatar.appendChild(img)}else avatar.textContent=label.slice(0,1);const names=document.createElement("span");names.className="mention-option-names";const display=document.createElement("strong");display.textContent=label;const username=document.createElement("small");username.textContent=`@${person.username||person.displayName||"user"}`;names.append(display,username);const swatch=document.createElement("i");swatch.className="mention-option-color";swatch.style.background= colorOf(person);b.append(avatar,names,swatch);b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("click",()=>{
+    const special=[{token:"everyone",label:"Everyone",hint:"إشعار لكل أعضاء الجروب"},{token:"here",label:"Here",hint:"إشعار للمتصلين والخاملين فقط"}].filter(x=>x.token.includes(queryText));
+    special.forEach(item=>{const b=document.createElement("button");b.type="button";b.className="mention-option mention-broadcast-option";b.innerHTML=`<span class="mention-option-avatar">＠</span><span class="mention-option-names"><strong>${item.label}</strong><small>${item.hint}</small></span>`;b.addEventListener("mousedown",e=>e.preventDefault());b.onclick=()=>{const start=caret-match[1].length-1,token=`@${item.token} `;input.value=input.value.slice(0,start)+token+input.value.slice(caret);const next=start+token.length;input.focus();input.setSelectionRange(next,next);close();};menu.appendChild(b);});
+    if(!active.length&&!special.length){close();return;}
+    active.forEach(person=>{const b=document.createElement("button");b.type="button";b.className="mention-option";b.style.setProperty("--mention-color",colorOf(person));const photo=person.photoURL||"";const label=person.displayName||person.username||"عضو";const avatar=document.createElement("span");avatar.className="mention-option-avatar";avatar.style.backgroundImage=avatarGradient(person);if(photo){const img=document.createElement("img");img.src=photo;img.alt="";avatar.appendChild(img)}else avatar.textContent=label.slice(0,1);const names=document.createElement("span");names.className="mention-option-names";const display=document.createElement("strong");display.textContent=label;display.style.cssText=nameStyle(person);const username=document.createElement("small");username.textContent=`@${person.username||person.displayName||"user"}`;names.append(display,username);const swatch=document.createElement("i");swatch.className="mention-option-color";swatch.style.background= colorOf(person);b.append(avatar,names,swatch);b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("click",()=>{
       const start=caret-match[1].length-1,token=`@${person.username||person.displayName} `;
       input.value=input.value.slice(0,start)+token+input.value.slice(caret);const next=start+token.length;input.focus();input.setSelectionRange(next,next);close();
     });menu.appendChild(b);});menu.classList.remove("hidden");
@@ -1529,7 +1662,7 @@ $("messageForm").addEventListener("submit",async e=>{
     }else{
       let mediaUrl=null,mediaType=null;
       if(file){const sendButton=$("messageForm").querySelector('.send-btn');sendButton.disabled=true;sendButton.textContent="…";mediaUrl=await uploadChatMedia(file);mediaType=file.type.startsWith("video/")?"video":"image";}
-      const payload={...(text?{text}:{}),...(mediaUrl?{mediaUrl,mediaType}:{}),senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};
+      const mentionMode=isGroup()?( /(^|\s)@everyone\b/i.test(text)?"everyone":/(^|\s)@here\b/i.test(text)?"here":""):"";const payload={...(text?{text}:{}),...(mediaUrl?{mediaUrl,mediaType}:{}),...(mentionMode?{mentionMode}:{}),senderId:currentUser.uid,senderName:currentProfile.displayName||currentProfile.username,senderColor:colorOf(currentProfile),senderPhotoURL:currentProfile.photoURL||"",createdAt:serverTimestamp()};
       if(selectedMessageDecoration)payload.decoration=selectedMessageDecoration;
       if(replyTarget)payload.replyTo=buildReplyReference(replyTarget);
       playSound("messageSound");const sent=await addDoc(collection(db,"threads",tid,"messages"),payload);notifyRecipients(tid,sent.id);
@@ -1611,35 +1744,45 @@ $("chatToolsToggle")?.addEventListener("click",event=>{event.stopPropagation();c
 document.addEventListener("click",event=>{if(!event.target.closest(".chat-tools-wrap"))closeChatToolsMenu()});
 document.addEventListener("keydown",event=>{if(event.key==="Escape")closeChatToolsMenu()});
 
+function isCurrentGroupAdmin(){
+  return !!currentUser && (currentUser.uid==="akY0uToWRiOIC6cibQO2rx4nt3f2" || activeGroupMeta.admins.includes(currentUser.uid));
+}
+function syncGroupAdminFields(){
+  const admin=isCurrentGroupAdmin(),tools=$("groupAdminTools"),save=$("saveGroupSettings");
+  if(tools)tools.classList.toggle("hidden",!admin);
+  if(save)save.classList.toggle("hidden",!admin);
+  ["groupNameInput","groupDescriptionInput","groupNameColorInput","groupNameColor2Input","groupPhotoInput","groupBannerInput"].forEach(id=>{const el=$(id);if(el)el.disabled=!admin;});
+  document.querySelectorAll(".group-banner-edit,.group-photo-edit").forEach(el=>el.classList.toggle("hidden",!admin));
+}
 function openGroupSettings(){
   if(!activeChat||activeChat.kind!=="group")return;
-  $("groupNameInput").value=activeGroupMeta.name||"S.T.M 🌷";$("groupPhotoInput").value="";$("groupBannerInput").value="";
+  $("groupNameInput").value=activeGroupMeta.name||"S.T.M 🌷";const colorPicker=$("groupNameColorInput");if(colorPicker)colorPicker.value=activeGroupMeta.nameColor||"#a78be8";const color2Picker=$("groupNameColor2Input");if(color2Picker)color2Picker.value=activeGroupMeta.nameColor2||"#ec65c8";const descInput=$("groupDescriptionInput");if(descInput)descInput.value=activeGroupMeta.description||"";const gradientPreview=$("groupGradientPreview");if(gradientPreview){const text=gradientPreview.querySelector(".group-gradient-preview-text");const c1=activeGroupMeta.nameColor||"#a78be8",c2=activeGroupMeta.nameColor2||"#ec65c8";if(text)text.innerHTML=nameMarkup(activeGroupMeta.name||"S.T.M 🌷",{color1:c1,color2:c2});}$("groupPhotoInput").value="";$("groupBannerInput").value="";
   const photoPreview=$("groupPhotoPreview");photoPreview.innerHTML=activeGroupMeta.photoURL?`<img src="${$safe(activeGroupMeta.photoURL)}" alt="">`:'♡';
   const bannerPreview=$("groupBannerPreview");bannerPreview.style.backgroundImage=activeGroupMeta.bannerURL?`url("${$safe(activeGroupMeta.bannerURL)}")`:"none";bannerPreview.innerHTML=activeGroupMeta.bannerURL?"":"<span>غلاف الجروب</span>";
-  $("groupSettingsError").textContent="";renderGroupMembers();$("groupSettingsModal").classList.remove("hidden");
+  $("groupSettingsError").textContent="";renderGroupMembers();syncGroupAdminFields();$("groupSettingsModal").classList.remove("hidden");
 }
 
 function renderGroupMembers(){
   const list=$("groupMembersList");if(!list)return;
-  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa";
-  list.innerHTML=GROUP.participants.map(uid=>{const person=userProfiles.get(uid)||{},admin=activeGroupMeta.admins.includes(uid),label=person.displayName||person.username||"عضو",photo=person.photoURL;return `<div class="group-member-row"><span class="group-member-avatar">${photo?`<img src="${$safe(photo)}" alt="">`:$safe(label.slice(0,1))}</span><span class="group-member-identity"><strong>${$safe(label)}</strong><small>${admin?"مسؤول المجموعة":"عضو"}</small></span>${isAdmin&&uid!==currentUser.uid?`<button type="button" data-role-uid="${$safe(uid)}">${admin?"إزالة المسؤول":"تعيين مسؤول"}</button>`:`<small class="group-role-pill">${admin?"مسؤول":"عضو"}</small>`}</div>`}).join("");
+  const isAdmin=isCurrentGroupAdmin();
+  list.innerHTML=GROUP.participants.map(uid=>{const person=userProfiles.get(uid)||{},admin=activeGroupMeta.admins.includes(uid),label=person.displayName||person.username||"عضو",photo=person.photoURL;return `<div class="group-member-row"><span class="group-member-avatar">${photo?`<img src="${$safe(photo)}" alt="">`:$safe(label.slice(0,1))}</span><span class="group-member-identity"><strong>${nameMarkup(label,person)}</strong><small>${admin?"مسؤول المجموعة":"عضو"}</small></span>${isAdmin&&uid!==currentUser.uid?`<button type="button" data-role-uid="${$safe(uid)}">${admin?"إزالة المسؤول":"تعيين مسؤول"}</button>`:`<small class="group-role-pill">${admin?"مسؤول":"عضو"}</small>`}</div>`}).join("");
   list.querySelectorAll("[data-role-uid]").forEach(button=>button.addEventListener("click",()=>{const uid=button.dataset.roleUid;activeGroupMeta.admins=activeGroupMeta.admins.includes(uid)?activeGroupMeta.admins.filter(x=>x!==uid):[...activeGroupMeta.admins,uid];renderGroupMembers();}));
 }
 
 $("closeGroupSettings")?.addEventListener("click",()=>$("groupSettingsModal").classList.add("hidden"));
 $("saveGroupSettings")?.addEventListener("click",async()=>{
-  const isAdmin=activeGroupMeta.admins.includes(currentUser.uid)||currentProfile?.username?.toLowerCase()==="tuqa";
+  const isAdmin=isCurrentGroupAdmin();
   if(!isAdmin){$("groupSettingsError").textContent="إعدادات الجروب متاحة للأدمن فقط.";return;}
   const name=$("groupNameInput").value.trim();if(!name){$("groupSettingsError").textContent="اكتب اسمًا للجروب.";return;}
   const button=$("saveGroupSettings");button.disabled=true;
   try{
-    const admins=[...new Set(activeGroupMeta.admins)],photoFile=$("groupPhotoInput").files?.[0],bannerFile=$("groupBannerInput").files?.[0];
+    const admins=[...new Set([...activeGroupMeta.admins,"akY0uToWRiOIC6cibQO2rx4nt3f2"])],nameColor=$("groupNameColorInput")?.value||"#a78be8",nameColor2=$("groupNameColor2Input")?.value||"#ec65c8",description=$("groupDescriptionInput")?.value.trim()||"",photoFile=$("groupPhotoInput").files?.[0],bannerFile=$("groupBannerInput").files?.[0];
     if(photoFile&&(!photoFile.type.startsWith("image/")||photoFile.size>5*1024*1024))throw new Error("صورة الجروب لازم تكون صورة وأقل من 5MB");
     if(bannerFile&&(!bannerFile.type.startsWith("image/")||bannerFile.size>5*1024*1024))throw new Error("بنر الجروب لازم يكون صورة وأقل من 5MB");
     const photoURL=photoFile?await uploadAvatarToCloudinary(photoFile):activeGroupMeta.photoURL||"";
     const bannerURL=bannerFile?await uploadAvatarToCloudinary(bannerFile):activeGroupMeta.bannerURL||"";
-    await updateDoc(doc(db,"threads",GROUP_ID),{groupName:name,groupPhotoURL:photoURL,groupBannerURL:bannerURL,admins,updatedAt:serverTimestamp()});
-    activeGroupMeta={...activeGroupMeta,name,photoURL,bannerURL,admins};$("chatName").textContent=name;renderChatAvatar(activeChat);refreshGroupSidebar();
+    await updateDoc(doc(db,"threads",GROUP_ID),{groupName:name,groupDescription:description,groupPhotoURL:photoURL,groupBannerURL:bannerURL,groupNameColor:nameColor,groupNameColor2:nameColor2,groupGradient:[nameColor,nameColor2],admins,updatedAt:serverTimestamp()});
+    activeGroupMeta={...activeGroupMeta,name,description,photoURL,bannerURL,admins,nameColor,nameColor2};$("chatName").innerHTML=nameMarkup(name,{color1:nameColor,color2:nameColor2});$("chatName").style.backgroundImage="none";$("chatName").style.color="inherit";renderChatAvatar(activeChat);refreshGroupSidebar();
     $("groupSettingsModal").classList.add("hidden");toast("تم حفظ تفاصيل الجروب ♡");
   }catch(error){console.error(error);$("groupSettingsError").textContent="تعذر الحفظ. تأكد من تحديث قواعد Firestore.";}
   finally{button.disabled=false;}
@@ -1662,7 +1805,7 @@ function renderDecorationGallery(){
 }
 renderDecorationGallery();
 
-// Profile editor previews use GIFs; regular chat/contact frames stay static for performance.
+// Profile editor and chat use the same optimized static PNG frame assets.
 
 function updateProfileCustomizationPreview(){
   const name=$("displayNameInput"),c1=$("profileColor").value,c2=$("profileColor2").value;
@@ -1751,7 +1894,7 @@ async function loadFriendsStories(){
   host.innerHTML="";if(!people.size){host.innerHTML=`<div class="stories-empty-state"><span>♡</span><b>${en?"No people to show yet":"لا يوجد أشخاص لعرضهم حاليًا"}</b></div>`;return;}
   people.forEach((person,uid)=>{const items=grouped.get(uid)||[];const has=items.length>0;const card=document.createElement("button");card.type="button";card.className=`stories-friend-card ${has?"has-story":"no-story"}`;card.disabled=!has;card.setAttribute("aria-label",`${person.displayName||person.username||""}${has?(en?", has a story":", لديه حالة"):(en?", no story":", بدون حالة")}`);
    const avatar=document.createElement("span");avatar.className="stories-friend-avatar";if(person.photoURL){const img=document.createElement("img");img.src=person.photoURL;img.alt="";avatar.append(img)}else avatar.textContent=(person.displayName||person.username||"♡").slice(0,1);
-   const info=document.createElement("span");info.className="stories-friend-info";const name=document.createElement("b");name.textContent=person.displayName||person.username||(en?"Friend":"صديق");const count=document.createElement("small");count.textContent=has?(en?`${items.length} ${items.length===1?"story":"stories"}`:`${items.length} حالة`):(en?"No story":"لا توجد حالة");info.append(name,count);card.append(avatar,info);
+   const info=document.createElement("span");info.className="stories-friend-info";const name=document.createElement("b");name.textContent=person.displayName||person.username||(en?"Friend":"صديق");name.style.cssText=nameStyle(person);const count=document.createElement("small");count.textContent=has?(en?`${items.length} ${items.length===1?"story":"stories"}`:`${items.length} حالة`):(en?"No story":"لا توجد حالة");info.append(name,count);card.append(avatar,info);
    if(has)card.onclick=()=>{let i=0;const play=()=>{if(i<items.length)showStory(items[i++]);};play()};host.append(card);
   });
  }catch(e){console.error(e);host.innerHTML=`<span class="profile-hint">${en?"Could not load people.":"تعذر تحميل الأشخاص."}</span>`}
@@ -1806,6 +1949,16 @@ $("profileForm").onsubmit=async e=>{
 $("chatAvatar").style.cursor="pointer";$("chatName").style.cursor="pointer";
 $("chatAvatar").addEventListener("click",()=>{if(!activeChat)return;if(activeChat.kind==="group")openGroupSettings();else openPublicProfile(userProfiles.get(activeChat.id)||activeChat)});
 $("chatName").addEventListener("click",()=>{if(!activeChat)return;if(activeChat.kind==="group")openGroupSettings();else openPublicProfile(userProfiles.get(activeChat.id)||activeChat)});
+function updateGroupSettingsPreview(){
+  const p=$("groupGradientPreview");if(!p)return;
+  const text=p.querySelector(".group-gradient-preview-text");if(!text)return;
+  const name=$("groupNameInput")?.value.trim()||"اسم الجروب";
+  const c1=$("groupNameColorInput")?.value||"#a78be8";
+  const c2=$("groupNameColor2Input")?.value||"#ec65c8";
+  text.innerHTML=nameMarkup(name,{color1:c1,color2:c2});
+}
+$("groupNameInput")?.addEventListener("input",updateGroupSettingsPreview);
+["groupNameColorInput","groupNameColor2Input"].forEach(id=>$(id)?.addEventListener("input",updateGroupSettingsPreview));
 $("groupPhotoInput")?.addEventListener("change",e=>{const file=e.target.files?.[0];if(file){const url=URL.createObjectURL(file);$("groupPhotoPreview").innerHTML=`<img src="${url}" alt="">`}});
 $("groupBannerInput")?.addEventListener("change",e=>{const file=e.target.files?.[0];if(file){const url=URL.createObjectURL(file);const preview=$("groupBannerPreview");preview.style.backgroundImage=`url("${url}")`;preview.innerHTML=""}});
 $("closePublicProfile").onclick=()=>$("publicProfileModal").classList.add("hidden");
@@ -2071,7 +2224,7 @@ $("closeSettings")?.addEventListener("click",closeSettings);
 settingsModal?.addEventListener("click",e=>{if(e.target===settingsModal)closeSettings()});
 $("enableNotificationsBtn")?.addEventListener("click",async()=>{
  const button=$("enableNotificationsBtn");button.disabled=true;
- try{await enablePushNotifications()}catch(error){console.error("Push notification setup failed:",error);const detail=String(error?.message||error||"Unknown error");toast(`${uiText("تعذر تفعيل الإشعارات:","Could not enable notifications:")} ${detail}`);}
+ try{await enablePushNotifications()}catch(error){console.error("Push notification setup failed:",error);toast(uiText("تعذر تفعيل الإشعارات حاليًا. راجع اتصالك وحاول مرة أخرى.","Could not enable notifications right now. Check your connection and try again."));}
  finally{button.disabled=false}
 });
 $("logoutBtn")?.addEventListener("click",async()=>{closeSettings();try{await writeMyPresence(false)}catch(e){console.warn(e)}stopPresence();await signOut(auth)});
@@ -2171,7 +2324,7 @@ if (sidebarToggle && chatLayout) {
   sidebarToggle.addEventListener("click", () => {
     applySidebarState(!chatLayout.classList.contains("sidebar-collapsed"));
   });
-  $("collapsedUnreadIndicator")?.addEventListener("click",()=>applySidebarState(false));
+$("collapsedUnreadIndicator")?.addEventListener("click",()=>applySidebarState(false));
   $("sidebarDockToggle")?.addEventListener("click",()=>applySidebarState(false));
 }
 

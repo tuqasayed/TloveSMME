@@ -11,7 +11,7 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=notification-context-menu-20261122" rel="stylesheet"/>
+  <link href="style.css?v=group-colors-theme-fix-20261125" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -127,7 +127,7 @@
      </div>
      <div class="side-footer">
       <button class="install-app-btn" id="installAppBtn" type="button" aria-label="تثبيت Bubble Chat كتطبيق">⬇ <span>تثبيت التطبيق</span></button>
-      <button class="sidebar-stories-btn" id="sidebarStoriesBtn" type="button" aria-label="فتح الحالات" title="الحالات"><span class="sidebar-stories-icon" aria-hidden="true">◉</span><span>الحالات</span><i class="sidebar-stories-spark" aria-hidden="true">✦</i><i id="storiesUnreadDot" class="stories-unread-dot hidden" aria-label="حالات جديدة"></i></button>
+      <button class="sidebar-stories-btn" id="sidebarStoriesBtn" type="button" aria-label="فتح الحالات" title="الحالات"><span>الحالات</span><i class="sidebar-stories-spark" aria-hidden="true">✦</i><i id="storiesUnreadDot" class="stories-unread-dot hidden" aria-label="حالات جديدة"></i></button>
      </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
@@ -210,7 +210,7 @@
     </section>
    </section>
   </main>
-  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">✎</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
+  <div class="modal hidden" id="groupSettingsModal"><section class="modal-card group-settings-card" role="dialog" aria-modal="true" aria-label="تفاصيل الجروب"><button class="modal-close" id="closeGroupSettings" type="button">&times;</button><h2>تفاصيل الجروب</h2><div class="group-editor-hero"><div class="group-editor-banner" id="groupBannerPreview"><span>غلاف الجروب</span></div><label class="group-banner-edit" for="groupBannerInput" title="تغيير البنر">✎</label><input id="groupBannerInput" type="file" accept="image/*" hidden><div class="group-editor-avatar" id="groupPhotoPreview">♡</div><label class="group-photo-edit" for="groupPhotoInput" title="تغيير صورة الجروب">✎</label><input id="groupPhotoInput" type="file" accept="image/*" hidden></div><div class="group-admin-tools" id="groupAdminTools"><label class="group-name-field">اسم الجروب<input id="groupNameInput" maxlength="40" placeholder="اسم الجروب"></label><label class="group-description-field">وصف الجروب<textarea id="groupDescriptionInput" maxlength="300" rows="3" placeholder="اكتب وصفًا للجروب..."></textarea></label><section class="group-colors-panel"><h3>ألوان الجروب</h3><label>اللون الأول<input id="groupNameColorInput" type="color" value="#a78be8" aria-label="اللون الأول لتدرج الجروب"></label><label>اللون الثاني<input id="groupNameColor2Input" type="color" value="#ec65c8" aria-label="اللون الثاني لتدرج الجروب"></label><div id="groupGradientPreview" class="group-gradient-preview" aria-live="polite"><span class="group-gradient-preview-text">S.T.M 🌷</span></div></section></div><div class="group-members-heading">الأعضاء والصلاحيات</div><div id="groupMembersList" class="group-members-list"></div><button class="primary-btn" id="saveGroupSettings" type="button">حفظ التعديلات</button><p class="error" id="groupSettingsError"></p></section></div>
   <div class="modal hidden" id="profileModal">
    <form class="modal-card" id="profileForm">
     <button class="modal-close" id="closeProfile" type="button">
@@ -294,7 +294,7 @@
   <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><a id="downloadLightboxImage" class="lightbox-download" download target="_blank" rel="noopener" aria-label="تحميل الصورة" title="تحميل الصورة">⬇</a><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=notification-context-menu-20261122" type="module">
+  <script src="app.js?v=refinement-20261125" type="module">
   </script>
  </body>
 </html>

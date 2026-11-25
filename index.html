@@ -11,7 +11,16 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=image-splash-20261125" rel="stylesheet"/>
+  <style>
+   html,body{margin:0;min-height:100%;background:#000}
+   #bubbleStartup{position:fixed;inset:0;z-index:2147483000;overflow:hidden;background:#000;opacity:1;visibility:visible;transition:opacity .22s ease,visibility .22s ease;isolation:isolate}
+   #bubbleStartup.startup-hide{opacity:0;visibility:hidden;pointer-events:none}
+   #bubbleStartup .startup-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+   #bubbleStartup .startup-loading{position:absolute;z-index:2;top:65.2%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;width:max-content;max-width:90%;color:#f8eaff;text-align:center;pointer-events:none}
+   #bubbleStartup .startup-loader{display:block;width:43px;height:43px;border:4px solid rgba(173,42,255,.3);border-top-color:#f0c0ff;border-right-color:#b72cff;border-radius:50%;animation:startupSpin .85s linear infinite}
+   @keyframes startupSpin{to{transform:rotate(360deg)}}
+  </style>
+  <link href="style.css?v=pwa-splash-fix-20261125" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
@@ -23,38 +32,33 @@
   </div>
  </div>
  <script>
-  (()=> {
-    const startedAt = performance.now();
-    let hideRequested = false;
-    let finished = false;
-    const hide = () => {
-      if (hideRequested || finished) return;
-      hideRequested = true;
-      const splash = document.getElementById('bubbleStartup');
-      if (!splash) return;
-      const image = splash.querySelector('.startup-background');
-      const revealApp = () => {
-        if (finished) return;
-        finished = true;
-        const remaining = Math.max(0, 1400 - (performance.now() - startedAt));
-        setTimeout(() => {
-          splash.classList.add('startup-hide');
-          setTimeout(() => splash.remove(), 650);
-        }, remaining);
-      };
-      if (image && image.complete && image.naturalWidth > 0) {
-        revealApp();
-      } else if (image) {
-        image.addEventListener('load', revealApp, { once: true });
-        image.addEventListener('error', revealApp, { once: true });
-        setTimeout(revealApp, 2500);
-      } else {
-        revealApp();
-      }
-    };
-    window.__hideBubbleStartup = hide;
-    // Fallback: don't leave the loading layer stuck if a module/network request fails.
-    setTimeout(hide, 7000);
+  (() => {
+   const started = performance.now();
+   let requested = false, finished = false;
+   function finish() {
+    if (finished) return;
+    finished = true;
+    const splash = document.getElementById('bubbleStartup');
+    if (!splash) return;
+    const wait = Math.max(0, 350 - (performance.now() - started));
+    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+     splash.classList.add('startup-hide');
+     setTimeout(() => splash.remove(), 260);
+    })), wait);
+   }
+   window.__hideBubbleStartup = () => {
+    if (requested || finished) return;
+    requested = true;
+    const splash = document.getElementById('bubbleStartup');
+    const img = splash && splash.querySelector('img');
+    if (img && !img.complete) {
+     img.addEventListener('load', finish, {once:true});
+     img.addEventListener('error', finish, {once:true});
+     setTimeout(finish, 900);
+    } else finish();
+   };
+   // Fail open quickly if Firebase or another network request is slow.
+   setTimeout(() => window.__hideBubbleStartup(), 1600);
   })();
  </script>
   <main class="app-shell">

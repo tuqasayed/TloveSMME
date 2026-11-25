@@ -5810,3 +5810,19 @@ body.amoled-mode .group-gradient-preview{
 @keyframes startupSpin{to{transform:rotate(360deg)}}
 @keyframes startupTextPulse{0%,100%{opacity:.72}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.startup-loader,.startup-loading p{animation:none}.bubble-startup{transition:opacity .2s ease,visibility .2s ease}}
+
+
+/* Global mobile touch/selection cleanup: prevent the blue browser highlight
+   when tapping group names, member names, and other interface elements. */
+html, body, html * {
+  -webkit-tap-highlight-color: transparent !important;
+}
+::selection,
+::-moz-selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}

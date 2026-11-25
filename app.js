@@ -310,8 +310,8 @@ if ("serviceWorker" in navigator) {
 }
 
 function timeOf(ts){const locale=localStorage.getItem("bubble-chat-language")==="en"?"en-US":"ar-EG";return ts?.toDate?ts.toDate().toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"}):(locale==="en-US"?"Now":"الآن")}
-function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("loginError").textContent=msg}
-function showChat(){$("loginView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("chatView").classList.remove("hidden")}
+function showLogin(msg=""){$("loginView").classList.remove("hidden");$("chatView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("loginError").textContent=msg;window.__hideBubbleStartup?.()}
+function showChat(){$("loginView").classList.add("hidden");$("developerView")?.classList.add("hidden");document.body.classList.remove("dev-mode");document.documentElement.classList.remove("dev-mode");$("chatView").classList.remove("hidden");window.__hideBubbleStartup?.()}
 
 function expandSidebarWhenNoChat(){
   if(activeChat)return;
@@ -711,7 +711,7 @@ function showDeveloperDashboard(){
   // Re-run the idempotent bindings after the dashboard is attached to the DOM.
   // This also repairs sessions where the view existed before its management hosts were ready.
   setupDeveloperCommunity();
-  view.classList.remove("hidden");paintDevErrors();
+  view.classList.remove("hidden");paintDevErrors();window.__hideBubbleStartup?.();
   if(stopMaintenanceWatch)stopMaintenanceWatch();
   stopMaintenanceWatch=onSnapshot(doc(developerDb,"system","maintenance"),snap=>{const d=snap.data()||{};const active=d.enabled&&(!d.endsAt?.toMillis||d.endsAt.toMillis()>Date.now());$("devMaintenanceState").textContent=active?`الصيانة مفعّلة حتى ${d.endsAt?.toDate?.().toLocaleString("ar-EG")||"وقت غير محدد"}`:"التطبيق يعمل دون فاصل صيانة.";},e=>{$("devMaintenanceState").textContent="تعذر قراءة حالة الصيانة: "+e.message;});
 }

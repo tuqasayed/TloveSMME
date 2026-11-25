@@ -11,10 +11,20 @@
   <title>
    Bubble Chat ♡
   </title>
-  <link href="style.css?v=group-colors-theme-fix-20261125" rel="stylesheet"/>
+  <link href="style.css?v=image-splash-20261125" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
+ <div class="bubble-startup" id="bubbleStartup" aria-label="Bubble Chat loading">
+  <img class="startup-background" src="./startup-splash.png" alt="" fetchpriority="high" decoding="async">
+  <div class="startup-loading" role="status" aria-live="polite">
+   <span class="startup-loader" aria-hidden="true"></span>
+   <p>جارٍ التحميل ...</p>
+  </div>
+ </div>
+ <script>
+  (()=>{window.__hideBubbleStartup=()=>{const s=document.getElementById('bubbleStartup');if(!s||s.classList.contains('startup-hide'))return;s.classList.add('startup-hide');setTimeout(()=>s.remove(),650)}})();
+ </script>
   <main class="app-shell">
    <section class="login-view" id="loginView">
     <div class="login-card">
@@ -294,7 +304,7 @@
   <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><a id="downloadLightboxImage" class="lightbox-download" download target="_blank" rel="noopener" aria-label="تحميل الصورة" title="تحميل الصورة">⬇</a><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=refinement-20261125" type="module">
+  <script src="app.js?v=image-splash-20261125" type="module">
   </script>
  </body>
 </html>

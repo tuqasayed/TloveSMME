@@ -5812,17 +5812,62 @@ body.amoled-mode .group-gradient-preview{
 @media(prefers-reduced-motion:reduce){.startup-loader,.startup-loading p{animation:none}.bubble-startup{transition:opacity .2s ease,visibility .2s ease}}
 
 
-/* Global mobile touch/selection cleanup: prevent the blue browser highlight
-   when tapping group names, member names, and other interface elements. */
-html, body, html * {
-  -webkit-tap-highlight-color: transparent !important;
+/* FINAL FIX: remove the blue pressed/selection tile from names everywhere.
+   Keep click handlers and keyboard navigation intact. */
+html, body, body * {
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
 }
-::selection,
-::-moz-selection {
+body ::selection,
+body *::selection,
+body ::-moz-selection {
   background: transparent !important;
   color: inherit !important;
 }
-:focus:not(:focus-visible) {
+/* Names are clickable in several parts of the chat; never paint a pressed tile. */
+#chatName,
+#chatName *,
+#myName,
+#myName *,
+#publicProfileName,
+#publicProfileName *,
+.sender-name,
+.sender-name *,
+.contact-details strong,
+.contact-details strong *,
+.contact strong,
+.contact strong *,
+.group-member-identity,
+.group-member-identity *,
+.mention-option-names strong,
+.mention-option-names strong *,
+.stories-friend-info b,
+.stories-friend-info b *,
+.reaction-person-name,
+.reaction-person-name *,
+.clickable-message-avatar {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  background-color: transparent !important;
+}
+#chatName:active, #chatName:focus, #chatName:focus-visible,
+#myName:active, #myName:focus, #myName:focus-visible,
+.sender-name:active, .sender-name:focus, .sender-name:focus-visible,
+.contact-details strong:active, .contact-details strong:focus,
+.contact-details strong:focus-visible,
+.contact strong:active, .contact strong:focus,
+.contact strong:focus-visible,
+.group-member-identity:active, .group-member-identity:focus,
+.group-member-identity:focus-visible,
+.mention-option-names strong:active,
+.mention-option-names strong:focus,
+.mention-option-names strong:focus-visible,
+.stories-friend-info b:active, .stories-friend-info b:focus,
+.stories-friend-info b:focus-visible,
+.reaction-person-name:active, .reaction-person-name:focus,
+.reaction-person-name:focus-visible {
+  background-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
 }

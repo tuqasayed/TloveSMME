@@ -23,7 +23,39 @@
   </div>
  </div>
  <script>
-  (()=>{window.__hideBubbleStartup=()=>{const s=document.getElementById('bubbleStartup');if(!s||s.classList.contains('startup-hide'))return;s.classList.add('startup-hide');setTimeout(()=>s.remove(),650)}})();
+  (()=> {
+    const startedAt = performance.now();
+    let hideRequested = false;
+    let finished = false;
+    const hide = () => {
+      if (hideRequested || finished) return;
+      hideRequested = true;
+      const splash = document.getElementById('bubbleStartup');
+      if (!splash) return;
+      const image = splash.querySelector('.startup-background');
+      const revealApp = () => {
+        if (finished) return;
+        finished = true;
+        const remaining = Math.max(0, 1400 - (performance.now() - startedAt));
+        setTimeout(() => {
+          splash.classList.add('startup-hide');
+          setTimeout(() => splash.remove(), 650);
+        }, remaining);
+      };
+      if (image && image.complete && image.naturalWidth > 0) {
+        revealApp();
+      } else if (image) {
+        image.addEventListener('load', revealApp, { once: true });
+        image.addEventListener('error', revealApp, { once: true });
+        setTimeout(revealApp, 2500);
+      } else {
+        revealApp();
+      }
+    };
+    window.__hideBubbleStartup = hide;
+    // Fallback: don't leave the loading layer stuck if a module/network request fails.
+    setTimeout(hide, 7000);
+  })();
  </script>
   <main class="app-shell">
    <section class="login-view" id="loginView">

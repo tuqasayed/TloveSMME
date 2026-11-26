@@ -5914,7 +5914,7 @@ body ::-moz-selection {
 .message-receipt.read{letter-spacing:0;color:#299bff}
 .message-receipt.sent{letter-spacing:0;color:#171717}
 
-/* Sender profile avatars appear only for the qualifying group conversation sequence. */
+/* Sender profile avatars are restored in all chats except the self-chat (You!). */
 .message-row.profile-feature-muted .message-avatar{display:none!important}
 
 
@@ -5932,11 +5932,11 @@ body ::-moz-selection {
 .message-row .message.message-arrive{animation:message-arrive .18s cubic-bezier(.2,.75,.25,1) both}
 @keyframes message-arrive{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.message-row .message.message-arrive{animation:none!important}}
-.chat-attachment-preview{padding:9px 11px;margin:0 10px 7px;border:1px solid var(--border-color,#38323f);border-radius:15px;background:color-mix(in srgb,var(--panel-bg,#17151d) 94%,transparent);max-height:150px;overflow:hidden}
-.chat-attachment-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.chat-attachment-preview{padding:7px 8px;margin:0 10px 7px;border:1px solid var(--border-color,#38323f);border-radius:15px;background:color-mix(in srgb,var(--panel-bg,#17151d) 94%,transparent);max-height:min(38vh,360px);overflow:hidden}
+.chat-attachment-heading{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:2px}
 .chat-attachment-heading strong{font-size:12px}
 .chat-attachment-gallery{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:thin}
-.chat-attachment-tile{width:58px;height:58px;flex:0 0 58px;padding:2px;border:2px solid transparent;border-radius:10px;background:#7772;overflow:hidden}
+.chat-attachment-tile{width:clamp(96px,28vw,170px);height:clamp(96px,28vw,170px);flex:0 0 clamp(96px,28vw,170px);padding:2px;border:2px solid transparent;border-radius:12px;background:#7772;overflow:hidden}
 .chat-attachment-tile.is-active{border-color:var(--theme-color,#b16bd1)}
 .chat-attachment-thumb{display:block;width:100%;height:100%;object-fit:cover;border-radius:7px}
 .chat-attachment-hint{display:block;color:var(--muted,#aaa);font-size:10px;margin-top:2px}
@@ -6008,3 +6008,28 @@ body ::-moz-selection {
 
 /* Developer poll participation breakdown */
 .dev-poll-results{margin:10px 0;padding:10px;border:1px solid #a78be833;border-radius:12px;background:#a78be80a;display:grid;gap:8px;font-size:11px;line-height:1.6}.dev-poll-choice{display:grid;gap:3px;padding:7px;border-radius:9px;background:#ffffff08}.dev-poll-choice small{color:var(--muted,#a9a2b8);overflow-wrap:anywhere}
+
+/* Discord-like multi-image message strip: square tiles, horizontal swipe. */
+.message-photo-grid{display:flex!important;flex-direction:row;gap:5px;max-width:min(340px,72vw);width:auto;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding:1px 0 4px}
+.message-photo-grid .message-image-link{flex:0 0 min(220px,62vw);width:min(220px,62vw);aspect-ratio:1/1!important;scroll-snap-align:start}
+.message-photo-grid .message-photo{width:100%;height:100%;object-fit:cover}
+.message-media-content .message-image-link:only-child .message-photo{max-height:440px;object-fit:contain}
+.message-media-content .message-photo-grid:has(.message-image-link:only-child){display:block!important;overflow:hidden}
+.message-media-content .message-photo-grid:has(.message-image-link:only-child) .message-image-link{aspect-ratio:4/3!important;width:auto;max-width:min(420px,72vw)}
+.message-media-content .message-photo-grid:has(.message-image-link:only-child) .message-photo{object-fit:contain}
+.message-row .message{width:max-content;max-width:min(78%,520px);min-width:0;overflow-wrap:anywhere}
+.message-row .message p{white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}
+.chat-attachment-tile .chat-attachment-edit{display:none!important}
+/* Read receipts use plain compact check marks: blue only after read confirmation. */
+.message-receipt{font-family:Arial,sans-serif;font-style:normal;letter-spacing:-1px!important;transform:none!important}
+.message-receipt.sent,.message-receipt.delivered{color:var(--message-receipt-muted,#a8a3b2)}
+.message-receipt.read{color:#168bff!important}
+
+/* Attachment preview stays expanded when the keyboard closes; remove each item individually. */
+#chatAttachmentPreview.chat-attachment-preview:not(.hidden){display:block!important;flex:none!important;height:auto!important;min-height:0!important;max-height:min(22vh,190px)!important;overflow:hidden!important;padding:6px!important;margin:0 8px 5px!important;box-sizing:border-box!important}
+#chatAttachmentPreview.chat-attachment-preview.hidden{display:none!important;height:0!important;min-height:0!important;max-height:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important}
+#chatAttachmentPreview:not(.hidden) .chat-attachment-gallery{display:flex!important;align-items:flex-start!important;gap:7px!important;width:100%!important;height:auto!important;min-height:0!important;overflow-x:auto!important;overflow-y:hidden!important;padding:3px 2px 5px!important;scrollbar-width:thin!important;-webkit-overflow-scrolling:touch!important}
+#chatAttachmentPreview:not(.hidden) .chat-attachment-tile{position:relative!important;display:block!important;flex:0 0 clamp(84px,23vw,112px)!important;width:clamp(84px,23vw,112px)!important;height:clamp(84px,23vw,112px)!important;min-height:0!important;max-height:none!important;padding:0!important;border:1px solid #7775!important;border-radius:10px!important;overflow:hidden!important;background:#111!important}
+#chatAttachmentPreview:not(.hidden) .chat-attachment-thumb{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:9px!important}
+#chatAttachmentPreview:not(.hidden) .chat-attachment-tile .chat-attachment-remove{position:absolute!important;top:5px!important;right:5px!important;z-index:4!important;width:29px!important;height:29px!important;flex:none!important;border:1px solid #ffffff55!important;border-radius:50%!important;background:#111c!important;color:#fff!important;font-size:22px!important;line-height:27px!important;box-shadow:0 1px 5px #0008!important}
+#chatAttachmentPreview:not(.hidden) .chat-attachment-tile.is-active{border:2px solid var(--theme-color,#b16bd1)!important}

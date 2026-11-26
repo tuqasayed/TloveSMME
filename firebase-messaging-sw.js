@@ -147,7 +147,7 @@ self.addEventListener('notificationclick', event => {
 });
 
 // Offline app-shell cache (coexists with the notification handlers above).
-const OFFLINE_CACHE = 'bubble-chat-offline-v2';
+const OFFLINE_CACHE = 'bubble-chat-offline-v4';
 const OFFLINE_ASSETS = [
   './', './index.html', './style.css', './app.js', './firebase-config.js',
   './icons/notification-icon.png',
@@ -178,13 +178,19 @@ self.addEventListener('fetch', event => {
   if(isShell && (url.pathname.includes('/api/') || url.pathname.includes('/upload') || url.pathname.includes('/firestore'))) return;
   event.respondWith((async()=>{
     const cache=await caches.open(OFFLINE_CACHE);
-    const cached=await cache.match(req);
-    if(cached) return cached;
+    // Network-first keeps an already-open PWA fresh as soon as connectivity
+    // returns, while the cached shell remains the offline fallback.
     try{
-      const response=await fetch(req);
-      if(response && (response.ok || response.type==='opaque')) cache.put(req,response.clone()).catch(()=>{});
+      const response=await fetch(new Request(req,{cache:'no-store'}));
+      if(response && (response.ok || response.type==='opaque')) {
+        const key=new URL(req.url);
+        key.search='';
+        cache.put(key.href,response.clone()).catch(()=>{});
+      }
       return response;
     }catch(err){
+      const cached=await cache.match(req) || await cache.match(new URL(req.url).pathname);
+      if(cached)return cached;
       if(req.mode==='navigate') return cache.match('./index.html');
       throw err;
     }

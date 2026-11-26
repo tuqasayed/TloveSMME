@@ -401,6 +401,28 @@ form {
   background-image:radial-gradient(#e8e1f533 1px,transparent 1px);
   background-size:18px 18px
 }
+.day-separator {
+  align-self:center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:max-content;
+  max-width:calc(100% - 28px);
+  margin:1px 0 2px;
+  padding:5px 12px;
+  border:1px solid color-mix(in srgb,var(--line,#d9dce3) 62%,transparent);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--paper,#fff) 88%,#7d8795 12%);
+  color:var(--muted,#747b87);
+  box-shadow:0 2px 9px #00000012;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.25;
+  text-align:center;
+  pointer-events:none;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px)
+}
 .message {
   max-width:min(75%,480px);
   padding:10px 14px 7px;
@@ -1483,6 +1505,18 @@ body.dark-mode {
 }
 .dark-mode .empty-state p,.dark-mode .chat-person small,.dark-mode .composer-note {
   color:#aaa5bd
+}
+.dark-mode .day-separator {
+  background:#242630e8;
+  border-color:#ffffff12;
+  color:#aeb3c0;
+  box-shadow:0 3px 12px #0005
+}
+.amoled-mode .day-separator {
+  background:#09090beF;
+  border-color:#ffffff18;
+  color:#b9bac4;
+  box-shadow:0 3px 14px #000b
 }
 .dark-mode .message {
   background:#292a38;
@@ -5871,3 +5905,106 @@ body ::-moz-selection {
   outline: none !important;
   box-shadow: none !important;
 }
+
+
+/* Mention picker: no internal scrollbar; broadcast mentions are appended last. */
+.mention-menu{max-height:none!important;overflow:visible!important;overscroll-behavior:contain}
+.message-receipt{display:inline-flex;align-items:center;justify-content:center;min-width:13px;font:600 13px/1 Arial,sans-serif;letter-spacing:0;padding-inline-end:2px;color:#171717;direction:ltr}
+.message-receipt.delivered{letter-spacing:0;color:#171717}
+.message-receipt.read{letter-spacing:0;color:#299bff}
+.message-receipt.sent{letter-spacing:0;color:#171717}
+
+/* Sender profile avatars appear only for the qualifying group conversation sequence. */
+.message-row.profile-feature-muted .message-avatar{display:none!important}
+
+
+/* Bubble Chat: refined message metadata, photo groups and lightweight motion */
+.message-meta{direction:ltr;justify-content:flex-end;gap:6px}
+.message-meta time{order:0}
+.message-meta .message-receipt{order:1;direction:ltr}
+.message-receipt.pending{color:#a8a3b2!important;font-size:13px;line-height:1}
+.message-photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-width:min(340px,70vw);overflow:hidden;border-radius:14px}
+.message-photo-grid .message-image-link{position:relative;max-width:none;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden}
+.message-photo-grid .message-photo{width:100%;height:100%;max-height:none;object-fit:cover}
+.message-photo-grid .message-image-link:first-child:nth-last-child(1){grid-column:span 2;aspect-ratio:4/3}
+.photo-grid-more{position:absolute;inset:0;display:grid;place-items:center;background:#0008;color:#fff;font-size:26px;font-weight:800}
+.message-media-content>p{display:table;max-width:100%;margin:7px 0 0;padding:7px 11px;border-radius:10px;background:rgba(0,0,0,.28);color:#fff;line-height:1.65;overflow-wrap:anywhere}
+.message-row .message.message-arrive{animation:message-arrive .18s cubic-bezier(.2,.75,.25,1) both}
+@keyframes message-arrive{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.message-row .message.message-arrive{animation:none!important}}
+.chat-attachment-preview{padding:9px 11px;margin:0 10px 7px;border:1px solid var(--border-color,#38323f);border-radius:15px;background:color-mix(in srgb,var(--panel-bg,#17151d) 94%,transparent);max-height:150px;overflow:hidden}
+.chat-attachment-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.chat-attachment-heading strong{font-size:12px}
+.chat-attachment-gallery{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:thin}
+.chat-attachment-tile{width:58px;height:58px;flex:0 0 58px;padding:2px;border:2px solid transparent;border-radius:10px;background:#7772;overflow:hidden}
+.chat-attachment-tile.is-active{border-color:var(--theme-color,#b16bd1)}
+.chat-attachment-thumb{display:block;width:100%;height:100%;object-fit:cover;border-radius:7px}
+.chat-attachment-hint{display:block;color:var(--muted,#aaa);font-size:10px;margin-top:2px}
+.chat-attachment-remove{width:27px;height:27px;border:0;border-radius:50%;background:#7773;color:inherit;font-size:19px;line-height:1}
+
+.message-row{animation:none!important}.message-row .message.message-arrive{animation:message-arrive .18s cubic-bezier(.2,.75,.25,1) both}
+
+.chat-attachment-tile{position:relative}.chat-attachment-edit{position:absolute;right:4px;top:4px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#111b;color:#fff;font-size:13px;z-index:2}
+
+/* WhatsApp-style floating date: only today's divider stays in the history. */
+.messages>.floating-day-label{
+  position:sticky;
+  top:8px;
+  z-index:35;
+  align-self:center;
+  display:flex;
+  justify-content:center;
+  width:100%;
+  height:0;
+  flex:0 0 0;
+  margin:0;
+  padding:0;
+  overflow:visible;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .16s ease;
+}
+.messages>.floating-day-label.is-visible{opacity:1}
+.messages>.floating-day-label>span{
+  position:absolute;
+  top:8px;
+  max-width:calc(100% - 32px);
+  padding:7px 15px;
+  border:1px solid color-mix(in srgb,var(--line,#d9dce3) 62%,transparent);
+  border-radius:10px;
+  background:color-mix(in srgb,var(--paper,#fff) 90%,#7d8795 10%);
+  color:var(--muted,#747b87);
+  box-shadow:0 2px 9px #0002;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+  white-space:nowrap;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.dark-mode .messages>.floating-day-label>span{
+  background:#242630f2;
+  border-color:#ffffff18;
+  color:#c1c5d0;
+  box-shadow:0 3px 12px #0007;
+}
+.amoled-mode .messages>.floating-day-label>span{
+  background:#09090bf5;
+  border-color:#ffffff24;
+  color:#c6c8d2;
+  box-shadow:0 3px 14px #000c;
+}
+/* Put the timestamp at the far left and keep receipts to its right. */
+.message-meta{direction:ltr;justify-content:flex-start!important;gap:6px}
+.message-meta time{order:0;margin-right:auto}
+.message-meta .message-receipt{order:1;direction:ltr}
+/* Gray delivery checks need enough contrast on a pure-black AMOLED surface. */
+.amoled-mode .message-receipt.sent,
+.amoled-mode .message-receipt.delivered{
+  color:#b5bac8!important;
+  text-shadow:0 0 1px #b5bac8;
+}
+.message-meta{width:100%}
+
+/* Developer poll participation breakdown */
+.dev-poll-results{margin:10px 0;padding:10px;border:1px solid #a78be833;border-radius:12px;background:#a78be80a;display:grid;gap:8px;font-size:11px;line-height:1.6}.dev-poll-choice{display:grid;gap:3px;padding:7px;border-radius:9px;background:#ffffff08}.dev-poll-choice small{color:var(--muted,#a9a2b8);overflow-wrap:anywhere}

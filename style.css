@@ -6295,3 +6295,14 @@ body.amoled-mode{--tray-bg:#050505;--tray-ink:#f5f5f5;--tray-border:#292929;--tr
 #contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details strong::after,
 #contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details small::before,
 #contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details small::after { content:none!important; display:none!important; }
+
+
+/* Custom emoji sent alone: larger than inline message emoji, smaller than stickers. */
+.message .solo-custom-emoji-message{
+  display:flex!important;align-items:center;justify-content:center;
+  min-height:54px;margin:2px 0!important;line-height:1!important;
+}
+.message .solo-custom-emoji-message .inline-custom-emoji{
+  width:3.25em!important;height:3.25em!important;max-width:68px!important;max-height:68px!important;
+  vertical-align:middle!important;margin:0!important;
+}

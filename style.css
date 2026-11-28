@@ -6274,3 +6274,8 @@ body.amoled-mode{--tray-bg:#050505;--tray-ink:#f5f5f5;--tray-border:#292929;--tr
 .chat-search-result{width:100%;text-align:right;border:1px solid var(--border,rgba(150,150,150,.22));cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:background .15s ease}.chat-search-result:hover{background:rgba(150,120,200,.16)}.chat-search-jump-label{font-size:.75em;opacity:.7;align-self:flex-start}.message-gallery-video{width:100%;height:100%;object-fit:contain;background:#000}
 /* Emoji/sticker tray close control without a framed square */
 .custom-emoji-heading .tray-close{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:0!important}
+/* Custom emojis live in the composer, not message-target mode */
+.composer-custom-emoji-btn{border:1px solid var(--composer-border,var(--theme-color));background:var(--tray-bg,#17171d);color:var(--theme-color);border-radius:16px;min-width:42px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:23px;flex-shrink:0;cursor:pointer}
+.context-custom-emoji{width:42px;height:42px;padding:4px;border:0;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center}
+.context-custom-emoji img{max-width:100%;max-height:100%;object-fit:contain}
+.inline-custom-emoji{display:inline-block;width:1.55em;height:1.55em;object-fit:contain;vertical-align:-.35em;margin:0 .08em;}

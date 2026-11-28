@@ -225,7 +225,8 @@ function nameMarkup(value,p){
  return parts.map(part=>/^\p{Extended_Pictographic}/u.test(part)?`<span class="name-emoji">${$safe(part)}</span>`:`<span class="gradient-name-text" style="${nameStyle(p)}">${$safe(part)}</span>`).join("");
 }
 function renderMessageTextMarkup(value){
- const escaped=$safe(value);
+ let escaped=$safe(value);
+ escaped=escaped.replace(/\:ce-([\w-]+)\:/g,(token,id)=>{const item=sharedCustomEmojis.find(e=>e.id===id);return item?`<img class="inline-custom-emoji" src="${$safe(item.url)}" alt="إيموجي" title="${$safe(item.label||'إيموجي')}" loading="lazy">`:token;});
  return escaped.replace(/(^|\s)(https?:\/\/[^\s<]+)/gi,(all,space,url)=>`${space}<a class="message-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).replace(/(^|\s)(@[\w\u0600-\u06FF.]+)/g,(all,space,tag)=>{
    const key=tag.slice(1).toLowerCase(),person=[...userProfiles.values()].find(p=>String(p.username||p.displayName||"").toLowerCase()===key);
    if(!person)return `${space}<span class="mention-tag">${tag}</span>`;
@@ -1607,6 +1608,7 @@ function showMessageContext(m,el){
   QUICK_REACTIONS.forEach(emoji=>{const b=document.createElement('button');b.type='button';b.className='context-emoji';b.textContent=emoji;b.setAttribute('aria-label',`تفاعل ${emoji}`);b.addEventListener('click',async()=>{await reactTo(m,emoji);closeMessageContext()});reactions.appendChild(b)});
   const more=document.createElement('button');more.type='button';more.className='context-emoji context-more-emoji';more.textContent='＋';more.setAttribute('aria-label','المزيد من الإيموجي');
   const extra=document.createElement('div');extra.className='context-extra-emojis hidden';EXTRA_REACTIONS.forEach(emoji=>{const b=document.createElement('button');b.type='button';b.textContent=emoji;b.addEventListener('click',async()=>{await reactTo(m,emoji);closeMessageContext()});extra.appendChild(b)});
+  sharedCustomEmojis.forEach(item=>{const b=document.createElement('button');b.type='button';b.className='context-custom-emoji';b.innerHTML=`<img src="${$safe(item.url)}" alt="إيموجي">`;b.addEventListener('click',async()=>{await reactTo(m,item.url);closeMessageContext()});extra.appendChild(b);});
   more.addEventListener('click',()=>extra.classList.toggle('hidden'));reactions.append(more);
   const actions=document.createElement('div');actions.className='message-context-actions';
   const addAction=(label,icon,fn)=>{const b=document.createElement('button');b.type='button';b.className='context-action';b.innerHTML=`<span class="context-action-icon">${icon}</span><span>${label}</span>`;b.addEventListener('click',async()=>{closeMessageContext();await fn()});actions.appendChild(b)};
@@ -1893,20 +1895,14 @@ document.addEventListener("click",e=>{if(composerMediaMenu&&!composerMediaMenu.c
 
 const customEmojiTray=$('customEmojiTray');
 $('customEmojiMenuBtn')?.addEventListener('click',e=>{
- e.preventDefault();e.stopPropagation();
- const tray=$('customEmojiTray');if(!tray){toast('قايمة الإيموجي غير موجودة');return;}
- const opening=tray.classList.contains('hidden');
- $('stickerTray')?.classList.add('hidden');
- if(opening){
-   tray.classList.remove('hidden');tray.removeAttribute('hidden');
-   tray.style.display='block';tray.style.visibility='visible';tray.style.pointerEvents='auto';
-   renderCustomEmojiTray();
- }else{
-   tray.classList.add('hidden');tray.style.display='none';
- }
- $('composerMediaMenu')?.classList.add('hidden');
- $('composerMediaToggle')?.setAttribute('aria-expanded','false');
+ e.preventDefault();e.stopPropagation();const tray=$('customEmojiTray');if(!tray)return;
+ const opening=tray.classList.contains('hidden');$('stickerTray')?.classList.add('hidden');composerMediaMenu?.classList.add('hidden');
+ tray.classList.toggle('hidden',!opening);if(opening)renderCustomEmojiTray();
 });
+function insertCustomEmojiToken(id){
+ const input=$('messageInput'),token=`:ce-${id}:`,start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;
+ input.setRangeText(token,start,end,'end');input.focus();input.dispatchEvent(new Event('input',{bubbles:true}));
+}
 function startSharedCustomEmojiListener(){
  if(stopSharedCustomEmojis)stopSharedCustomEmojis();
  stopSharedCustomEmojis=onSnapshot(query(collection(db,'customEmojis'),orderBy('createdAt','asc')),snap=>{
@@ -1916,10 +1912,10 @@ function startSharedCustomEmojiListener(){
 }
 function renderCustomEmojiTray(){
  const tray=$('customEmojiTray');if(!tray)return;
- tray.innerHTML=`<div class="custom-emoji-library"><div class="custom-emoji-heading"><b>${isEnglishUi()?'Emojis':'الإيموجيات'}</b><button id="customEmojiClose" class="tray-close" type="button" aria-label="إغلاق">×</button></div>${SHARED_EMOJI_ADMINS.includes(currentUser?.uid)?`<div class="custom-emoji-add-row"><button id="customEmojiAdd" type="button">＋ ${isEnglishUi()?'Add':'إضافة'}</button></div>`:''}<div class="custom-emoji-grid">${sharedCustomEmojis.map(e=>`<div class="custom-emoji-item"><button type="button" data-custom-emoji="${$safe(e.url)}" title="${$safe(e.label||'إيموجي')}"><img src="${$safe(e.url)}" alt="${$safe(e.label||'إيموجي')}" loading="lazy"></button>${SHARED_EMOJI_ADMINS.includes(currentUser?.uid)?`<button class="custom-emoji-delete" data-delete-custom-emoji="${$safe(e.id)}" title="حذف">×</button>`:''}</div>`).join('')||`<small>${isEnglishUi()?'No custom emojis yet':'لا توجد إيموجيات مخصصة بعد'}</small>`}</div></div>`;
+ tray.innerHTML=`<div class="custom-emoji-library"><div class="custom-emoji-heading"><b>${isEnglishUi()?'Emojis':'الإيموجيات'}</b><button id="customEmojiClose" class="tray-close" type="button" aria-label="إغلاق">×</button></div><div class="custom-emoji-add-row"><button id="customEmojiAdd" type="button">＋ ${isEnglishUi()?'Add':'إضافة'}</button></div><div class="custom-emoji-grid">${sharedCustomEmojis.map(e=>`<div class="custom-emoji-item"><button type="button" data-custom-emoji="${$safe(e.id)}" title="${$safe(e.label||'إيموجي')}"><img src="${$safe(e.url)}" alt="${$safe(e.label||'إيموجي')}" loading="lazy"></button>${SHARED_EMOJI_ADMINS.includes(currentUser?.uid)?`<button class="custom-emoji-delete" data-delete-custom-emoji="${$safe(e.id)}" title="حذف">×</button>`:''}</div>`).join('')||`<small>${isEnglishUi()?'No custom emojis yet':'لا توجد إيموجيات مخصصة بعد'}</small>`}</div></div>`;
  tray.querySelector('#customEmojiClose')?.addEventListener('click',()=>tray.classList.add('hidden'));
  tray.querySelector('#customEmojiAdd')?.addEventListener('click',()=>{$('customEmojiUploadInput').value='';$('customEmojiUploadInput').click()});
- tray.querySelectorAll('[data-custom-emoji]').forEach(b=>b.onclick=()=>{pendingCustomReactionUrl=b.dataset.customEmoji;tray.classList.add('hidden');document.querySelectorAll('.message').forEach(m=>m.classList.add('custom-reaction-target'));toast(isEnglishUi()?'Tap a message to add this emoji':'اضغطي على الرسالة لإضافة الإيموجي');});
+ tray.querySelectorAll('[data-custom-emoji]').forEach(b=>b.onclick=()=>{insertCustomEmojiToken(b.dataset.customEmoji);tray.classList.add('hidden');});
  tray.querySelectorAll('[data-delete-custom-emoji]').forEach(b=>b.onclick=async()=>{if(!SHARED_EMOJI_ADMINS.includes(currentUser?.uid))return;const id=b.dataset.deleteCustomEmoji;if(!await askElegantDelete(isEnglishUi()?'Delete this custom emoji for everyone?':'تحذف الإيموجي دي من عند الكل؟'))return;try{await deleteDoc(doc(db,'customEmojis',id));toast('تم حذف الإيموجي');}catch(err){console.error(err);toast('تعذر حذف الإيموجي')}});
 }
 document.addEventListener('click',async e=>{
@@ -1929,7 +1925,7 @@ document.addEventListener('click',async e=>{
  try{await reactTo(m,url)}catch(err){console.error(err);toast('تعذر إضافة التفاعل')}
 });
 $('customEmojiUploadInput')?.addEventListener('change',async e=>{
- const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')&&!/\.gif$/i.test(file.name)){toast('اختاري صورة أو GIF فقط');return;}if(file.size>5*1024*1024){toast('حجم الإيموجي لازم يكون 5MB أو أقل');return;}if(!SHARED_EMOJI_ADMINS.includes(currentUser?.uid)){toast('مش مسموح بإضافة الإيموجيات');return;}
+ const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')&&!/\.gif$/i.test(file.name)){toast('اختاري صورة أو GIF فقط');return;}if(file.size>5*1024*1024){toast('حجم الإيموجي لازم يكون 5MB أو أقل');return;}
  try{const url=await uploadStickerToCloudinary(file);await addDoc(collection(db,'customEmojis'),{url,label:file.name.replace(/\.[^.]+$/,'').slice(0,40)||'إيموجي',mediaType:(file.type==='image/gif'||/\.gif$/i.test(file.name))?'gif':'image',uid:currentUser.uid,createdAt:serverTimestamp()});toast('اتضاف الإيموجي عند الكل ♡');renderCustomEmojiTray();}catch(err){console.error(err);toast(err.message||'تعذر إضافة الإيموجي');}
 });
 

@@ -11,56 +11,10 @@
   <title>
    Bubble Chat ♡
   </title>
-  <style>
-   html,body{margin:0;min-height:100%;background:#000}
-   #bubbleStartup{position:fixed;inset:0;z-index:2147483000;overflow:hidden;background:#000;opacity:1;visibility:visible;transition:opacity .22s ease,visibility .22s ease;isolation:isolate}
-   #bubbleStartup.startup-hide{opacity:0;visibility:hidden;pointer-events:none}
-   #bubbleStartup .startup-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
-   #bubbleStartup .startup-loading{position:absolute;z-index:2;top:65.2%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;width:max-content;max-width:90%;color:#f8eaff;text-align:center;pointer-events:none}
-   #bubbleStartup .startup-loader{display:block;width:43px;height:43px;border:4px solid rgba(173,42,255,.3);border-top-color:#f0c0ff;border-right-color:#b72cff;border-radius:50%;animation:startupSpin .85s linear infinite}
-   @keyframes startupSpin{to{transform:rotate(360deg)}}
-  </style>
   <link href="style.css?v=no-blue-name-highlight-v2-20261125" rel="stylesheet"/>
   <link rel="manifest" href="./manifest.webmanifest"/>
  </head>
  <body>
- <div class="bubble-startup" id="bubbleStartup" aria-label="Bubble Chat loading">
-  <img class="startup-background" src="./startup-splash.png" alt="" fetchpriority="high" decoding="async">
-  <div class="startup-loading" role="status" aria-live="polite">
-   <span class="startup-loader" aria-hidden="true"></span>
-   <p>جارٍ التحميل ...</p>
-  </div>
- </div>
- <script>
-  (() => {
-   const started = performance.now();
-   let requested = false, finished = false;
-   function finish() {
-    if (finished) return;
-    finished = true;
-    const splash = document.getElementById('bubbleStartup');
-    if (!splash) return;
-    const wait = Math.max(0, 350 - (performance.now() - started));
-    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => {
-     splash.classList.add('startup-hide');
-     setTimeout(() => splash.remove(), 260);
-    })), wait);
-   }
-   window.__hideBubbleStartup = () => {
-    if (requested || finished) return;
-    requested = true;
-    const splash = document.getElementById('bubbleStartup');
-    const img = splash && splash.querySelector('img');
-    if (img && !img.complete) {
-     img.addEventListener('load', finish, {once:true});
-     img.addEventListener('error', finish, {once:true});
-     setTimeout(finish, 900);
-    } else finish();
-   };
-   // Fail open quickly if Firebase or another network request is slow.
-   setTimeout(() => window.__hideBubbleStartup(), 1600);
-  })();
- </script>
   <main class="app-shell">
    <section class="login-view" id="loginView">
     <div class="login-card">
@@ -177,11 +131,11 @@
      </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="إخفاء الشريط الجانبي" aria-expanded="true" title="إخفاء الشريط الجانبي">‹</button>
-    <button class="collapsed-unread-indicator hidden" id="collapsedUnreadIndicator" type="button">✉ رسائل جديدة <b id="collapsedUnreadCount">0</b></button>
+    <button class="collapsed-unread-indicator hidden" id="collapsedUnreadIndicator" type="button">رسائل جديدة <b id="collapsedUnreadCount">0</b></button>
     <section class="conversation">
      <div class="sidebar-mini-dock" id="sidebarMiniDock" aria-label="اختصارات المحادثات">
       <div class="sidebar-mini-items" id="sidebarMiniItems"></div>
-      <button class="sidebar-dock-toggle" id="sidebarDockToggle" type="button" aria-label="إظهار الشريط الجانبي" title="إظهار الشريط الجانبي">⌄</button>
+      <button class="sidebar-dock-toggle" id="sidebarDockToggle" type="button" aria-label="إظهار الشريط الجانبي" title="إظهار الشريط الجانبي">‹</button>
      </div>
      <div class="empty-state" id="emptyState">
       <div class="empty-art">
@@ -217,7 +171,7 @@
        <div class="header-deco">
         ✧
        </div>
-       <div class="chat-search-panel hidden" id="chatSearchPanel"><input id="chatSearchInput" type="search" placeholder="" aria-label="بحث في الرسائل" autocomplete="off"><span id="chatSearchCount" aria-live="polite"></span><button type="button" id="chatSearchClose" aria-label="إغلاق البحث" title="إغلاق">×</button></div>
+       <div class="chat-search-panel hidden" id="chatSearchPanel"><button type="button" id="chatSearchRun" aria-label="بحث" title="بحث">⌕</button><input id="chatSearchInput" type="search" placeholder="" aria-label="بحث في الرسائل" autocomplete="off"><span id="chatSearchCount" aria-live="polite"></span><button type="button" id="chatSearchClose" aria-label="إغلاق البحث" title="إغلاق">×</button></div>
       </header>
       <div class="pinned-bar hidden" id="pinnedBar">
       </div>
@@ -234,6 +188,8 @@
       <div class="sticker-tray hidden" id="stickerTray" aria-label="قائمة الملصقات">
       </div>
       <input id="stickerUploadInput" type="file" accept="image/*,.gif" hidden/>
+      <div class="custom-emoji-tray hidden" id="customEmojiTray" aria-label="الإيموجيات"></div>
+      <input id="customEmojiUploadInput" type="file" accept="image/*,.gif" hidden/>
       <div class="chat-attachment-preview hidden" id="chatAttachmentPreview" aria-live="polite"></div>
       <form class="composer" id="messageForm">
        <button aria-label="إرسال" class="send-btn" type="submit">➤</button>
@@ -244,6 +200,7 @@
         </button>
         <div class="composer-media-menu hidden" id="composerMediaMenu" aria-label="أدوات المرفقات">
          <button class="tool-btn" id="stickerBtn" title="الملصقات" type="button" aria-label="الملصقات">😊 <span>الستيكرات</span></button>
+         <button class="tool-btn" id="customEmojiMenuBtn" title="إيموجي" type="button" aria-label="إيموجي">✨ <span data-ar="إيموجي" data-en="Emoji">إيموجي</span></button>
          <button class="tool-btn" id="imageMessageBtn" title="إرسال وسائط" type="button" aria-label="إرسال وسائط">🖼️ <span data-ar="الوسائط" data-en="Media">الوسائط</span></button>
         </div>
        </div>
@@ -340,7 +297,7 @@
   <div class="modal hidden" id="imageLightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة"><section class="image-lightbox-card"><button class="modal-close" id="closeImageLightbox" type="button" aria-label="إغلاق">×</button><a id="downloadLightboxImage" class="lightbox-download" download target="_blank" rel="noopener" aria-label="تحميل الصورة" title="تحميل الصورة">⬇</a><img id="lightboxImage" alt="الصورة بحجم كبير"></section></div>
   <div class="toast hidden" id="toast">
   </div>
-  <script src="app.js?v=image-splash-20261125" type="module">
+  <script src="app.js?v=search-full-history-no-splash-20261128" type="module">
   </script>
  </body>
 </html>

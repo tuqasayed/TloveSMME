@@ -1037,15 +1037,17 @@ body {
 .sticker-tray.hidden {display:none!important}
 .sticker-grid {
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
-  gap:9px;
-  align-items:stretch;
+  grid-template-columns:repeat(auto-fill,minmax(78px,1fr));
+  gap:10px;
+  align-items:start;
 }
 .sticker-tray .sticker-pick-tile,.sticker-tray .sticker-add-tile {
   width:100%;
   min-width:0;
-  height:72px;
-  padding:5px;
+  min-height:84px;
+  height:auto;
+  aspect-ratio:1 / 1;
+  padding:6px;
   border:1px solid var(--line);
   border-radius:13px;
   background:var(--card,#fff);
@@ -1053,7 +1055,7 @@ body {
   place-items:center;
   cursor:pointer;
 }
-.sticker-tray .sticker-pick-tile img {width:100%;height:100%;object-fit:contain}
+.sticker-tray .sticker-pick-tile img {width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;display:block}
 .sticker-tray .sticker-add-tile {align-content:center;gap:2px;border:1.5px dashed #a99ad2;background:linear-gradient(145deg,#f5f0ff,#fff5fa);color:#8c76c4}
 .sticker-add-tile span {font:400 30px/1 Arial,sans-serif}
 .sticker-add-tile small {font:700 10px Tahoma,Arial,sans-serif}
@@ -1063,9 +1065,14 @@ body {
 .dark-mode .sticker-tray .sticker-pick-tile {background:#242132;border-color:#ffffff20}
 .dark-mode .sticker-tray .sticker-add-tile {background:linear-gradient(145deg,#302844,#352532);border-color:#aa91e5;color:#d5baf5}
 .sticker-image {
-  width:130px;
-  height:130px;
-  object-fit:contain
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:min(220px,70vw);
+  max-height:min(280px,45vh);
+  object-fit:contain;
+  border-radius:0;
+  overflow:visible
 }
 .modal {
   position:fixed;
@@ -1179,8 +1186,9 @@ body {
     padding:3px 5px
   }
   .sticker-image {
-    width:105px;
-    height:105px
+    max-width:min(180px,68vw);
+    max-height:min(230px,40vh);
+    width:auto;height:auto
   }
   .profile-trigger {
     gap:5px
@@ -6033,3 +6041,236 @@ body ::-moz-selection {
 #chatAttachmentPreview:not(.hidden) .chat-attachment-thumb{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:9px!important}
 #chatAttachmentPreview:not(.hidden) .chat-attachment-tile .chat-attachment-remove{position:absolute!important;top:5px!important;right:5px!important;z-index:4!important;width:29px!important;height:29px!important;flex:none!important;border:1px solid #ffffff55!important;border-radius:50%!important;background:#111c!important;color:#fff!important;font-size:22px!important;line-height:27px!important;box-shadow:0 1px 5px #0008!important}
 #chatAttachmentPreview:not(.hidden) .chat-attachment-tile.is-active{border:2px solid var(--theme-color,#b16bd1)!important}
+
+/* User-requested polish: decorations sit directly around the photo, without the purple avatar ring. */
+.avatar:has(.chat-avatar-decoration),
+.message-avatar:has(.chat-avatar-decoration),
+.contact-avatar-wrap:has(.chat-avatar-decoration),
+.me-card .avatar:has(.chat-avatar-decoration),
+.sidebar-mini-contact:has(.chat-avatar-decoration) .avatar {
+  border:0!important;outline:0!important;box-shadow:none!important;
+}
+.avatar:has(.chat-avatar-decoration),
+.message-avatar:has(.chat-avatar-decoration),
+.contact-avatar-wrap:has(.chat-avatar-decoration) {background:transparent!important;}
+
+/* App-like, soft sidebar opening and closing. Overrides legacy instant-toggle rules. */
+.chat-view {
+  transition:grid-template-columns .36s cubic-bezier(.2,.75,.25,1)!important;
+}
+.chat-view .sidebar {
+  transition:opacity .24s ease, padding .32s ease, border-color .32s ease, transform .36s cubic-bezier(.2,.75,.25,1)!important;
+  transform:translateX(0);
+}
+.chat-view.sidebar-collapsed .sidebar {
+  transform:translateX(-12px);
+}
+.sidebar-toggle {
+  transition:left .36s cubic-bezier(.2,.75,.25,1),right .36s cubic-bezier(.2,.75,.25,1),transform .2s ease,background .2s ease!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .chat-view,.chat-view .sidebar,.sidebar-toggle{transition:none!important;animation:none!important;}
+}
+
+/* Precisely position only the collapsed-sidebar arrow and unread-message pill. */
+.chat-view.sidebar-collapsed > .collapsed-unread-indicator {
+  left: 96px !important;
+  right: auto !important;
+  top: 12px !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle {
+  direction: ltr !important;
+  font-size: 26px !important;
+}
+.chat-view.sidebar-collapsed .sidebar-dock-toggle::after { content: none !important; }
+@media(max-width:600px) {
+  .chat-view.sidebar-collapsed > .collapsed-unread-indicator { left: 88px !important; }
+}
+
+/* User requested: move the collapsed new-messages pill left to align its start with the toggle mark. */
+
+
+
+/* Final requested mobile corrections: unread pill farther left and arrow reversed. */
+@media(max-width:760px){
+  .chat-view.sidebar-collapsed > .collapsed-unread-indicator{
+    position:absolute!important; left:62px!important; right:auto!important;
+    transform:none!important; margin:0!important;
+  }
+}
+/* Refined long-press message sheet: theme-aware, responsive and touch-friendly */
+.message-context-panel{display:grid;gap:10px;max-height:min(82dvh,760px);overflow:auto;padding:clamp(10px,3vw,15px);border-color:var(--border-color,rgba(120,100,150,.22));background:var(--surface,rgba(248,246,252,.97));color:var(--ink,#242132);box-shadow:0 24px 70px rgba(10,5,25,.25)}
+.message-context-reactions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:2px 0 11px;border-color:var(--border-color,rgba(120,100,150,.2))}
+.context-emoji{min-width:0;width:auto;height:52px;background:var(--surface-soft,rgba(120,100,150,.09));color:var(--ink,#242132);font-size:26px;border:1px solid var(--border-color,rgba(120,100,150,.12))}
+.context-extra-emojis{grid-template-columns:repeat(7,minmax(0,1fr));border-color:var(--border-color,rgba(120,100,150,.2))}
+.context-extra-emojis button{color:var(--ink,#242132);background:var(--surface-soft,rgba(120,100,150,.09))}
+.context-animation-toggle,.context-custom-emoji{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--border-color,rgba(120,100,150,.18));border-radius:14px;padding:11px;background:var(--surface-soft,rgba(120,100,150,.07));color:var(--ink,#242132);font:inherit;font-size:13px;cursor:pointer}
+.context-animation-toggle.active{background:linear-gradient(110deg,#dca0f025,#9b8cff35);border-color:#b38ae4;color:#9254b9}
+.context-animated .context-emoji{animation:contextEmojiPop .65s ease-in-out infinite alternate}
+.context-animated .context-emoji:nth-child(2n){animation-delay:.15s}.context-animated .context-emoji:nth-child(3n){animation-delay:.3s}
+@keyframes contextEmojiPop{from{transform:translateY(0) scale(1)}to{transform:translateY(-4px) scale(1.12)}}
+.custom-reaction-image{width:24px;height:24px;object-fit:contain;vertical-align:middle}.reaction-emoji:has(.custom-reaction-image){display:inline-flex;align-items:center}
+.message-context-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding-top:5px;border-top:1px solid var(--border-color,rgba(120,100,150,.16))}
+.context-action{color:var(--ink,#242132);font-size:12px;padding:7px 3px}.context-action-icon{background:var(--surface-soft,rgba(120,100,150,.1))}
+.dark-mode .message-context-panel{background:rgba(25,23,36,.97);color:#f5efff;border-color:rgba(255,255,255,.13)}
+.dark-mode .context-emoji,.dark-mode .context-extra-emojis button,.dark-mode .context-animation-toggle,.dark-mode .context-custom-emoji,.dark-mode .context-action-icon{background:rgba(255,255,255,.075);color:#f5efff;border-color:rgba(255,255,255,.12)}
+.dark-mode .context-animation-toggle.active{background:linear-gradient(110deg,#dca0f025,#9b8cff35);border-color:#b38ae4;color:#d7b0ff}
+@media(max-width:420px){.message-context-layer{padding:12px 9px max(12px,env(safe-area-inset-bottom))}.message-context-panel{width:100%;border-radius:21px}.context-emoji{height:47px}.message-context-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.context-animated .context-emoji{animation:none!important}}
+/* Shared emoji library */
+.shared-emoji-library{display:flex;flex-direction:column;gap:8px;min-height:0;height:100%;}
+.emoji-library-tabs{display:flex;gap:8px;position:sticky;top:0;z-index:2;padding:4px;}
+.emoji-tab{flex:1;border:1px solid var(--border-color,rgba(130,110,160,.2));border-radius:12px;padding:9px;background:var(--surface-soft,rgba(130,110,160,.08));color:var(--ink,inherit);font:inherit;}
+.emoji-tab.active{background:var(--theme-color,rgba(140,110,190,.2));font-weight:700;}
+.emoji-library-panel{min-height:0;overflow:auto;}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:5px;}
+.emoji-pick{border:0;background:transparent;border-radius:10px;aspect-ratio:1;font-size:clamp(22px,6vw,30px);display:grid;place-items:center;cursor:pointer;}
+.emoji-pick:active{background:var(--surface-soft,rgba(120,100,150,.15));transform:scale(.94);}
+.sticker-library-item{position:relative;min-width:0;}
+.sticker-library-item .sticker-delete{position:absolute;top:2px;right:2px;width:26px;height:26px;border:0;border-radius:50%;background:#d94e65;color:white;font-size:19px;line-height:1;z-index:2;}
+.delete-for-all-choice{display:flex;align-items:center;gap:9px;flex:1;padding:8px 5px;font-size:14px;}
+.delete-for-all-choice input{width:20px;height:20px;accent-color:var(--theme-color,#8b70c0);}
+.solo-emoji-message{font-size:clamp(38px,12vw,60px)!important;line-height:1.3!important;display:inline-block;}
+.solo-emoji-message{animation:soloEmojiPulse 1.25s ease-in-out infinite alternate;transform-origin:center;}
+@keyframes soloEmojiPulse{from{transform:translateY(0) scale(1)}to{transform:translateY(-3px) scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.solo-emoji-message{animation:none!important}}
+@media(max-width:420px){.emoji-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.emoji-pick{font-size:25px}}
+
+/* Remove the former context-menu animation toggle styling */
+.context-animation-toggle,.context-custom-emoji{display:none!important}
+
+/* Final mobile layout repair: delete confirmation and long-press message menu */
+@media (max-width:600px){
+  .elegant-confirm-actions{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    align-items:stretch!important;
+    gap:12px!important;
+  }
+  .elegant-confirm-actions #elegantConfirmCancel{grid-column:1;grid-row:1;}
+  .elegant-confirm-actions #elegantConfirmDelete{grid-column:2;grid-row:1;}
+  .elegant-confirm-actions .delete-for-all-choice{
+    grid-column:1 / -1!important;grid-row:2!important;
+    display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;
+    gap:10px!important;flex:none!important;width:100%!important;box-sizing:border-box!important;
+    padding:5px 8px!important;font-size:14px!important;line-height:1.45!important;text-align:center!important;
+  }
+  .elegant-confirm-actions .delete-for-all-choice input{flex:0 0 20px!important;width:20px!important;height:20px!important;margin:0!important;}
+  .elegant-confirm-actions button{min-width:0!important;min-height:54px!important;padding:12px!important;}
+}
+.message-context-panel{
+  width:min(440px,calc(100vw - 24px))!important;max-height:min(82dvh,740px)!important;
+  overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+  display:flex!important;flex-direction:column!important;gap:12px!important;box-sizing:border-box!important;
+}
+.message-context-reactions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;width:100%!important;box-sizing:border-box!important;}
+.message-context-reactions .context-emoji{width:100%!important;min-width:0!important;height:48px!important;min-height:48px!important;flex:none!important;box-sizing:border-box!important;}
+.context-extra-emojis{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px!important;max-height:210px!important;overflow-y:auto!important;overflow-x:hidden!important;width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;}
+.context-extra-emojis.hidden{display:none!important;}
+.context-extra-emojis button{aspect-ratio:1!important;width:100%!important;min-width:0!important;height:auto!important;box-sizing:border-box!important;display:grid!important;place-items:center!important;font-size:clamp(20px,5.7vw,27px)!important;}
+.message-context-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px 5px!important;width:100%!important;box-sizing:border-box!important;align-items:stretch!important;}
+.message-context-actions .context-action{min-width:0!important;width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;gap:5px!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+.message-context-actions .context-action>span:last-child{display:block!important;line-height:1.35!important;text-align:center!important;max-width:100%!important;font-size:clamp(10px,2.9vw,12px)!important;}
+.message-context-actions .context-action-icon{width:38px!important;height:38px!important;min-width:38px!important;}
+@media(max-width:420px){
+ .message-context-panel{width:calc(100vw - 18px)!important;padding:10px!important;border-radius:19px!important;}
+ .message-context-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px 7px!important;}
+ .message-context-reactions .context-emoji{height:44px!important;min-height:44px!important;font-size:22px!important;}
+ .context-extra-emojis{grid-template-columns:repeat(5,minmax(0,1fr))!important;max-height:180px!important;}
+}
+
+/* Sticker-only tray; keep sticker previews contained without clipping. */
+.sticker-only-library{min-height:0;}
+.sticker-tray .sticker-grid{align-items:start;}
+.sticker-tray .sticker-library-item{min-width:0;width:100%;}
+.sticker-tray .sticker-pick-tile{aspect-ratio:1/1;height:auto!important;min-height:76px;}
+.sticker-tray .sticker-pick-tile img{object-fit:contain;}
+.sticker-image{flex:none;max-width:min(220px,70vw);max-height:min(280px,45vh);}
+@media(max-width:420px){.sticker-tray .sticker-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}.sticker-tray .sticker-pick-tile,.sticker-tray .sticker-add-tile{min-height:72px;height:auto;}}
+
+/* Custom server-style emoji reaction picker */
+
+.custom-emoji-tray{position:absolute;z-index:90;left:12px;right:12px;bottom:calc(100% + 8px);max-height:min(55vh,440px);overflow:auto;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:rgba(10,10,14,.97);box-shadow:0 18px 48px rgba(0,0,0,.5);padding:12px;}
+.custom-emoji-library{display:flex;flex-direction:column;gap:10px}.custom-emoji-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.custom-emoji-heading button{border:1px solid #444;border-radius:12px;padding:8px 12px;background:#262633;color:inherit}.custom-emoji-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:center}.custom-emoji-item{position:relative;min-width:0}.custom-emoji-item>button:first-child{width:100%;aspect-ratio:1;border:0;border-radius:12px;background:#252532;padding:5px;display:flex;align-items:center;justify-content:center}.custom-emoji-item img{width:100%;height:100%;object-fit:contain}.custom-emoji-delete{position:absolute;top:-5px;right:-4px;width:20px;height:20px;border:0;border-radius:50%;background:#d34b73;color:white;font-size:15px;line-height:18px}.custom-emoji-hint{opacity:.72;text-align:center}.message.custom-reaction-target{outline:2px dashed rgba(236,101,200,.55);outline-offset:3px;border-radius:14px;cursor:pointer}
+@media(max-width:420px){.custom-emoji-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.custom-emoji-tray{left:6px;right:6px;padding:10px}.custom-emoji-toggle{width:42px;height:42px;flex-basis:42px}}
+
+/* Custom emoji tray visibility and positioning repair */
+#customEmojiTray.custom-emoji-tray:not(.hidden){display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;position:absolute!important;left:6px!important;right:6px!important;bottom:calc(100% + 10px)!important;z-index:9999!important;}
+#customEmojiTray.custom-emoji-tray.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important;}
+
+/* Final mobile sticker and custom emoji tray sizing fixes */
+#customEmojiTray.custom-emoji-tray:not(.hidden){position:fixed!important;left:10px!important;right:10px!important;bottom:calc(env(safe-area-inset-bottom,0px) + 92px)!important;max-height:min(52dvh,430px)!important;overflow:auto!important;z-index:10050!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;}
+#customEmojiTray.custom-emoji-tray.hidden{display:none!important;}
+.sticker-tray .sticker-library-item{overflow:hidden!important;border-radius:14px!important;}
+.sticker-tray .sticker-pick-tile{width:100%!important;height:clamp(72px,18vw,110px)!important;min-height:0!important;aspect-ratio:auto!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;}
+.sticker-tray .sticker-pick-tile img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;display:block!important;}
+.message .sticker-image{width:auto!important;height:auto!important;max-width:min(130px,42vw)!important;max-height:min(155px,24vh)!important;object-fit:contain!important;display:block!important;}
+@media(max-width:420px){.message .sticker-image{max-width:min(120px,38vw)!important;max-height:145px!important;}}
+
+/* Tray close controls, panel sizing, and restrained motion */
+.custom-emoji-tray:not(.hidden),#stickerTray:not(.hidden){width:min(460px,calc(100% - 16px));left:auto!important;right:8px!important;box-sizing:border-box;}
+.tray-close{width:34px;height:34px;flex:0 0 34px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(255,255,255,.08);color:inherit;font-size:23px;line-height:1;display:grid;place-items:center;cursor:pointer;transition:transform .16s ease,background .16s ease;}
+.tray-close:active{transform:scale(.92);background:rgba(255,255,255,.16)}
+.custom-emoji-heading{gap:10px}.sticker-tray-heading{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;gap:10px}
+.solo-emoji-message.solo-static-emoji{animation:none!important;transform:none!important}.solo-heart-message{animation:soloEmojiPulse 1.25s ease-in-out infinite alternate!important}
+.settings-toggle,.inbox-toggle,.profile-card,.profile-card button{transition:transform .18s ease,filter .18s ease,box-shadow .18s ease}
+.settings-toggle:active,.inbox-toggle:active,.profile-card:active,.profile-card button:active{transform:scale(.97);filter:brightness(1.12)}
+@media(max-width:600px){.custom-emoji-tray:not(.hidden),#stickerTray:not(.hidden){width:min(430px,calc(100vw - 16px));right:8px!important;left:auto!important;}}
+@media(prefers-reduced-motion:reduce){.tray-close,.settings-toggle,.inbox-toggle,.profile-card,.profile-card button{transition:none!important}}
+
+/* Responsive tray placement: keep sticker/emoji panels confined to chat area */
+#customEmojiTray.custom-emoji-tray:not(.hidden),
+#stickerTray.sticker-tray:not(.hidden){
+  position:fixed!important;left:calc(var(--tray-sidebar-width, 218px) + 10px)!important;right:10px!important;
+  width:auto!important;max-width:none!important;box-sizing:border-box!important;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 92px)!important;
+  max-height:min(48dvh,390px)!important;overflow:auto!important;
+  transform-origin:bottom center;animation:traySoftOpen .22s cubic-bezier(.2,.75,.25,1) both;
+  z-index:10050!important;
+}
+.chat-view.sidebar-collapsed #customEmojiTray.custom-emoji-tray:not(.hidden),
+.chat-view.sidebar-collapsed #stickerTray.sticker-tray:not(.hidden){left:10px!important;right:10px!important;}
+@media(max-width:600px){
+  :root{--tray-sidebar-width: min(31vw,218px)}
+  #customEmojiTray.custom-emoji-tray:not(.hidden),#stickerTray.sticker-tray:not(.hidden){
+    left:calc(var(--tray-sidebar-width) + 8px)!important;right:8px!important;
+    max-height:min(46dvh,360px)!important;bottom:calc(env(safe-area-inset-bottom,0px) + 90px)!important;
+  }
+  .chat-view.sidebar-collapsed #customEmojiTray.custom-emoji-tray:not(.hidden),
+  .chat-view.sidebar-collapsed #stickerTray.sticker-tray:not(.hidden){left:8px!important;right:8px!important;}
+}
+@keyframes traySoftOpen{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Make visible tap feedback smooth and noticeable, without perpetual motion */
+.settings-toggle,.inbox-toggle,.profile-card,.profile-card button,.contact,.soft-btn,.tool-btn,.send-btn{
+ transition:transform .22s cubic-bezier(.2,.75,.25,1),filter .22s ease,box-shadow .22s ease,background-color .22s ease!important;
+}
+.settings-toggle:active,.inbox-toggle:active,.profile-card:active,.profile-card button:active,.contact:active,.soft-btn:active,.tool-btn:active,.send-btn:active{
+ transform:scale(.965)!important;filter:brightness(1.12);box-shadow:0 3px 16px rgba(224,75,185,.16);
+}
+@media(prefers-reduced-motion:reduce){
+ #customEmojiTray:not(.hidden),#stickerTray:not(.hidden){animation:none!important}
+ .settings-toggle,.inbox-toggle,.profile-card,.profile-card button,.contact,.soft-btn,.tool-btn,.send-btn{transition:none!important}
+}
+
+/* Final tray layout: theme-aware, close in corner, add button in its own row */
+:root{--tray-bg:var(--surface,#fff);--tray-ink:var(--ink,#252333);--tray-border:var(--border-color,rgba(120,100,150,.25));--tray-add-bg:var(--surface-soft,#f1edf7)}
+.dark-mode{--tray-bg:#171622;--tray-ink:#f5efff;--tray-border:rgba(255,255,255,.14);--tray-add-bg:#262433}
+body.amoled-mode{--tray-bg:#050505;--tray-ink:#f5f5f5;--tray-border:#292929;--tray-add-bg:#101010}
+.custom-emoji-tray,#stickerTray{background:var(--tray-bg)!important;color:var(--tray-ink)!important;border-color:var(--tray-border)!important}
+.custom-emoji-heading,.sticker-tray-heading{position:relative;padding:4px 42px 8px 2px!important;min-height:40px;justify-content:flex-start!important}
+.custom-emoji-heading #customEmojiClose,.sticker-tray-heading #stickerTrayClose{position:absolute!important;top:2px!important;right:2px!important;left:auto!important;z-index:2}
+.custom-emoji-add-row,.sticker-add-row{display:flex;justify-content:flex-start;align-items:center;margin:4px 0 10px}
+.custom-emoji-add-row button{border:1px solid var(--tray-border);border-radius:10px;padding:5px 8px;font-size:11px;min-height:30px;background:var(--tray-add-bg);color:var(--tray-ink);cursor:pointer}
+.sticker-add-row .sticker-add-tile{height:auto!important;min-height:34px!important;width:auto!important;aspect-ratio:auto!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:5px!important;padding:5px 10px!important;background:var(--tray-add-bg)!important;color:var(--tray-ink)!important;border:1px solid var(--tray-border)!important;border-radius:10px!important}
+.sticker-add-row .sticker-add-tile span{font-size:16px}.sticker-add-row .sticker-add-tile small{font-size:11px}
+.custom-emoji-hint{display:none!important}.custom-emoji-grid{max-height:unset}
+.chat-search-results{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-top:8px}.chat-search-result{padding:8px 10px;border-radius:10px;background:var(--surface-2,rgba(128,128,128,.12));font-size:.9rem;overflow-wrap:anywhere}.chat-search-result small{opacity:.65;display:block;margin-bottom:3px}
+
+/* Manual chat-search trigger */
+#chatSearchRun{font-size:22px!important;cursor:pointer;flex:0 0 28px!important;width:28px!important;order:3!important;}
+/* Search result cards and low-data mixed-media gallery */
+.chat-search-result{width:100%;text-align:right;border:1px solid var(--border,rgba(150,150,150,.22));cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:background .15s ease}.chat-search-result:hover{background:rgba(150,120,200,.16)}.chat-search-jump-label{font-size:.75em;opacity:.7;align-self:flex-start}.message-gallery-video{width:100%;height:100%;object-fit:contain;background:#000}
+/* Emoji/sticker tray close control without a framed square */
+.custom-emoji-heading .tray-close{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:0!important}

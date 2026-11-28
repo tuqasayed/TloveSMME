@@ -6279,3 +6279,19 @@ body.amoled-mode{--tray-bg:#050505;--tray-ink:#f5f5f5;--tray-border:#292929;--tr
 .context-custom-emoji{width:42px;height:42px;padding:4px;border:0;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center}
 .context-custom-emoji img{max-width:100%;max-height:100%;object-fit:contain}
 .inline-custom-emoji{display:inline-block;width:1.55em;height:1.55em;object-fit:contain;vertical-align:-.35em;margin:0 .08em;}
+
+/* Remove the decorative star beneath the group name in the sidebar. */
+.contact.selected::after,.contact.selected::before{content:none!important;display:none!important}
+/* Final fix: remove stray decorative glint below the group title and unframe tray close buttons. */
+.chat-header #chatName::after,.chat-header #chatName::before,.chat-person::after,.chat-person::before{content:none!important;display:none!important;}
+.custom-emoji-heading .tray-close,.sticker-tray-heading .tray-close{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;border-radius:50%!important;}
+
+/* Remove only the decorative star/glint attached to the group sidebar contact. */
+#contacts .contact[data-thread-id="bubble-chat-three-friends"]::before,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"]::after,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details::before,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details::after,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details strong::before,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details strong::after,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details small::before,
+#contacts .contact[data-thread-id="bubble-chat-three-friends"] .contact-details small::after { content:none!important; display:none!important; }
